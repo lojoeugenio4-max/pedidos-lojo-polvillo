@@ -7,8 +7,6 @@ import {
   Package,
   Wine,
   Beef,
-  Plus,
-  Minus,
   Trash2,
 } from "lucide-react";
 
@@ -16,25 +14,29 @@ import { productos, type Producto } from "@/data/productos";
 
 const departamentos = ["Todos", "Bebidas", "Charcutería"];
 
-type Carrito = {
-  [key: string]: Producto & {
-    cantidad: number;
-  };
+type LineaPedido = Producto & {
+  cajas: number;
+  unidades: number;
+};
+
+type Pedido = {
+  [key: string]: LineaPedido;
 };
 
 export default function Home() {
   const [busqueda, setBusqueda] = useState("");
   const [departamento, setDepartamento] = useState("Todos");
-  const [carrito, setCarrito] = useState<Carrito>({});
+  const [pedido, setPedido] = useState<Pedido>({});
 
   const productosFiltrados = useMemo(() => {
-    const q = busqueda.toLowerCase();
+    const q = busqueda.toLowerCase().trim();
 
     return productos.filter((p) => {
       const coincideDepartamento =
         departamento === "Todos" || p.departamento === departamento;
 
       const coincideBusqueda =
+        !q ||
         p.nombre.toLowerCase().includes(q) ||
         p.codigo.includes(q) ||
         p.categoria.toLowerCase().includes(q);
@@ -43,63 +45,82 @@ export default function Home() {
     });
   }, [busqueda, departamento]);
 
-  const totalCarrito = Object.values(carrito).reduce(
-    (acc, item) => acc + item.cantidad,
-    0
+  const lineasPedido = Object.values(pedido).filter(
+    (item) => item.cajas > 0 || item.unidades > 0
   );
 
-  function sumar(producto: Producto) {
-    setCarrito((prev) => ({
-      ...prev,
-      [producto.codigo]: {
+  const totalLineas = lineasPedido.length;
+
+  function actualizarCantidad(
+    producto: Producto,
+    tipo: "cajas" | "unidades",
+    valor: string
+  ) {
+    const cantidad = Math.max(0, Number(valor) || 0);
+
+    setPedido((prev) => {
+      const actual = prev[producto.codigo] || {
         ...producto,
-        cantidad: (prev[producto.codigo]?.cantidad || 0) + 1,
-      },
-    }));
-  }
+        cajas: 0,
+        unidades: 0,
+      };
 
-  function restar(codigo: string) {
-    setCarrito((prev) => {
-      const actual = prev[codigo];
+      let actualizado: LineaPedido;
 
-      if (!actual) return prev;
-
-      if (actual.cantidad <= 1) {
-        const copia = { ...prev };
-        delete copia[codigo];
-        return copia;
+      if (producto.departamento === "Bebidas") {
+        actualizado = {
+          ...actual,
+          cajas: cantidad,
+          unidades: 0,
+        };
+      } else {
+        actualizado = {
+          ...actual,
+          cajas: tipo === "cajas" ? cantidad : 0,
+          unidades: tipo === "unidades" ? cantidad : 0,
+        };
       }
 
-      return {
-        ...prev,
-        [codigo]: {
-          ...actual,
-          cantidad: actual.cantidad - 1,
-        },
-      };
+      const copia = { ...prev };
+
+      if (actualizado.cajas === 0 && actualizado.unidades === 0) {
+        delete copia[producto.codigo];
+      } else {
+        copia[producto.codigo] = actualizado;
+      }
+
+      return copia;
     });
   }
 
-  function limpiarCarrito() {
-    setCarrito({});
+  function limpiarPedido() {
+    setPedido({});
+  }
+
+  function cantidadActual(producto: Producto, tipo: "cajas" | "unidades") {
+    return pedido[producto.codigo]?.[tipo] || 0;
   }
 
   return (
-    <main className="min-h-screen bg-slate-100 p-6">
+    <main className="min-h-screen bg-slate-100 p-4 md:p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         <header className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <h1 className="text-4xl font-bold">Polvillo · Pedidos</h1>
+            <h1 className="text-3xl md:text-4xl font-bold">
+              Polvillo · Pedidos
+            </h1>
+
             <p className="text-slate-600 mt-2">
-              Catálogo de bebidas y charcutería
+              Catálogo de bebidas y charcutería para preparar pedidos
             </p>
           </div>
 
           <div className="bg-white rounded-2xl p-4 shadow flex items-center gap-3">
             <ShoppingCart className="w-6 h-6" />
+
             <div>
               <p className="text-sm text-slate-500">Pedido actual</p>
-              <p className="text-2xl font-bold">{totalCarrito} uds</p>
+              <p className="text-2xl font-bold">{totalLineas} líneas</p>
             </div>
           </div>
         </header>
@@ -107,6 +128,7 @@ export default function Home() {
         <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="bg-white rounded-2xl p-4 shadow flex items-center gap-3">
             <Package className="w-6 h-6" />
+
             <div>
               <p className="text-sm text-slate-500">Productos</p>
               <p className="text-2xl font-bold">{productos.length}</p>
@@ -115,6 +137,7 @@ export default function Home() {
 
           <div className="bg-white rounded-2xl p-4 shadow flex items-center gap-3">
             <Wine className="w-6 h-6" />
+
             <div>
               <p className="text-sm text-slate-500">Bebidas</p>
               <p className="text-2xl font-bold">
@@ -125,10 +148,14 @@ export default function Home() {
 
           <div className="bg-white rounded-2xl p-4 shadow flex items-center gap-3">
             <Beef className="w-6 h-6" />
+
             <div>
               <p className="text-sm text-slate-500">Charcutería</p>
               <p className="text-2xl font-bold">
-                {productos.filter((p) => p.departamento === "Charcutería").length}
+                {
+                  productos.filter((p) => p.departamento === "Charcutería")
+                    .length
+                }
               </p>
             </div>
           </div>
@@ -138,6 +165,7 @@ export default function Home() {
           <div className="flex flex-col md:flex-row gap-3">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-3 w-5 h-5 text-slate-400" />
+
               <input
                 value={busqueda}
                 onChange={(e) => setBusqueda(e.target.value)}
@@ -163,45 +191,98 @@ export default function Home() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <section className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
-            {productosFiltrados.map((p) => (
-              <div key={`${p.codigo}-${p.nombre}`} className="bg-white rounded-2xl p-4 shadow">
-                <div className="flex justify-between items-start gap-3">
-                  <div>
-                    <p className="text-xs text-slate-500">Código {p.codigo}</p>
-                    <h2 className="font-bold mt-1">{p.nombre}</h2>
+          <section className="lg:col-span-2 space-y-3">
+            {productosFiltrados.map((p) => {
+              const cajas = cantidadActual(p, "cajas");
+              const unidades = cantidadActual(p, "unidades");
+
+              return (
+                <div
+                  key={`${p.codigo}-${p.nombre}`}
+                  className="bg-white rounded-2xl p-4 shadow"
+                >
+                  <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-4 md:items-center">
+                    <div>
+                      <p className="text-xs text-slate-500">
+                        Código {p.codigo}
+                      </p>
+
+                      <h2 className="font-bold mt-1">{p.nombre}</h2>
+
+                      <p className="text-sm text-slate-500 mt-1">
+                        {p.departamento} · {p.categoria}
+                      </p>
+                    </div>
+
+                    {p.departamento === "Bebidas" ? (
+                      <div className="w-full md:w-36">
+                        <label className="block text-xs font-semibold text-slate-500 mb-1">
+                          CAJAS
+                        </label>
+
+                        <input
+                          type="number"
+                          min="0"
+                          value={cajas || ""}
+                          onChange={(e) =>
+                            actualizarCantidad(p, "cajas", e.target.value)
+                          }
+                          className="w-full border rounded-xl px-3 py-2 text-center"
+                          placeholder="0"
+                        />
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-2 gap-3 w-full md:w-72">
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-500 mb-1">
+                            CAJAS
+                          </label>
+
+                          <input
+                            type="number"
+                            min="0"
+                            value={cajas || ""}
+                            disabled={unidades > 0}
+                            onChange={(e) =>
+                              actualizarCantidad(p, "cajas", e.target.value)
+                            }
+                            className="w-full border rounded-xl px-3 py-2 text-center disabled:bg-slate-100 disabled:text-slate-400"
+                            placeholder="0"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-500 mb-1">
+                            UNIDADES
+                          </label>
+
+                          <input
+                            type="number"
+                            min="0"
+                            value={unidades || ""}
+                            disabled={cajas > 0}
+                            onChange={(e) =>
+                              actualizarCantidad(p, "unidades", e.target.value)
+                            }
+                            className="w-full border rounded-xl px-3 py-2 text-center disabled:bg-slate-100 disabled:text-slate-400"
+                            placeholder="0"
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
-
-                  <span className="bg-slate-100 px-3 py-1 rounded-full text-xs">
-                    {p.unidad}
-                  </span>
                 </div>
-
-                <div className="mt-4 flex justify-between items-center gap-3">
-                  <div>
-                    <p className="text-sm text-slate-500">{p.departamento}</p>
-                    <p className="font-medium">{p.categoria}</p>
-                  </div>
-
-                  <button
-                    onClick={() => sumar(p)}
-                    className="bg-black text-white px-4 py-2 rounded-xl flex items-center gap-2"
-                  >
-                    <Plus className="w-4 h-4" />
-                    Añadir
-                  </button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </section>
 
           <aside>
-            <div className="bg-white rounded-2xl p-4 shadow">
+            <div className="bg-white rounded-2xl p-4 shadow sticky top-4">
               <div className="flex justify-between items-center">
                 <h2 className="text-xl font-bold">Pedido</h2>
 
                 <button
-                  onClick={limpiarCarrito}
+                  onClick={limpiarPedido}
                   className="text-red-500 flex items-center gap-1"
                 >
                   <Trash2 className="w-4 h-4" />
@@ -210,40 +291,27 @@ export default function Home() {
               </div>
 
               <div className="mt-4 space-y-3">
-                {Object.values(carrito).length === 0 && (
+                {lineasPedido.length === 0 && (
                   <p className="text-slate-500 text-sm">
                     No hay artículos añadidos
                   </p>
                 )}
 
-                {Object.values(carrito).map((item) => (
+                {lineasPedido.map((item) => (
                   <div key={item.codigo} className="border rounded-xl p-3">
-                    <div className="flex justify-between gap-3">
-                      <div>
-                        <p className="font-semibold text-sm">{item.nombre}</p>
-                        <p className="text-xs text-slate-500">
-                          {item.codigo} · {item.unidad}
-                        </p>
-                      </div>
+                    <p className="font-semibold text-sm">{item.nombre}</p>
 
-                      <p className="font-bold">x{item.cantidad}</p>
-                    </div>
+                    <p className="text-xs text-slate-500">
+                      {item.codigo} · {item.departamento}
+                    </p>
 
-                    <div className="flex gap-2 mt-3">
-                      <button
-                        onClick={() => restar(item.codigo)}
-                        className="border rounded-lg p-2"
-                      >
-                        <Minus className="w-4 h-4" />
-                      </button>
-
-                      <button
-                        onClick={() => sumar(item)}
-                        className="border rounded-lg p-2"
-                      >
-                        <Plus className="w-4 h-4" />
-                      </button>
-                    </div>
+                    <p className="font-bold mt-2">
+                      {item.cajas > 0
+                        ? `${item.cajas} caja${item.cajas === 1 ? "" : "s"}`
+                        : `${item.unidades} unidad${
+                            item.unidades === 1 ? "" : "es"
+                          }`}
+                    </p>
                   </div>
                 ))}
               </div>

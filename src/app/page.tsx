@@ -147,12 +147,13 @@ export default function Home() {
       if (pedidoError) throw pedidoError;
 
       const lineas = lineasPedido.map((item) => ({
-        pedido_id: pedidoCreado.id,
-        codigo_articulo: item.codigo,
-        nombre_articulo: item.nombre,
-        cajas: item.cajas,
-        unidades: item.unidades,
-      }));
+  pedido_id: pedidoCreado.id,
+  codigo_articulo: item.codigo,
+  nombre_articulo: item.nombre,
+  departamento: item.departamento,
+  cajas: item.cajas,
+  unidades: item.unidades,
+}));
 
       const { error: lineasError } = await supabase
         .from("lineas_pedido")

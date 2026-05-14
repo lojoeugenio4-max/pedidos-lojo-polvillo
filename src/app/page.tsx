@@ -166,7 +166,7 @@ export default function Home() {
       setTelefono("");
     } catch (error) {
       console.error(error);
-      setMensaje("No se pudo enviar el pedido. Revisa Supabase o inténtalo de nuevo.");
+      setMensaje(String(error));
     } finally {
       setEnviando(false);
     }

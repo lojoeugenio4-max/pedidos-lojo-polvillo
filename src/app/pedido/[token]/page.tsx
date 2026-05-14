@@ -7,6 +7,8 @@ import {
   Trash2,
   Send,
   AlertCircle,
+  ArrowLeft,
+  CheckCircle,
 } from "lucide-react";
 import { useParams } from "next/navigation";
 
@@ -78,6 +80,7 @@ export default function PedidoClientePage() {
   const [pedido, setPedido] = useState<Pedido>({});
   const [enviando, setEnviando] = useState(false);
   const [mensaje, setMensaje] = useState("");
+  const [mostrarPreview, setMostrarPreview] = useState(false);
 
   async function cargarCliente() {
     setCargandoCliente(true);
@@ -130,8 +133,22 @@ export default function PedidoClientePage() {
       .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
   }, [busqueda, departamento]);
 
-  const lineasPedido = Object.values(pedido).filter(
-    (item) => item.cajas > 0 || item.unidades > 0
+  const lineasPedido = Object.values(pedido)
+    .filter((item) => item.cajas > 0 || item.unidades > 0)
+    .sort((a, b) => {
+      if (a.departamento !== b.departamento) {
+        return a.departamento.localeCompare(b.departamento, "es");
+      }
+
+      return a.nombre.localeCompare(b.nombre, "es");
+    });
+
+  const bebidasPedido = lineasPedido.filter(
+    (item) => item.departamento === "Bebidas"
+  );
+
+  const charcuteriaPedido = lineasPedido.filter(
+    (item) => item.departamento === "Charcutería"
   );
 
   const totalLineas = lineasPedido.length;
@@ -174,10 +191,22 @@ export default function PedidoClientePage() {
   function limpiarPedido() {
     setPedido({});
     setMensaje("");
+    setMostrarPreview(false);
   }
 
   function cantidadActual(producto: Producto, tipo: "cajas" | "unidades") {
     return pedido[producto.codigo]?.[tipo] || 0;
+  }
+
+  function abrirPreview() {
+    setMensaje("");
+
+    if (lineasPedido.length === 0) {
+      setMensaje("Añade al menos un artículo al pedido.");
+      return;
+    }
+
+    setMostrarPreview(true);
   }
 
   async function enviarPedido() {
@@ -237,6 +266,7 @@ export default function PedidoClientePage() {
       );
 
       setPedido({});
+      setMostrarPreview(false);
     } catch (error) {
       console.error(error);
 
@@ -277,6 +307,108 @@ export default function PedidoClientePage() {
     );
   }
 
+  if (mostrarPreview) {
+    return (
+      <main className="min-h-screen bg-slate-100 p-4 md:p-6 pb-32">
+        <div className="max-w-4xl mx-auto space-y-6">
+          <header className="bg-white rounded-2xl shadow p-4 md:p-6">
+            <h1 className="text-3xl md:text-4xl font-bold">
+              Revisar pedido
+            </h1>
+
+            <p className="text-slate-600 mt-2">
+              Pedido de <strong>{cliente.nombre}</strong>
+            </p>
+          </header>
+
+          <section className="bg-white rounded-2xl shadow p-4 md:p-6 space-y-6">
+            {bebidasPedido.length > 0 && (
+              <div>
+                <h2 className="text-xl font-bold mb-3">Bebidas</h2>
+
+                <div className="space-y-2">
+                  {bebidasPedido.map((item) => (
+                    <div
+                      key={item.codigo}
+                      className="border rounded-xl p-3 flex justify-between gap-3"
+                    >
+                      <div>
+                        <p className="font-semibold">{item.nombre}</p>
+                        <p className="text-xs text-slate-500">
+                          Código {item.codigo}
+                        </p>
+                      </div>
+
+                      <p className="font-bold whitespace-nowrap">
+                        {item.cajas} caja{item.cajas === 1 ? "" : "s"}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {charcuteriaPedido.length > 0 && (
+              <div>
+                <h2 className="text-xl font-bold mb-3">Charcutería</h2>
+
+                <div className="space-y-2">
+                  {charcuteriaPedido.map((item) => (
+                    <div
+                      key={item.codigo}
+                      className="border rounded-xl p-3 flex justify-between gap-3"
+                    >
+                      <div>
+                        <p className="font-semibold">{item.nombre}</p>
+                        <p className="text-xs text-slate-500">
+                          Código {item.codigo}
+                        </p>
+                      </div>
+
+                      <p className="font-bold whitespace-nowrap">
+                        {item.cajas > 0
+                          ? `${item.cajas} caja${item.cajas === 1 ? "" : "s"}`
+                          : `${item.unidades} unidad${
+                              item.unidades === 1 ? "" : "es"
+                            }`}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {mensaje && (
+              <p className="text-sm font-medium text-center">{mensaje}</p>
+            )}
+          </section>
+        </div>
+
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-2xl p-3 md:p-4 z-50">
+          <div className="max-w-4xl mx-auto flex flex-col md:flex-row gap-3 md:items-center md:justify-between">
+            <button
+              onClick={() => setMostrarPreview(false)}
+              disabled={enviando}
+              className="w-full md:w-auto border rounded-xl py-3 px-6 font-bold flex items-center justify-center gap-2 bg-white"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Volver y modificar
+            </button>
+
+            <button
+              onClick={enviarPedido}
+              disabled={enviando}
+              className="w-full md:w-auto bg-black text-white rounded-xl py-3 px-6 font-bold flex items-center justify-center gap-2 disabled:bg-slate-400"
+            >
+              <CheckCircle className="w-4 h-4" />
+              {enviando ? "Enviando..." : "Confirmar y enviar"}
+            </button>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="min-h-screen bg-slate-100 p-4 md:p-6 pb-36">
       <div className="max-w-7xl mx-auto space-y-6">
@@ -309,31 +441,33 @@ export default function PedidoClientePage() {
           </div>
         </header>
 
-        <div className="bg-white rounded-2xl p-4 shadow">
-          <div className="flex flex-col md:flex-row gap-3">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-3 w-5 h-5 text-slate-400" />
+        <div className="sticky top-0 z-40 bg-slate-100 pt-2 pb-3">
+          <div className="bg-white rounded-2xl p-4 shadow">
+            <div className="flex flex-col md:flex-row gap-3">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-3 w-5 h-5 text-slate-400" />
 
-              <input
-                value={busqueda}
-                onChange={(e) => setBusqueda(e.target.value)}
-                placeholder="Buscar por código, artículo o categoría..."
-                className="w-full border rounded-xl py-3 pl-10 pr-4"
-              />
-            </div>
+                <input
+                  value={busqueda}
+                  onChange={(e) => setBusqueda(e.target.value)}
+                  placeholder="Buscar por código, artículo o categoría..."
+                  className="w-full border rounded-xl py-3 pl-10 pr-4"
+                />
+              </div>
 
-            <div className="flex gap-2 flex-wrap">
-              {departamentos.map((d) => (
-                <button
-                  key={d}
-                  onClick={() => setDepartamento(d)}
-                  className={`px-4 py-2 rounded-xl border ${
-                    departamento === d ? "bg-black text-white" : "bg-white"
-                  }`}
-                >
-                  {d}
-                </button>
-              ))}
+              <div className="flex gap-2 flex-wrap">
+                {departamentos.map((d) => (
+                  <button
+                    key={d}
+                    onClick={() => setDepartamento(d)}
+                    className={`px-4 py-2 rounded-xl border ${
+                      departamento === d ? "bg-black text-white" : "bg-white"
+                    }`}
+                  >
+                    {d}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </div>
@@ -447,12 +581,12 @@ export default function PedidoClientePage() {
             )}
 
             <button
-              onClick={enviarPedido}
+              onClick={abrirPreview}
               disabled={enviando}
               className="w-full md:w-auto md:min-w-64 bg-black text-white rounded-xl py-3 px-6 font-bold flex items-center justify-center gap-2 disabled:bg-slate-400 md:ml-auto"
             >
               <Send className="w-4 h-4" />
-              {enviando ? "Enviando..." : "Enviar pedido"}
+              Revisar pedido
             </button>
           </div>
         </div>

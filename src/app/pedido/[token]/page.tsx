@@ -309,7 +309,7 @@ export default function PedidoClientePage() {
 
   if (mostrarPreview) {
     return (
-      <main className="min-h-screen bg-slate-100 p-4 md:p-6 pb-32">
+      <main className="min-h-screen bg-slate-100 p-4 md:p-6 pb-56">
         <div className="max-w-4xl mx-auto space-y-6">
           <header className="bg-white rounded-2xl shadow p-4 md:p-6">
             <h1 className="text-3xl md:text-4xl font-bold">

@@ -26,6 +26,7 @@ type LineaPedido = {
   pedido_id: string;
   codigo_articulo: string;
   nombre_articulo: string;
+  departamento: string | null;
   cajas: number;
   unidades: number;
 };
@@ -34,33 +35,19 @@ export default function PedidoDetallePage() {
   const params = useParams();
   const id = String(params.id);
 
-  const [pedido, setPedido] =
-    useState<Pedido | null>(null);
-
-  const [cliente, setCliente] =
-    useState<Cliente | null>(null);
-
-  const [lineas, setLineas] = useState<
-    LineaPedido[]
-  >([]);
-
-  const [cargando, setCargando] =
-    useState(true);
-
+  const [pedido, setPedido] = useState<Pedido | null>(null);
+  const [cliente, setCliente] = useState<Cliente | null>(null);
+  const [lineas, setLineas] = useState<LineaPedido[]>([]);
+  const [cargando, setCargando] = useState(true);
   const [mensaje, setMensaje] = useState("");
 
   async function cargarPedido() {
     setCargando(true);
     setMensaje("");
 
-    const {
-      data: pedidoData,
-      error: pedidoError,
-    } = await supabase
+    const { data: pedidoData, error: pedidoError } = await supabase
       .from("pedidos")
-      .select(
-        "id, cliente_id, fecha, impreso"
-      )
+      .select("id, cliente_id, fecha, impreso")
       .eq("id", id)
       .single();
 
@@ -72,14 +59,9 @@ export default function PedidoDetallePage() {
 
     setPedido(pedidoData as Pedido);
 
-    const {
-      data: clienteData,
-      error: clienteError,
-    } = await supabase
+    const { data: clienteData, error: clienteError } = await supabase
       .from("Clientes")
-      .select(
-        "id, nombre, telefono, dia_pedido, ruta"
-      )
+      .select("id, nombre, telefono, dia_pedido, ruta")
       .eq("id", pedidoData.cliente_id)
       .single();
 
@@ -91,13 +73,10 @@ export default function PedidoDetallePage() {
 
     setCliente(clienteData as Cliente);
 
-    const {
-      data: lineasData,
-      error: lineasError,
-    } = await supabase
+    const { data: lineasData, error: lineasError } = await supabase
       .from("lineas_pedido")
       .select(
-        "id, pedido_id, codigo_articulo, nombre_articulo, cajas, unidades"
+        "id, pedido_id, codigo_articulo, nombre_articulo, departamento, cajas, unidades"
       )
       .eq("pedido_id", id)
       .order("codigo_articulo", {
@@ -110,10 +89,7 @@ export default function PedidoDetallePage() {
       return;
     }
 
-    setLineas(
-      (lineasData || []) as LineaPedido[]
-    );
-
+    setLineas((lineasData || []) as LineaPedido[]);
     setCargando(false);
   }
 
@@ -132,13 +108,14 @@ export default function PedidoDetallePage() {
     cargarPedido();
   }, []);
 
-  const bebidas = lineas.filter(
-    (l) => l.unidades === 0
+  const bebidas = lineas.filter((l) => l.departamento === "Bebidas");
+  const charcuteria = lineas.filter(
+    (l) => l.departamento === "Charcutería"
   );
 
-  const charcuteria = lineas.filter(
-    (l) => l.unidades > 0
-  );
+  const fechaEspana = pedido?.fecha
+    ? new Date(pedido.fecha).toLocaleDateString("es-ES")
+    : "";
 
   return (
     <main className="min-h-screen bg-slate-100 p-4 md:p-6 print:bg-white print:p-0">
@@ -173,34 +150,17 @@ export default function PedidoDetallePage() {
           </div>
         ) : (
           <section className="bg-white rounded-2xl p-6 shadow print:shadow-none print:rounded-none print:p-0">
-            {/* BEBIDAS */}
-
             <section>
               <div className="mb-6 border-b pb-4">
-                <h1 className="text-3xl font-bold">
-                  BEBIDAS
-                </h1>
+                <h1 className="text-3xl font-bold">BEBIDAS</h1>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-4 text-sm">
                   <p>
-                    <strong>
-                      Tienda:
-                    </strong>{" "}
-                    {cliente?.nombre ||
-                      "Sin tienda"}
+                    <strong>Tienda:</strong> {cliente?.nombre || "Sin tienda"}
                   </p>
 
                   <p>
-                    <strong>
-                      Fecha:
-                    </strong>{" "}
-                    {pedido?.fecha
-                      ? new Date(
-                          pedido.fecha
-                        ).toLocaleDateString(
-                          "es-ES"
-                        )
-                      : ""}
+                    <strong>Fecha:</strong> {fechaEspana}
                   </p>
                 </div>
               </div>
@@ -208,77 +168,49 @@ export default function PedidoDetallePage() {
               <table className="w-full border-collapse text-sm">
                 <thead>
                   <tr className="border-b-2 border-black">
-                    <th className="text-left py-2 pr-2 w-24">
-                      Código
-                    </th>
-
-                    <th className="text-left py-2 pr-2">
-                      Nombre
-                    </th>
-
-                    <th className="text-center py-2 px-2 w-20">
-                      Cajas
-                    </th>
+                    <th className="text-left py-2 pr-2 w-24">Código</th>
+                    <th className="text-left py-2 pr-2">Nombre</th>
+                    <th className="text-center py-2 px-2 w-20">Cajas</th>
                   </tr>
                 </thead>
 
                 <tbody>
                   {bebidas.map((linea) => (
-                    <tr
-                      key={linea.id}
-                      className="border-b"
-                    >
+                    <tr key={linea.id} className="border-b">
                       <td className="py-2 pr-2 font-semibold">
-                        {
-                          linea.codigo_articulo
-                        }
+                        {linea.codigo_articulo}
                       </td>
 
                       <td className="py-2 pr-2">
-                        {
-                          linea.nombre_articulo
-                        }
+                        {linea.nombre_articulo}
                       </td>
 
                       <td className="py-2 px-2 text-center">
-                        {linea.cajas > 0
-                          ? linea.cajas
-                          : ""}
+                        {linea.cajas > 0 ? linea.cajas : ""}
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-            </section>
 
-            {/* CHARCUTERÍA */}
+              {bebidas.length === 0 && (
+                <p className="text-sm text-slate-500 mt-4">
+                  No hay bebidas en este pedido.
+                </p>
+              )}
+            </section>
 
             <section className="mt-16 print:break-before-page">
               <div className="mb-6 border-b pb-4">
-                <h1 className="text-3xl font-bold">
-                  CHARCUTERÍA
-                </h1>
+                <h1 className="text-3xl font-bold">CHARCUTERÍA</h1>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-4 text-sm">
                   <p>
-                    <strong>
-                      Tienda:
-                    </strong>{" "}
-                    {cliente?.nombre ||
-                      "Sin tienda"}
+                    <strong>Tienda:</strong> {cliente?.nombre || "Sin tienda"}
                   </p>
 
                   <p>
-                    <strong>
-                      Fecha:
-                    </strong>{" "}
-                    {pedido?.fecha
-                      ? new Date(
-                          pedido.fecha
-                        ).toLocaleDateString(
-                          "es-ES"
-                        )
-                      : ""}
+                    <strong>Fecha:</strong> {fechaEspana}
                   </p>
                 </div>
               </div>
@@ -286,67 +218,44 @@ export default function PedidoDetallePage() {
               <table className="w-full border-collapse text-sm">
                 <thead>
                   <tr className="border-b-2 border-black">
-                    <th className="text-left py-2 pr-2 w-24">
-                      Código
-                    </th>
-
-                    <th className="text-left py-2 pr-2">
-                      Nombre
-                    </th>
-
-                    <th className="text-center py-2 px-2 w-20">
-                      Cajas
-                    </th>
-
-                    <th className="text-center py-2 px-2 w-24">
-                      Unidades
-                    </th>
-
-                    <th className="text-left py-2 pl-2 w-40">
-                      Kilos
-                    </th>
+                    <th className="text-left py-2 pr-2 w-24">Código</th>
+                    <th className="text-left py-2 pr-2">Nombre</th>
+                    <th className="text-center py-2 px-2 w-20">Cajas</th>
+                    <th className="text-center py-2 px-2 w-24">Unidades</th>
+                    <th className="text-left py-2 pl-2 w-40">Kilos</th>
                   </tr>
                 </thead>
 
                 <tbody>
-                  {charcuteria.map(
-                    (linea) => (
-                      <tr
-                        key={linea.id}
-                        className="border-b"
-                      >
-                        <td className="py-2 pr-2 font-semibold">
-                          {
-                            linea.codigo_articulo
-                          }
-                        </td>
+                  {charcuteria.map((linea) => (
+                    <tr key={linea.id} className="border-b">
+                      <td className="py-2 pr-2 font-semibold">
+                        {linea.codigo_articulo}
+                      </td>
 
-                        <td className="py-2 pr-2">
-                          {
-                            linea.nombre_articulo
-                          }
-                        </td>
+                      <td className="py-2 pr-2">
+                        {linea.nombre_articulo}
+                      </td>
 
-                        <td className="py-2 px-2 text-center">
-                          {linea.cajas >
-                          0
-                            ? linea.cajas
-                            : ""}
-                        </td>
+                      <td className="py-2 px-2 text-center">
+                        {linea.cajas > 0 ? linea.cajas : ""}
+                      </td>
 
-                        <td className="py-2 px-2 text-center">
-                          {linea.unidades >
-                          0
-                            ? linea.unidades
-                            : ""}
-                        </td>
+                      <td className="py-2 px-2 text-center">
+                        {linea.unidades > 0 ? linea.unidades : ""}
+                      </td>
 
-                        <td className="py-2 pl-2"></td>
-                      </tr>
-                    )
-                  )}
+                      <td className="py-2 pl-2"></td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
+
+              {charcuteria.length === 0 && (
+                <p className="text-sm text-slate-500 mt-4">
+                  No hay charcutería en este pedido.
+                </p>
+              )}
             </section>
           </section>
         )}

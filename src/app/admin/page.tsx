@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { RefreshCw, Printer, CheckCircle, Clock } from "lucide-react";
+import { RefreshCw, Printer, CheckCircle, Clock, Eye } from "lucide-react";
+import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 
 type Cliente = {
@@ -57,7 +58,7 @@ export default function AdminPage() {
       return;
     }
 
-   setPedidos((data || []) as unknown as Pedido[]);
+    setPedidos((data || []) as unknown as Pedido[]);
     setCargando(false);
   }
 
@@ -73,11 +74,6 @@ export default function AdminPage() {
     }
 
     await cargarPedidos();
-  }
-
-  function imprimirPedido(pedido: Pedido) {
-    window.print();
-    marcarImpreso(pedido.id);
   }
 
   useEffect(() => {
@@ -182,23 +178,29 @@ export default function AdminPage() {
                         {pedido.estado}
                       </span>
                     </td>
-                    <td className="p-3">
-                      {pedido.impreso ? "Sí" : "No"}
-                    </td>
+                    <td className="p-3">{pedido.impreso ? "Sí" : "No"}</td>
                     <td className="p-3">
                       <div className="flex gap-2">
-                        <button
-                          onClick={() => imprimirPedido(pedido)}
+                        <Link
+                          href={`/admin/pedido/${pedido.id}`}
                           className="rounded-lg border px-3 py-2 flex items-center gap-1"
                         >
+                          <Eye className="w-4 h-4" />
+                          Ver
+                        </Link>
+
+                        <Link
+                          href={`/admin/pedido/${pedido.id}`}
+                          className="rounded-lg bg-black text-white px-3 py-2 flex items-center gap-1"
+                        >
                           <Printer className="w-4 h-4" />
-                          Imprimir
-                        </button>
+                          Preparar / imprimir
+                        </Link>
 
                         {!pedido.impreso && (
                           <button
                             onClick={() => marcarImpreso(pedido.id)}
-                            className="rounded-lg bg-black text-white px-3 py-2"
+                            className="rounded-lg border px-3 py-2"
                           >
                             Marcar impreso
                           </button>

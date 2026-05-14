@@ -18,9 +18,7 @@ type Pedido = {
   id: string;
   cliente_id: number;
   fecha: string;
-  estado: string;
   impreso: boolean;
-  creado_en: string;
 };
 
 type LineaPedido = {
@@ -61,7 +59,7 @@ export default function PedidoDetallePage() {
     } = await supabase
       .from("pedidos")
       .select(
-        "id, cliente_id, fecha, estado, impreso, creado_en"
+        "id, cliente_id, fecha, impreso"
       )
       .eq("id", id)
       .single();
@@ -124,7 +122,6 @@ export default function PedidoDetallePage() {
       .from("pedidos")
       .update({
         impreso: true,
-        estado: "impreso",
       })
       .eq("id", id);
 
@@ -176,72 +173,132 @@ export default function PedidoDetallePage() {
           </div>
         ) : (
           <section className="bg-white rounded-2xl p-6 shadow print:shadow-none print:rounded-none print:p-0">
-            <header className="border-b pb-4 mb-4">
-              <h1 className="text-3xl font-bold">
-                Pedido para preparar
-              </h1>
+            {/* BEBIDAS */}
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-4 text-sm">
-                <p>
-                  <strong>Tienda:</strong>{" "}
-                  {cliente?.nombre ||
-                    "Sin tienda"}
-                </p>
-
-                <p>
-                  <strong>Fecha:</strong>{" "}
-                  {pedido?.fecha}
-                </p>
-
-                <p>
-                  <strong>Teléfono:</strong>{" "}
-                  {cliente?.telefono || "-"}
-                </p>
-
-                <p>
-                  <strong>Estado:</strong>{" "}
-                  {pedido?.impreso
-                    ? "Impreso"
-                    : "Recibido"}
-                </p>
-              </div>
-            </header>
-
-            <div className="space-y-10">
-              {/* BEBIDAS */}
-
-              <section>
-                <h2 className="text-2xl font-bold mb-4 border-b pb-2">
+            <section>
+              <div className="mb-6 border-b pb-4">
+                <h1 className="text-3xl font-bold">
                   BEBIDAS
-                </h2>
+                </h1>
 
-                <table className="w-full border-collapse text-sm">
-                  <thead>
-                    <tr className="border-b-2 border-black">
-                      <th className="text-left py-2 pr-2 w-24">
-                        Código
-                      </th>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-4 text-sm">
+                  <p>
+                    <strong>
+                      Tienda:
+                    </strong>{" "}
+                    {cliente?.nombre ||
+                      "Sin tienda"}
+                  </p>
 
-                      <th className="text-left py-2 pr-2">
-                        Nombre
-                      </th>
+                  <p>
+                    <strong>
+                      Fecha:
+                    </strong>{" "}
+                    {pedido?.fecha}
+                  </p>
+                </div>
+              </div>
 
-                      <th className="text-center py-2 px-2 w-20">
-                        Cajas
-                      </th>
+              <table className="w-full border-collapse text-sm">
+                <thead>
+                  <tr className="border-b-2 border-black">
+                    <th className="text-left py-2 pr-2 w-24">
+                      Código
+                    </th>
 
-                      <th className="text-center py-2 px-2 w-24">
-                        Unidades
-                      </th>
+                    <th className="text-left py-2 pr-2">
+                      Nombre
+                    </th>
 
-                      <th className="text-left py-2 pl-2 w-40">
-                        Kilo__________
-                      </th>
+                    <th className="text-center py-2 px-2 w-20">
+                      Cajas
+                    </th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {bebidas.map((linea) => (
+                    <tr
+                      key={linea.id}
+                      className="border-b"
+                    >
+                      <td className="py-2 pr-2 font-semibold">
+                        {
+                          linea.codigo_articulo
+                        }
+                      </td>
+
+                      <td className="py-2 pr-2">
+                        {
+                          linea.nombre_articulo
+                        }
+                      </td>
+
+                      <td className="py-2 px-2 text-center">
+                        {linea.cajas > 0
+                          ? linea.cajas
+                          : ""}
+                      </td>
                     </tr>
-                  </thead>
+                  ))}
+                </tbody>
+              </table>
+            </section>
 
-                  <tbody>
-                    {bebidas.map((linea) => (
+            {/* CHARCUTERÍA */}
+
+            <section className="mt-16 print:break-before-page">
+              <div className="mb-6 border-b pb-4">
+                <h1 className="text-3xl font-bold">
+                  CHARCUTERÍA
+                </h1>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-4 text-sm">
+                  <p>
+                    <strong>
+                      Tienda:
+                    </strong>{" "}
+                    {cliente?.nombre ||
+                      "Sin tienda"}
+                  </p>
+
+                  <p>
+                    <strong>
+                      Fecha:
+                    </strong>{" "}
+                    {pedido?.fecha}
+                  </p>
+                </div>
+              </div>
+
+              <table className="w-full border-collapse text-sm">
+                <thead>
+                  <tr className="border-b-2 border-black">
+                    <th className="text-left py-2 pr-2 w-24">
+                      Código
+                    </th>
+
+                    <th className="text-left py-2 pr-2">
+                      Nombre
+                    </th>
+
+                    <th className="text-center py-2 px-2 w-20">
+                      Cajas
+                    </th>
+
+                    <th className="text-center py-2 px-2 w-24">
+                      Unidades
+                    </th>
+
+                    <th className="text-left py-2 pl-2 w-40">
+                      Kilos__________
+                    </th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {charcuteria.map(
+                    (linea) => (
                       <tr
                         key={linea.id}
                         className="border-b"
@@ -259,7 +316,8 @@ export default function PedidoDetallePage() {
                         </td>
 
                         <td className="py-2 px-2 text-center">
-                          {linea.cajas > 0
+                          {linea.cajas >
+                          0
                             ? linea.cajas
                             : ""}
                         </td>
@@ -275,98 +333,11 @@ export default function PedidoDetallePage() {
                           __________________
                         </td>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </section>
-
-              {/* CHARCUTERÍA */}
-
-              <section className="print:break-before-page">
-                <h2 className="text-2xl font-bold mb-4 border-b pb-2">
-                  CHARCUTERÍA
-                </h2>
-
-                <table className="w-full border-collapse text-sm">
-                  <thead>
-                    <tr className="border-b-2 border-black">
-                      <th className="text-left py-2 pr-2 w-24">
-                        Código
-                      </th>
-
-                      <th className="text-left py-2 pr-2">
-                        Nombre
-                      </th>
-
-                      <th className="text-center py-2 px-2 w-20">
-                        Cajas
-                      </th>
-
-                      <th className="text-center py-2 px-2 w-24">
-                        Unidades
-                      </th>
-
-                      <th className="text-left py-2 pl-2 w-40">
-                        Kilo__________
-                      </th>
-                    </tr>
-                  </thead>
-
-                  <tbody>
-                    {charcuteria.map(
-                      (linea) => (
-                        <tr
-                          key={linea.id}
-                          className="border-b"
-                        >
-                          <td className="py-2 pr-2 font-semibold">
-                            {
-                              linea.codigo_articulo
-                            }
-                          </td>
-
-                          <td className="py-2 pr-2">
-                            {
-                              linea.nombre_articulo
-                            }
-                          </td>
-
-                          <td className="py-2 px-2 text-center">
-                            {linea.cajas >
-                            0
-                              ? linea.cajas
-                              : ""}
-                          </td>
-
-                          <td className="py-2 px-2 text-center">
-                            {linea.unidades >
-                            0
-                              ? linea.unidades
-                              : ""}
-                          </td>
-
-                          <td className="py-2 pl-2">
-                            __________________
-                          </td>
-                        </tr>
-                      )
-                    )}
-                  </tbody>
-                </table>
-              </section>
-            </div>
-
-            <footer className="mt-8 text-sm">
-              <p>
-                <strong>
-                  Observaciones:
-                </strong>
-              </p>
-
-              <div className="border-b mt-6"></div>
-
-              <div className="border-b mt-6"></div>
-            </footer>
+                    )
+                  )}
+                </tbody>
+              </table>
+            </section>
           </section>
         )}
       </div>

@@ -242,11 +242,10 @@ export default function Home() {
                             type="number"
                             min="0"
                             value={cajas || ""}
-                            disabled={unidades > 0}
                             onChange={(e) =>
                               actualizarCantidad(p, "cajas", e.target.value)
                             }
-                            className="w-full border rounded-xl px-3 py-2 text-center disabled:bg-slate-100 disabled:text-slate-400"
+                            className="w-full border rounded-xl px-3 py-2 text-center"
                             placeholder="0"
                           />
                         </div>
@@ -260,11 +259,10 @@ export default function Home() {
                             type="number"
                             min="0"
                             value={unidades || ""}
-                            disabled={cajas > 0}
                             onChange={(e) =>
                               actualizarCantidad(p, "unidades", e.target.value)
                             }
-                            className="w-full border rounded-xl px-3 py-2 text-center disabled:bg-slate-100 disabled:text-slate-400"
+                            className="w-full border rounded-xl px-3 py-2 text-center"
                             placeholder="0"
                           />
                         </div>

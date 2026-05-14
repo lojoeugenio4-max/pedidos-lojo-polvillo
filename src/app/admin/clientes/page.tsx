@@ -10,6 +10,8 @@ import {
   Save,
   X,
   Search,
+  UserX,
+  UserCheck,
 } from "lucide-react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
@@ -215,6 +217,35 @@ export default function AdminClientesPage() {
     setMensaje("Cliente actualizado correctamente.");
   }
 
+  async function cambiarActivo(cliente: Cliente) {
+    const nuevoEstado = !(cliente.activo ?? true);
+
+    const confirmar = window.confirm(
+      nuevoEstado
+        ? `¿Quieres reactivar a ${cliente.nombre}?`
+        : `¿Quieres desactivar a ${cliente.nombre}? Su enlace dejará de funcionar, pero se conservará el historial.`
+    );
+
+    if (!confirmar) return;
+
+    const { error } = await supabase
+      .from("Clientes")
+      .update({ activo: nuevoEstado })
+      .eq("id", cliente.id);
+
+    if (error) {
+      setMensaje(JSON.stringify(error));
+      return;
+    }
+
+    await cargarClientes();
+    setMensaje(
+      nuevoEstado
+        ? "Cliente reactivado correctamente."
+        : "Cliente desactivado correctamente."
+    );
+  }
+
   async function generarTokenFaltante(cliente: Cliente) {
     const { error } = await supabase
       .from("Clientes")
@@ -384,9 +415,13 @@ export default function AdminClientesPage() {
 
                 {clientesFiltrados.map((cliente) => {
                   const editando = editandoId === cliente.id;
+                  const activo = cliente.activo ?? true;
 
                   return (
-                    <tr key={cliente.id} className="border-t">
+                    <tr
+                      key={cliente.id}
+                      className={`border-t ${!activo ? "bg-slate-100 text-slate-500" : ""}`}
+                    >
                       <td className="p-3">
                         {editando ? (
                           <input
@@ -493,10 +528,14 @@ export default function AdminClientesPage() {
                             />
                             Activo
                           </label>
-                        ) : cliente.activo ? (
-                          "Sí"
+                        ) : activo ? (
+                          <span className="rounded-full bg-green-100 text-green-700 px-3 py-1 text-xs font-semibold">
+                            Sí
+                          </span>
                         ) : (
-                          "No"
+                          <span className="rounded-full bg-red-100 text-red-700 px-3 py-1 text-xs font-semibold">
+                            No
+                          </span>
                         )}
                       </td>
 
@@ -504,7 +543,8 @@ export default function AdminClientesPage() {
                         {cliente.token_pedido ? (
                           <button
                             onClick={() => copiarEnlace(cliente)}
-                            className="rounded-lg border px-3 py-2 flex items-center gap-1"
+                            disabled={!activo}
+                            className="rounded-lg border px-3 py-2 flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed bg-white"
                           >
                             {copiado === cliente.id ? (
                               <>
@@ -530,7 +570,7 @@ export default function AdminClientesPage() {
 
                       <td className="p-3">
                         {editando ? (
-                          <div className="flex gap-2">
+                          <div className="flex gap-2 flex-wrap">
                             <button
                               onClick={() => guardarEdicion(cliente)}
                               className="rounded-lg bg-black text-white px-3 py-2 flex items-center gap-1"
@@ -541,20 +581,43 @@ export default function AdminClientesPage() {
 
                             <button
                               onClick={cancelarEdicion}
-                              className="rounded-lg border px-3 py-2 flex items-center gap-1"
+                              className="rounded-lg border px-3 py-2 flex items-center gap-1 bg-white"
                             >
                               <X className="w-4 h-4" />
                               Cancelar
                             </button>
                           </div>
                         ) : (
-                          <button
-                            onClick={() => empezarEdicion(cliente)}
-                            className="rounded-lg border px-3 py-2 flex items-center gap-1"
-                          >
-                            <Pencil className="w-4 h-4" />
-                            Editar
-                          </button>
+                          <div className="flex gap-2 flex-wrap">
+                            <button
+                              onClick={() => empezarEdicion(cliente)}
+                              className="rounded-lg border px-3 py-2 flex items-center gap-1 bg-white"
+                            >
+                              <Pencil className="w-4 h-4" />
+                              Editar
+                            </button>
+
+                            <button
+                              onClick={() => cambiarActivo(cliente)}
+                              className={`rounded-lg px-3 py-2 flex items-center gap-1 ${
+                                activo
+                                  ? "border border-red-200 text-red-700 bg-red-50"
+                                  : "border border-green-200 text-green-700 bg-green-50"
+                              }`}
+                            >
+                              {activo ? (
+                                <>
+                                  <UserX className="w-4 h-4" />
+                                  Desactivar
+                                </>
+                              ) : (
+                                <>
+                                  <UserCheck className="w-4 h-4" />
+                                  Reactivar
+                                </>
+                              )}
+                            </button>
+                          </div>
                         )}
                       </td>
                     </tr>

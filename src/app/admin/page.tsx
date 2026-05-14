@@ -57,7 +57,7 @@ export default function AdminPage() {
       return;
     }
 
-    setPedidos((data || []) as Pedido[]);
+   setPedidos((data || []) as unknown as Pedido[]);
     setCargando(false);
   }
 

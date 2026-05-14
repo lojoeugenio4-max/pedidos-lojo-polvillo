@@ -4,9 +4,6 @@ import React, { useEffect, useMemo, useState } from "react";
 import {
   Search,
   ShoppingCart,
-  Package,
-  Wine,
-  Beef,
   Trash2,
   Send,
   AlertCircle,
@@ -16,7 +13,7 @@ import { useParams } from "next/navigation";
 import { productos, type Producto } from "@/data/productos";
 import { supabase } from "@/lib/supabase";
 
-const departamentos = ["Todos", "Bebidas", "Charcutería"];
+const departamentos = ["Bebidas", "Charcutería"];
 
 type Cliente = {
   id: number;
@@ -77,7 +74,7 @@ export default function PedidoClientePage() {
   const [cliente, setCliente] = useState<Cliente | null>(null);
   const [cargandoCliente, setCargandoCliente] = useState(true);
   const [busqueda, setBusqueda] = useState("");
-  const [departamento, setDepartamento] = useState("Todos");
+  const [departamento, setDepartamento] = useState("Bebidas");
   const [pedido, setPedido] = useState<Pedido>({});
   const [enviando, setEnviando] = useState(false);
   const [mensaje, setMensaje] = useState("");
@@ -118,18 +115,19 @@ export default function PedidoClientePage() {
   const productosFiltrados = useMemo(() => {
     const q = busqueda.toLowerCase().trim();
 
-    return productos.filter((p) => {
-      const coincideDepartamento =
-        departamento === "Todos" || p.departamento === departamento;
+    return productos
+      .filter((p) => {
+        const coincideDepartamento = p.departamento === departamento;
 
-      const coincideBusqueda =
-        !q ||
-        p.nombre.toLowerCase().includes(q) ||
-        p.codigo.includes(q) ||
-        p.categoria.toLowerCase().includes(q);
+        const coincideBusqueda =
+          !q ||
+          p.nombre.toLowerCase().includes(q) ||
+          p.codigo.includes(q) ||
+          p.categoria.toLowerCase().includes(q);
 
-      return coincideDepartamento && coincideBusqueda;
-    });
+        return coincideDepartamento && coincideBusqueda;
+      })
+      .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
   }, [busqueda, departamento]);
 
   const lineasPedido = Object.values(pedido).filter(
@@ -280,67 +278,36 @@ export default function PedidoClientePage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-100 p-4 md:p-6">
+    <main className="min-h-screen bg-slate-100 p-4 md:p-6 pb-36">
       <div className="max-w-7xl mx-auto space-y-6">
-        <header className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl md:text-4xl font-bold">
-              Polvillo · Pedido
-            </h1>
-
-            <p className="text-slate-600 mt-2">
-              Pedido de <strong>{cliente.nombre}</strong>
-            </p>
-
-            {cliente.dia_pedido && (
-              <p className="text-sm text-slate-500 mt-1">
-                Día habitual de pedido: {cliente.dia_pedido}
-              </p>
-            )}
-          </div>
-
-          <div className="bg-white rounded-2xl p-4 shadow flex items-center gap-3">
-            <ShoppingCart className="w-6 h-6" />
-
+        <header className="bg-white rounded-2xl shadow p-4 md:p-6">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
-              <p className="text-sm text-slate-500">Pedido actual</p>
-              <p className="text-2xl font-bold">{totalLineas} líneas</p>
+              <h1 className="text-3xl md:text-4xl font-bold">
+                Polvillo · Pedido
+              </h1>
+
+              <p className="text-slate-600 mt-2">
+                Pedido de <strong>{cliente.nombre}</strong>
+              </p>
+
+              {cliente.dia_pedido && (
+                <p className="text-sm text-slate-500 mt-1">
+                  Día habitual de pedido: {cliente.dia_pedido}
+                </p>
+              )}
+            </div>
+
+            <div className="bg-slate-100 rounded-2xl p-4 flex items-center gap-3">
+              <ShoppingCart className="w-6 h-6" />
+
+              <div>
+                <p className="text-sm text-slate-500">Pedido actual</p>
+                <p className="text-2xl font-bold">{totalLineas} líneas</p>
+              </div>
             </div>
           </div>
         </header>
-
-        <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-white rounded-2xl p-4 shadow flex items-center gap-3">
-            <Package className="w-6 h-6" />
-            <div>
-              <p className="text-sm text-slate-500">Productos</p>
-              <p className="text-2xl font-bold">{productos.length}</p>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-2xl p-4 shadow flex items-center gap-3">
-            <Wine className="w-6 h-6" />
-            <div>
-              <p className="text-sm text-slate-500">Bebidas</p>
-              <p className="text-2xl font-bold">
-                {productos.filter((p) => p.departamento === "Bebidas").length}
-              </p>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-2xl p-4 shadow flex items-center gap-3">
-            <Beef className="w-6 h-6" />
-            <div>
-              <p className="text-sm text-slate-500">Charcutería</p>
-              <p className="text-2xl font-bold">
-                {
-                  productos.filter((p) => p.departamento === "Charcutería")
-                    .length
-                }
-              </p>
-            </div>
-          </div>
-        </section>
 
         <div className="bg-white rounded-2xl p-4 shadow">
           <div className="flex flex-col md:flex-row gap-3">
@@ -371,32 +338,49 @@ export default function PedidoClientePage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <section className="lg:col-span-2 space-y-3">
-            {productosFiltrados.map((p) => {
-              const cajas = cantidadActual(p, "cajas");
-              const unidades = cantidadActual(p, "unidades");
+        <section className="space-y-3">
+          {productosFiltrados.map((p) => {
+            const cajas = cantidadActual(p, "cajas");
+            const unidades = cantidadActual(p, "unidades");
 
-              return (
-                <div
-                  key={`${p.codigo}-${p.nombre}`}
-                  className="bg-white rounded-2xl p-4 shadow"
-                >
-                  <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-4 md:items-center">
-                    <div>
-                      <p className="text-xs text-slate-500">
-                        Código {p.codigo}
-                      </p>
+            return (
+              <div
+                key={`${p.codigo}-${p.nombre}`}
+                className="bg-white rounded-2xl p-4 shadow"
+              >
+                <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-4 md:items-center">
+                  <div>
+                    <p className="text-xs text-slate-500">
+                      Código {p.codigo}
+                    </p>
 
-                      <h2 className="font-bold mt-1">{p.nombre}</h2>
+                    <h2 className="font-bold mt-1">{p.nombre}</h2>
 
-                      <p className="text-sm text-slate-500 mt-1">
-                        {p.departamento} · {p.categoria}
-                      </p>
+                    <p className="text-sm text-slate-500 mt-1">
+                      {p.departamento} · {p.categoria}
+                    </p>
+                  </div>
+
+                  {p.departamento === "Bebidas" ? (
+                    <div className="w-full md:w-36">
+                      <label className="block text-xs font-semibold text-slate-500 mb-1">
+                        CAJAS
+                      </label>
+
+                      <input
+                        type="number"
+                        min="0"
+                        value={cajas || ""}
+                        onChange={(e) =>
+                          actualizarCantidad(p, "cajas", e.target.value)
+                        }
+                        className="w-full border rounded-xl px-3 py-2 text-center"
+                        placeholder="0"
+                      />
                     </div>
-
-                    {p.departamento === "Bebidas" ? (
-                      <div className="w-full md:w-36">
+                  ) : (
+                    <div className="grid grid-cols-2 gap-3 w-full md:w-72">
+                      <div>
                         <label className="block text-xs font-semibold text-slate-500 mb-1">
                           CAJAS
                         </label>
@@ -412,105 +396,65 @@ export default function PedidoClientePage() {
                           placeholder="0"
                         />
                       </div>
-                    ) : (
-                      <div className="grid grid-cols-2 gap-3 w-full md:w-72">
-                        <div>
-                          <label className="block text-xs font-semibold text-slate-500 mb-1">
-                            CAJAS
-                          </label>
 
-                          <input
-                            type="number"
-                            min="0"
-                            value={cajas || ""}
-                            onChange={(e) =>
-                              actualizarCantidad(p, "cajas", e.target.value)
-                            }
-                            className="w-full border rounded-xl px-3 py-2 text-center"
-                            placeholder="0"
-                          />
-                        </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-500 mb-1">
+                          UNIDADES
+                        </label>
 
-                        <div>
-                          <label className="block text-xs font-semibold text-slate-500 mb-1">
-                            UNIDADES
-                          </label>
-
-                          <input
-                            type="number"
-                            min="0"
-                            value={unidades || ""}
-                            onChange={(e) =>
-                              actualizarCantidad(p, "unidades", e.target.value)
-                            }
-                            className="w-full border rounded-xl px-3 py-2 text-center"
-                            placeholder="0"
-                          />
-                        </div>
+                        <input
+                          type="number"
+                          min="0"
+                          value={unidades || ""}
+                          onChange={(e) =>
+                            actualizarCantidad(p, "unidades", e.target.value)
+                          }
+                          className="w-full border rounded-xl px-3 py-2 text-center"
+                          placeholder="0"
+                        />
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </div>
-              );
-            })}
-          </section>
-
-          <aside>
-            <div className="bg-white rounded-2xl p-4 shadow sticky top-4">
-              <div className="flex justify-between items-center">
-                <h2 className="text-xl font-bold">Pedido</h2>
-
-                <button
-                  onClick={limpiarPedido}
-                  className="text-red-500 flex items-center gap-1"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  Limpiar
-                </button>
               </div>
+            );
+          })}
+        </section>
+      </div>
 
-              <div className="mt-4 space-y-3">
-                {lineasPedido.length === 0 && (
-                  <p className="text-slate-500 text-sm">
-                    No hay artículos añadidos
-                  </p>
-                )}
-
-                {lineasPedido.map((item) => (
-                  <div key={item.codigo} className="border rounded-xl p-3">
-                    <p className="font-semibold text-sm">{item.nombre}</p>
-
-                    <p className="text-xs text-slate-500">
-                      {item.codigo} · {item.departamento}
-                    </p>
-
-                    <p className="font-bold mt-2">
-                      {item.cajas > 0
-                        ? `${item.cajas} caja${item.cajas === 1 ? "" : "s"}`
-                        : `${item.unidades} unidad${
-                            item.unidades === 1 ? "" : "es"
-                          }`}
-                    </p>
-                  </div>
-                ))}
-              </div>
-
-              <button
-                onClick={enviarPedido}
-                disabled={enviando}
-                className="mt-4 w-full bg-black text-white rounded-xl py-3 font-bold flex items-center justify-center gap-2 disabled:bg-slate-400"
-              >
-                <Send className="w-4 h-4" />
-                {enviando ? "Enviando..." : "Enviar pedido"}
-              </button>
-
-              {mensaje && (
-                <p className="mt-3 text-sm font-medium text-center">
-                  {mensaje}
-                </p>
-              )}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-2xl p-3 md:p-4 z-50">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row gap-3 md:items-center md:justify-between">
+          <div className="flex items-center justify-between md:justify-start gap-4">
+            <div>
+              <p className="text-sm text-slate-500">Pedido actual</p>
+              <p className="font-bold">{totalLineas} líneas</p>
             </div>
-          </aside>
+
+            <button
+              onClick={limpiarPedido}
+              className="text-red-500 flex items-center gap-1 text-sm"
+            >
+              <Trash2 className="w-4 h-4" />
+              Limpiar
+            </button>
+          </div>
+
+          <div className="flex-1">
+            {mensaje && (
+              <p className="mb-2 text-sm font-medium text-center md:text-right">
+                {mensaje}
+              </p>
+            )}
+
+            <button
+              onClick={enviarPedido}
+              disabled={enviando}
+              className="w-full md:w-auto md:min-w-64 bg-black text-white rounded-xl py-3 px-6 font-bold flex items-center justify-center gap-2 disabled:bg-slate-400 md:ml-auto"
+            >
+              <Send className="w-4 h-4" />
+              {enviando ? "Enviando..." : "Enviar pedido"}
+            </button>
+          </div>
         </div>
       </div>
     </main>

@@ -166,7 +166,11 @@ export default function Home() {
       setTelefono("");
     } catch (error) {
       console.error(error);
-      setMensaje(String(error));
+     if (error instanceof Error) {
+  setMensaje(error.message);
+} else {
+  setMensaje(JSON.stringify(error));
+}
     } finally {
       setEnviando(false);
     }

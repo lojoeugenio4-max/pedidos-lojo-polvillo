@@ -29,6 +29,7 @@ type Pedido = {
   estado: string;
   impreso: boolean;
   creado_en: string;
+  fuera_de_dia: boolean | null;
 };
 
 type FilaControl = {
@@ -68,6 +69,10 @@ function fechaHoyISO() {
   return `${year}-${month}-${day}`;
 }
 
+function fechaEspana(fecha: string) {
+  return new Date(fecha).toLocaleDateString("es-ES");
+}
+
 export default function AdminPage() {
   const [filas, setFilas] = useState<FilaControl[]>([]);
   const [pedidosHoySinClientePrevisto, setPedidosHoySinClientePrevisto] =
@@ -97,7 +102,7 @@ export default function AdminPage() {
 
     const { data: pedidosData, error: pedidosError } = await supabase
       .from("pedidos")
-      .select("id, cliente_id, fecha, estado, impreso, creado_en")
+      .select("id, cliente_id, fecha, estado, impreso, creado_en, fuera_de_dia")
       .eq("fecha", hoyFecha)
       .order("creado_en", { ascending: false });
 
@@ -157,6 +162,13 @@ export default function AdminPage() {
   const recibidas = filas.filter((fila) => fila.pedido).length;
   const faltan = filas.filter((fila) => !fila.pedido).length;
   const impresas = filas.filter((fila) => fila.pedido?.impreso).length;
+  const fueraDeDiaPrevistas = filas.filter(
+    (fila) => fila.pedido?.fuera_de_dia
+  ).length;
+  const fueraDeDiaNoPrevistas = pedidosHoySinClientePrevisto.filter(
+    (pedido) => pedido.fuera_de_dia
+  ).length;
+  const totalFueraDeDia = fueraDeDiaPrevistas + fueraDeDiaNoPrevistas;
 
   return (
     <main className="min-h-screen bg-slate-100 p-4 md:p-6">
@@ -169,7 +181,8 @@ export default function AdminPage() {
 
             <p className="text-slate-600 mt-2">
               Tiendas previstas para hoy:{" "}
-              <strong className="capitalize">{hoyDia}</strong> · {hoyFecha}
+              <strong className="capitalize">{hoyDia}</strong> ·{" "}
+              {fechaEspana(hoyFecha)}
             </p>
           </div>
 
@@ -182,7 +195,7 @@ export default function AdminPage() {
           </button>
         </header>
 
-        <section className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <section className="grid grid-cols-1 md:grid-cols-5 gap-4">
           <div className="bg-white rounded-2xl p-4 shadow">
             <p className="text-sm text-slate-500">Previstas hoy</p>
             <p className="text-3xl font-bold">{previstas}</p>
@@ -202,7 +215,19 @@ export default function AdminPage() {
             <p className="text-sm text-slate-500">Impresas</p>
             <p className="text-3xl font-bold">{impresas}</p>
           </div>
+
+          <div className="bg-red-50 border border-red-200 rounded-2xl p-4 shadow">
+            <p className="text-sm text-red-600">Fuera de día</p>
+            <p className="text-3xl font-bold text-red-700">{totalFueraDeDia}</p>
+          </div>
         </section>
+
+        {totalFueraDeDia > 0 && (
+          <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl p-4 text-sm flex items-center gap-2">
+            <AlertCircle className="w-5 h-5" />
+            Hay pedidos recibidos fuera de su día habitual.
+          </div>
+        )}
 
         {mensaje && (
           <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl p-4 text-sm">
@@ -242,16 +267,27 @@ export default function AdminPage() {
                 {filas.map(({ cliente, pedido }) => {
                   const recibido = Boolean(pedido);
                   const impreso = Boolean(pedido?.impreso);
+                  const fueraDeDia = Boolean(pedido?.fuera_de_dia);
 
                   return (
-                    <tr key={cliente.id} className="border-t">
+                    <tr
+                      key={cliente.id}
+                      className={`border-t ${
+                        fueraDeDia ? "bg-red-50" : ""
+                      }`}
+                    >
                       <td className="p-3">{cliente.codigo || "-"}</td>
                       <td className="p-3 font-semibold">{cliente.nombre}</td>
                       <td className="p-3">{cliente.ruta || "-"}</td>
                       <td className="p-3">{cliente.telefono || "-"}</td>
 
                       <td className="p-3">
-                        {recibido ? (
+                        {fueraDeDia ? (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-red-100 text-red-700 px-3 py-1 text-xs font-semibold">
+                            <AlertCircle className="w-3 h-3" />
+                            Fuera de día
+                          </span>
+                        ) : recibido ? (
                           <span className="inline-flex items-center gap-1 rounded-full bg-green-100 text-green-700 px-3 py-1 text-xs font-semibold">
                             <CheckCircle className="w-3 h-3" />
                             Recibido
@@ -316,26 +352,44 @@ export default function AdminPage() {
             </div>
 
             <div className="p-4 space-y-3">
-              {pedidosHoySinClientePrevisto.map((pedido) => (
-                <div
-                  key={pedido.id}
-                  className="border rounded-xl p-3 flex justify-between items-center gap-3"
-                >
-                  <div>
-                    <p className="font-semibold">Cliente ID {pedido.cliente_id}</p>
-                    <p className="text-sm text-slate-500">
-                      Pedido recibido hoy · {pedido.impreso ? "Impreso" : "No impreso"}
-                    </p>
-                  </div>
+              {pedidosHoySinClientePrevisto.map((pedido) => {
+                const fueraDeDia = Boolean(pedido.fuera_de_dia);
 
-                  <Link
-                    href={`/admin/pedido/${pedido.id}`}
-                    className="rounded-lg bg-black text-white px-3 py-2"
+                return (
+                  <div
+                    key={pedido.id}
+                    className={`border rounded-xl p-3 flex justify-between items-center gap-3 ${
+                      fueraDeDia ? "bg-red-50 border-red-200" : ""
+                    }`}
                   >
-                    Ver pedido
-                  </Link>
-                </div>
-              ))}
+                    <div>
+                      <p className="font-semibold">
+                        Cliente ID {pedido.cliente_id}
+                      </p>
+
+                      <div className="flex gap-2 flex-wrap mt-1">
+                        {fueraDeDia && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-red-100 text-red-700 px-3 py-1 text-xs font-semibold">
+                            <AlertCircle className="w-3 h-3" />
+                            Fuera de día
+                          </span>
+                        )}
+
+                        <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 text-slate-700 px-3 py-1 text-xs font-semibold">
+                          {pedido.impreso ? "Impreso" : "No impreso"}
+                        </span>
+                      </div>
+                    </div>
+
+                    <Link
+                      href={`/admin/pedido/${pedido.id}`}
+                      className="rounded-lg bg-black text-white px-3 py-2"
+                    >
+                      Ver pedido
+                    </Link>
+                  </div>
+                );
+              })}
             </div>
           </section>
         )}

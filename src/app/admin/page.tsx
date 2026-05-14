@@ -33,8 +33,9 @@ type Pedido = {
 };
 
 type FilaControl = {
-  cliente: Cliente;
+  cliente: Cliente | null;
   pedido: Pedido | null;
+  fueraDeDia: boolean;
 };
 
 function normalizarDia(valor: string | null) {
@@ -75,8 +76,6 @@ function fechaEspana(fecha: string) {
 
 export default function AdminPage() {
   const [filas, setFilas] = useState<FilaControl[]>([]);
-  const [pedidosHoySinClientePrevisto, setPedidosHoySinClientePrevisto] =
-    useState<Pedido[]>([]);
   const [cargando, setCargando] = useState(true);
   const [mensaje, setMensaje] = useState("");
 
@@ -119,24 +118,59 @@ export default function AdminPage() {
       (cliente) => normalizarDia(cliente.dia_pedido) === hoyDia
     );
 
-    const filasControl: FilaControl[] = clientesPrevistosHoy.map((cliente) => {
+    const idsPrevistos = new Set(clientesPrevistosHoy.map((c) => Number(c.id)));
+
+    const filasPrevistas: FilaControl[] = clientesPrevistosHoy.map((cliente) => {
       const pedido =
         pedidos.find((p) => Number(p.cliente_id) === Number(cliente.id)) || null;
 
       return {
         cliente,
         pedido,
+        fueraDeDia: Boolean(pedido?.fuera_de_dia),
       };
     });
 
-    const idsPrevistos = new Set(clientesPrevistosHoy.map((c) => Number(c.id)));
-
-    const pedidosNoPrevistos = pedidos.filter(
-      (pedido) => !idsPrevistos.has(Number(pedido.cliente_id))
+    const pedidosFueraDeDiaONoPrevistos = pedidos.filter(
+      (pedido) =>
+        Boolean(pedido.fuera_de_dia) || !idsPrevistos.has(Number(pedido.cliente_id))
     );
 
-    setFilas(filasControl);
-    setPedidosHoySinClientePrevisto(pedidosNoPrevistos);
+    const filasExtra: FilaControl[] = pedidosFueraDeDiaONoPrevistos
+      .filter(
+        (pedido) =>
+          !filasPrevistas.some(
+            (fila) => fila.pedido && fila.pedido.id === pedido.id
+          )
+      )
+      .map((pedido) => {
+        const cliente =
+          clientes.find((c) => Number(c.id) === Number(pedido.cliente_id)) ||
+          null;
+
+        return {
+          cliente,
+          pedido,
+          fueraDeDia: true,
+        };
+      });
+
+    const filasOrdenadas = [...filasExtra, ...filasPrevistas].sort((a, b) => {
+      if (a.fueraDeDia && !b.fueraDeDia) return -1;
+      if (!a.fueraDeDia && b.fueraDeDia) return 1;
+
+      const rutaA = a.cliente?.ruta || "";
+      const rutaB = b.cliente?.ruta || "";
+
+      if (rutaA !== rutaB) return rutaA.localeCompare(rutaB);
+
+      const nombreA = a.cliente?.nombre || "";
+      const nombreB = b.cliente?.nombre || "";
+
+      return nombreA.localeCompare(nombreB);
+    });
+
+    setFilas(filasOrdenadas);
     setCargando(false);
   }
 
@@ -158,17 +192,11 @@ export default function AdminPage() {
     cargarDatos();
   }, []);
 
-  const previstas = filas.length;
-  const recibidas = filas.filter((fila) => fila.pedido).length;
-  const faltan = filas.filter((fila) => !fila.pedido).length;
+  const previstas = filas.filter((fila) => fila.cliente && !fila.fueraDeDia).length;
+  const recibidas = filas.filter((fila) => fila.pedido && !fila.fueraDeDia).length;
+  const faltan = filas.filter((fila) => !fila.pedido && !fila.fueraDeDia).length;
   const impresas = filas.filter((fila) => fila.pedido?.impreso).length;
-  const fueraDeDiaPrevistas = filas.filter(
-    (fila) => fila.pedido?.fuera_de_dia
-  ).length;
-  const fueraDeDiaNoPrevistas = pedidosHoySinClientePrevisto.filter(
-    (pedido) => pedido.fuera_de_dia
-  ).length;
-  const totalFueraDeDia = fueraDeDiaPrevistas + fueraDeDiaNoPrevistas;
+  const totalFueraDeDia = filas.filter((fila) => fila.fueraDeDia).length;
 
   return (
     <main className="min-h-screen bg-slate-100 p-4 md:p-6">
@@ -225,7 +253,7 @@ export default function AdminPage() {
         {totalFueraDeDia > 0 && (
           <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl p-4 text-sm flex items-center gap-2">
             <AlertCircle className="w-5 h-5" />
-            Hay pedidos recibidos fuera de su día habitual.
+            Hay pedidos recibidos fuera de su día habitual. Aparecen arriba en rojo.
           </div>
         )}
 
@@ -237,7 +265,7 @@ export default function AdminPage() {
 
         <section className="bg-white rounded-2xl shadow overflow-hidden">
           <div className="p-4 border-b flex items-center justify-between">
-            <h2 className="text-xl font-bold">Control de tiendas de hoy</h2>
+            <h2 className="text-xl font-bold">Control de tiendas y pedidos de hoy</h2>
             {cargando && <p className="text-sm text-slate-500">Cargando...</p>}
           </div>
 
@@ -259,27 +287,26 @@ export default function AdminPage() {
                 {!cargando && filas.length === 0 && (
                   <tr>
                     <td colSpan={7} className="p-6 text-center text-slate-500">
-                      No hay tiendas previstas para hoy.
+                      No hay tiendas ni pedidos para hoy.
                     </td>
                   </tr>
                 )}
 
-                {filas.map(({ cliente, pedido }) => {
+                {filas.map(({ cliente, pedido, fueraDeDia }, index) => {
                   const recibido = Boolean(pedido);
                   const impreso = Boolean(pedido?.impreso);
-                  const fueraDeDia = Boolean(pedido?.fuera_de_dia);
 
                   return (
                     <tr
-                      key={cliente.id}
-                      className={`border-t ${
-                        fueraDeDia ? "bg-red-50" : ""
-                      }`}
+                      key={pedido?.id || cliente?.id || index}
+                      className={`border-t ${fueraDeDia ? "bg-red-50" : ""}`}
                     >
-                      <td className="p-3">{cliente.codigo || "-"}</td>
-                      <td className="p-3 font-semibold">{cliente.nombre}</td>
-                      <td className="p-3">{cliente.ruta || "-"}</td>
-                      <td className="p-3">{cliente.telefono || "-"}</td>
+                      <td className="p-3">{cliente?.codigo || "-"}</td>
+                      <td className="p-3 font-semibold">
+                        {cliente?.nombre || `Cliente ID ${pedido?.cliente_id || "-"}`}
+                      </td>
+                      <td className="p-3">{cliente?.ruta || "-"}</td>
+                      <td className="p-3">{cliente?.telefono || "-"}</td>
 
                       <td className="p-3">
                         {fueraDeDia ? (
@@ -307,7 +334,7 @@ export default function AdminPage() {
                           <div className="flex gap-2 flex-wrap">
                             <Link
                               href={`/admin/pedido/${pedido.id}`}
-                              className="rounded-lg border px-3 py-2 flex items-center gap-1"
+                              className="rounded-lg border px-3 py-2 flex items-center gap-1 bg-white"
                             >
                               <Eye className="w-4 h-4" />
                               Ver
@@ -324,7 +351,7 @@ export default function AdminPage() {
                             {!pedido.impreso && (
                               <button
                                 onClick={() => marcarImpreso(pedido.id)}
-                                className="rounded-lg border px-3 py-2"
+                                className="rounded-lg border px-3 py-2 bg-white"
                               >
                                 Marcar impreso
                               </button>
@@ -341,58 +368,6 @@ export default function AdminPage() {
             </table>
           </div>
         </section>
-
-        {pedidosHoySinClientePrevisto.length > 0 && (
-          <section className="bg-white rounded-2xl shadow overflow-hidden">
-            <div className="p-4 border-b">
-              <h2 className="text-xl font-bold flex items-center gap-2">
-                <AlertCircle className="w-5 h-5" />
-                Pedidos recibidos de tiendas no previstas hoy
-              </h2>
-            </div>
-
-            <div className="p-4 space-y-3">
-              {pedidosHoySinClientePrevisto.map((pedido) => {
-                const fueraDeDia = Boolean(pedido.fuera_de_dia);
-
-                return (
-                  <div
-                    key={pedido.id}
-                    className={`border rounded-xl p-3 flex justify-between items-center gap-3 ${
-                      fueraDeDia ? "bg-red-50 border-red-200" : ""
-                    }`}
-                  >
-                    <div>
-                      <p className="font-semibold">
-                        Cliente ID {pedido.cliente_id}
-                      </p>
-
-                      <div className="flex gap-2 flex-wrap mt-1">
-                        {fueraDeDia && (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-red-100 text-red-700 px-3 py-1 text-xs font-semibold">
-                            <AlertCircle className="w-3 h-3" />
-                            Fuera de día
-                          </span>
-                        )}
-
-                        <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 text-slate-700 px-3 py-1 text-xs font-semibold">
-                          {pedido.impreso ? "Impreso" : "No impreso"}
-                        </span>
-                      </div>
-                    </div>
-
-                    <Link
-                      href={`/admin/pedido/${pedido.id}`}
-                      className="rounded-lg bg-black text-white px-3 py-2"
-                    >
-                      Ver pedido
-                    </Link>
-                  </div>
-                );
-              })}
-            </div>
-          </section>
-        )}
       </div>
     </main>
   );

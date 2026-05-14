@@ -67,7 +67,10 @@ export default function Home() {
     });
   }, [busqueda, departamento]);
 
-  const totalCarrito = Object.values(carrito).reduce(
+  const totalCarrito: number = Object.values(carrito).reduce(
+  (acc: number, item: any) => acc + item.cantidad,
+  0
+);
     (acc: any, item: any) => acc + item.cantidad,
     0
   );

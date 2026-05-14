@@ -1,461 +1,261 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
-import {
-  Search,
-  ShoppingCart,
-  Trash2,
-  Send,
-  AlertCircle,
-} from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { ArrowLeft, Printer } from "lucide-react";
+import Link from "next/link";
 import { useParams } from "next/navigation";
-
-import { productos, type Producto } from "@/data/productos";
 import { supabase } from "@/lib/supabase";
-
-const departamentos = ["Bebidas", "Charcutería"];
 
 type Cliente = {
   id: number;
-  codigo: string | null;
   nombre: string;
   telefono: string | null;
   dia_pedido: string | null;
   ruta: string | null;
-  activo: boolean | null;
-  token_pedido: string | null;
 };
 
-type LineaPedido = Producto & {
+type Pedido = {
+  id: string;
+  cliente_id: number;
+  fecha: string;
+  impreso: boolean;
+};
+
+type LineaPedido = {
+  id: string;
+  pedido_id: string;
+  codigo_articulo: string;
+  nombre_articulo: string;
+  departamento: string | null;
   cajas: number;
   unidades: number;
 };
 
-type Pedido = {
-  [key: string]: LineaPedido;
-};
-
-function normalizarTexto(valor: string | null) {
-  return (valor || "")
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .trim();
-}
-
-function diaHoyEspana() {
-  return normalizarTexto(
-    new Date().toLocaleDateString("es-ES", {
-      weekday: "long",
-      timeZone: "Europe/Madrid",
-    })
-  );
-}
-
-function fechaHoyISO() {
-  const partes = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Europe/Madrid",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(new Date());
-
-  const year = partes.find((p) => p.type === "year")?.value;
-  const month = partes.find((p) => p.type === "month")?.value;
-  const day = partes.find((p) => p.type === "day")?.value;
-
-  return `${year}-${month}-${day}`;
-}
-
-export default function PedidoClientePage() {
+export default function PedidoDetallePage() {
   const params = useParams();
-  const token = String(params.token);
+  const id = String(params.id);
 
+  const [pedido, setPedido] = useState<Pedido | null>(null);
   const [cliente, setCliente] = useState<Cliente | null>(null);
-  const [cargandoCliente, setCargandoCliente] = useState(true);
-  const [busqueda, setBusqueda] = useState("");
-  const [departamento, setDepartamento] = useState("Bebidas");
-  const [pedido, setPedido] = useState<Pedido>({});
-  const [enviando, setEnviando] = useState(false);
+  const [lineas, setLineas] = useState<LineaPedido[]>([]);
+  const [cargando, setCargando] = useState(true);
   const [mensaje, setMensaje] = useState("");
 
-  async function cargarCliente() {
-    setCargandoCliente(true);
+  async function cargarPedido() {
+    setCargando(true);
     setMensaje("");
 
-    const { data, error } = await supabase
-      .from("Clientes")
-      .select("id, codigo, nombre, telefono, dia_pedido, ruta, activo, token_pedido")
-      .eq("token_pedido", token)
+    const { data: pedidoData, error: pedidoError } = await supabase
+      .from("pedidos")
+      .select("id, cliente_id, fecha, impreso")
+      .eq("id", id)
       .single();
 
-    if (error) {
-      setMensaje("No se ha encontrado el enlace de pedido.");
-      setCargandoCliente(false);
+    if (pedidoError) {
+      setMensaje(JSON.stringify(pedidoError));
+      setCargando(false);
       return;
     }
 
-    const clienteEncontrado = data as Cliente;
+    setPedido(pedidoData as Pedido);
 
-    if (clienteEncontrado.activo === false) {
-      setMensaje("Este enlace de pedido no está activo.");
-      setCliente(null);
-      setCargandoCliente(false);
+    const { data: clienteData, error: clienteError } = await supabase
+      .from("Clientes")
+      .select("id, nombre, telefono, dia_pedido, ruta")
+      .eq("id", pedidoData.cliente_id)
+      .single();
+
+    if (clienteError) {
+      setMensaje(JSON.stringify(clienteError));
+      setCargando(false);
       return;
     }
 
-    setCliente(clienteEncontrado);
-    setCargandoCliente(false);
+    setCliente(clienteData as Cliente);
+
+    const { data: lineasData, error: lineasError } = await supabase
+      .from("lineas_pedido")
+      .select(
+        "id, pedido_id, codigo_articulo, nombre_articulo, departamento, cajas, unidades"
+      )
+      .eq("pedido_id", id)
+      .order("codigo_articulo", {
+        ascending: true,
+      });
+
+    if (lineasError) {
+      setMensaje(JSON.stringify(lineasError));
+      setCargando(false);
+      return;
+    }
+
+    setLineas((lineasData || []) as LineaPedido[]);
+    setCargando(false);
+  }
+
+  async function imprimirPedido() {
+    await supabase
+      .from("pedidos")
+      .update({
+        impreso: true,
+      })
+      .eq("id", id);
+
+    window.print();
   }
 
   useEffect(() => {
-    cargarCliente();
+    cargarPedido();
   }, []);
 
-  const productosFiltrados = useMemo(() => {
-    const q = busqueda.toLowerCase().trim();
+  const bebidas = lineas.filter((l) => l.departamento === "Bebidas");
 
-    return productos
-      .filter((p) => {
-        const coincideDepartamento = p.departamento === departamento;
-
-        const coincideBusqueda =
-          !q ||
-          p.nombre.toLowerCase().includes(q) ||
-          p.codigo.includes(q) ||
-          p.categoria.toLowerCase().includes(q);
-
-        return coincideDepartamento && coincideBusqueda;
-      })
-      .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
-  }, [busqueda, departamento]);
-
-  const lineasPedido = Object.values(pedido).filter(
-    (item) => item.cajas > 0 || item.unidades > 0
+  const charcuteria = lineas.filter(
+    (l) => l.departamento === "Charcutería"
   );
 
-  const totalLineas = lineasPedido.length;
-
-  function actualizarCantidad(
-    producto: Producto,
-    tipo: "cajas" | "unidades",
-    valor: string
-  ) {
-    const cantidad = Math.max(0, Number(valor) || 0);
-
-    setPedido((prev) => {
-      const actual = prev[producto.codigo] || {
-        ...producto,
-        cajas: 0,
-        unidades: 0,
-      };
-
-      const actualizado: LineaPedido =
-        producto.departamento === "Bebidas"
-          ? { ...actual, cajas: cantidad, unidades: 0 }
-          : {
-              ...actual,
-              cajas: tipo === "cajas" ? cantidad : 0,
-              unidades: tipo === "unidades" ? cantidad : 0,
-            };
-
-      const copia = { ...prev };
-
-      if (actualizado.cajas === 0 && actualizado.unidades === 0) {
-        delete copia[producto.codigo];
-      } else {
-        copia[producto.codigo] = actualizado;
-      }
-
-      return copia;
-    });
-  }
-
-  function limpiarPedido() {
-    setPedido({});
-    setMensaje("");
-  }
-
-  function cantidadActual(producto: Producto, tipo: "cajas" | "unidades") {
-    return pedido[producto.codigo]?.[tipo] || 0;
-  }
-
-  async function enviarPedido() {
-    setMensaje("");
-
-    if (!cliente) {
-      setMensaje("No se ha encontrado el cliente.");
-      return;
-    }
-
-    if (lineasPedido.length === 0) {
-      setMensaje("Añade al menos un artículo al pedido.");
-      return;
-    }
-
-    try {
-      setEnviando(true);
-
-      const diaHoy = diaHoyEspana();
-      const diaCliente = normalizarTexto(cliente.dia_pedido);
-
-      const fueraDeDia = Boolean(diaCliente) && diaCliente !== diaHoy;
-
-      const { data: pedidoCreado, error: pedidoError } = await supabase
-        .from("pedidos")
-        .insert({
-          cliente_id: cliente.id,
-          fecha: fechaHoyISO(),
-          estado: fueraDeDia ? "fuera_de_dia" : "recibido",
-          impreso: false,
-          fuera_de_dia: fueraDeDia,
-        })
-        .select("id")
-        .single();
-
-      if (pedidoError) throw pedidoError;
-
-      const lineas = lineasPedido.map((item) => ({
-        pedido_id: pedidoCreado.id,
-        codigo_articulo: item.codigo,
-        nombre_articulo: item.nombre,
-        departamento: item.departamento,
-        cajas: item.cajas,
-        unidades: item.unidades,
-      }));
-
-      const { error: lineasError } = await supabase
-        .from("lineas_pedido")
-        .insert(lineas);
-
-      if (lineasError) throw lineasError;
-
-      setMensaje(
-        fueraDeDia
-          ? "Pedido enviado correctamente. Aviso: fuera del día habitual."
-          : "Pedido enviado correctamente."
-      );
-
-      setPedido({});
-    } catch (error) {
-      console.error(error);
-
-      if (error instanceof Error) {
-        setMensaje(error.message);
-      } else {
-        setMensaje(JSON.stringify(error));
-      }
-    } finally {
-      setEnviando(false);
-    }
-  }
-
-  if (cargandoCliente) {
-    return (
-      <main className="min-h-screen bg-slate-100 p-4 md:p-6">
-        <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow p-6">
-          Cargando enlace de pedido...
-        </div>
-      </main>
-    );
-  }
-
-  if (!cliente) {
-    return (
-      <main className="min-h-screen bg-slate-100 p-4 md:p-6">
-        <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow p-6 space-y-3">
-          <div className="flex items-center gap-2 text-red-600 font-bold">
-            <AlertCircle className="w-5 h-5" />
-            Enlace no válido
-          </div>
-
-          <p className="text-slate-600">
-            {mensaje || "No se ha encontrado este enlace de pedido."}
-          </p>
-        </div>
-      </main>
-    );
-  }
+  const fechaEspana = pedido?.fecha
+    ? new Date(pedido.fecha).toLocaleDateString("es-ES")
+    : "";
 
   return (
-    <main className="min-h-screen bg-slate-100 p-4 md:p-6 pb-36">
-      <div className="max-w-7xl mx-auto space-y-6">
-        <header className="bg-white rounded-2xl shadow p-4 md:p-6">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-              <h1 className="text-3xl md:text-4xl font-bold">
-                Polvillo · Pedido
-              </h1>
+    <main className="min-h-screen bg-slate-100 p-4 md:p-6 print:bg-white print:p-0">
+      <div className="max-w-5xl mx-auto space-y-6 print:max-w-none print:space-y-4">
+        <div className="flex justify-between items-center print:hidden">
+          <Link
+            href="/admin"
+            className="inline-flex items-center gap-2 rounded-xl border bg-white px-4 py-2"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Volver
+          </Link>
 
-              <p className="text-slate-600 mt-2">
-                Pedido de <strong>{cliente.nombre}</strong>
-              </p>
-
-              {cliente.dia_pedido && (
-                <p className="text-sm text-slate-500 mt-1">
-                  Día habitual de pedido: {cliente.dia_pedido}
-                </p>
-              )}
-            </div>
-
-            <div className="bg-slate-100 rounded-2xl p-4 flex items-center gap-3">
-              <ShoppingCart className="w-6 h-6" />
-
-              <div>
-                <p className="text-sm text-slate-500">Pedido actual</p>
-                <p className="text-2xl font-bold">{totalLineas} líneas</p>
-              </div>
-            </div>
-          </div>
-        </header>
-
-        <div className="bg-white rounded-2xl p-4 shadow">
-          <div className="flex flex-col md:flex-row gap-3">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-3 w-5 h-5 text-slate-400" />
-
-              <input
-                value={busqueda}
-                onChange={(e) => setBusqueda(e.target.value)}
-                placeholder="Buscar por código, artículo o categoría..."
-                className="w-full border rounded-xl py-3 pl-10 pr-4"
-              />
-            </div>
-
-            <div className="flex gap-2 flex-wrap">
-              {departamentos.map((d) => (
-                <button
-                  key={d}
-                  onClick={() => setDepartamento(d)}
-                  className={`px-4 py-2 rounded-xl border ${
-                    departamento === d ? "bg-black text-white" : "bg-white"
-                  }`}
-                >
-                  {d}
-                </button>
-              ))}
-            </div>
-          </div>
+          <button
+            onClick={imprimirPedido}
+            className="inline-flex items-center gap-2 rounded-xl bg-black text-white px-4 py-2"
+          >
+            <Printer className="w-4 h-4" />
+            Imprimir pedido
+          </button>
         </div>
 
-        <section className="space-y-3">
-          {productosFiltrados.map((p) => {
-            const cajas = cantidadActual(p, "cajas");
-            const unidades = cantidadActual(p, "unidades");
+        {mensaje && (
+          <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl p-4 text-sm print:hidden">
+            {mensaje}
+          </div>
+        )}
 
-            return (
-              <div
-                key={`${p.codigo}-${p.nombre}`}
-                className="bg-white rounded-2xl p-4 shadow"
-              >
-                <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-4 md:items-center">
-                  <div>
-                    <p className="text-xs text-slate-500">
-                      Código {p.codigo}
-                    </p>
+        {cargando ? (
+          <div className="bg-white rounded-2xl p-6 shadow print:shadow-none">
+            Cargando pedido...
+          </div>
+        ) : (
+          <section className="bg-white rounded-2xl p-6 shadow print:shadow-none print:rounded-none print:p-0">
+            <section>
+              <div className="mb-6 border-b pb-4">
+                <h1 className="text-3xl font-bold">BEBIDAS</h1>
 
-                    <h2 className="font-bold mt-1">{p.nombre}</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-4 text-sm">
+                  <p>
+                    <strong>Tienda:</strong> {cliente?.nombre || "Sin tienda"}
+                  </p>
 
-                    <p className="text-sm text-slate-500 mt-1">
-                      {p.departamento} · {p.categoria}
-                    </p>
-                  </div>
-
-                  {p.departamento === "Bebidas" ? (
-                    <div className="w-full md:w-36">
-                      <label className="block text-xs font-semibold text-slate-500 mb-1">
-                        CAJAS
-                      </label>
-
-                      <input
-                        type="number"
-                        min="0"
-                        value={cajas || ""}
-                        onChange={(e) =>
-                          actualizarCantidad(p, "cajas", e.target.value)
-                        }
-                        className="w-full border rounded-xl px-3 py-2 text-center"
-                        placeholder="0"
-                      />
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-2 gap-3 w-full md:w-72">
-                      <div>
-                        <label className="block text-xs font-semibold text-slate-500 mb-1">
-                          CAJAS
-                        </label>
-
-                        <input
-                          type="number"
-                          min="0"
-                          value={cajas || ""}
-                          onChange={(e) =>
-                            actualizarCantidad(p, "cajas", e.target.value)
-                          }
-                          className="w-full border rounded-xl px-3 py-2 text-center"
-                          placeholder="0"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-xs font-semibold text-slate-500 mb-1">
-                          UNIDADES
-                        </label>
-
-                        <input
-                          type="number"
-                          min="0"
-                          value={unidades || ""}
-                          onChange={(e) =>
-                            actualizarCantidad(p, "unidades", e.target.value)
-                          }
-                          className="w-full border rounded-xl px-3 py-2 text-center"
-                          placeholder="0"
-                        />
-                      </div>
-                    </div>
-                  )}
+                  <p>
+                    <strong>Fecha:</strong> {fechaEspana}
+                  </p>
                 </div>
               </div>
-            );
-          })}
-        </section>
-      </div>
 
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-2xl p-3 md:p-4 z-50">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row gap-3 md:items-center md:justify-between">
-          <div className="flex items-center justify-between md:justify-start gap-4">
-            <div>
-              <p className="text-sm text-slate-500">Pedido actual</p>
-              <p className="font-bold">{totalLineas} líneas</p>
-            </div>
+              <table className="w-full border-collapse text-sm">
+                <thead>
+                  <tr className="border-b-2 border-black">
+                    <th className="text-left py-2 pr-2 w-24">Código</th>
+                    <th className="text-left py-2 pr-2">Nombre</th>
+                    <th className="text-center py-2 px-2 w-20">Cajas</th>
+                  </tr>
+                </thead>
 
-            <button
-              onClick={limpiarPedido}
-              className="text-red-500 flex items-center gap-1 text-sm"
-            >
-              <Trash2 className="w-4 h-4" />
-              Limpiar
-            </button>
-          </div>
+                <tbody>
+                  {bebidas.map((linea) => (
+                    <tr key={linea.id} className="border-b">
+                      <td className="py-2 pr-2 font-semibold">
+                        {linea.codigo_articulo}
+                      </td>
 
-          <div className="flex-1">
-            {mensaje && (
-              <p className="mb-2 text-sm font-medium text-center md:text-right">
-                {mensaje}
-              </p>
-            )}
+                      <td className="py-2 pr-2">{linea.nombre_articulo}</td>
 
-            <button
-              onClick={enviarPedido}
-              disabled={enviando}
-              className="w-full md:w-auto md:min-w-64 bg-black text-white rounded-xl py-3 px-6 font-bold flex items-center justify-center gap-2 disabled:bg-slate-400 md:ml-auto"
-            >
-              <Send className="w-4 h-4" />
-              {enviando ? "Enviando..." : "Enviar pedido"}
-            </button>
-          </div>
-        </div>
+                      <td className="py-2 px-2 text-center">
+                        {linea.cajas > 0 ? linea.cajas : ""}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              {bebidas.length === 0 && (
+                <p className="text-sm text-slate-500 mt-4">
+                  No hay bebidas en este pedido.
+                </p>
+              )}
+            </section>
+
+            <section className="mt-16 print:break-before-page">
+              <div className="mb-6 border-b pb-4">
+                <h1 className="text-3xl font-bold">CHARCUTERÍA</h1>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-4 text-sm">
+                  <p>
+                    <strong>Tienda:</strong> {cliente?.nombre || "Sin tienda"}
+                  </p>
+
+                  <p>
+                    <strong>Fecha:</strong> {fechaEspana}
+                  </p>
+                </div>
+              </div>
+
+              <table className="w-full border-collapse text-sm">
+                <thead>
+                  <tr className="border-b-2 border-black">
+                    <th className="text-left py-2 pr-2 w-24">Código</th>
+                    <th className="text-left py-2 pr-2">Nombre</th>
+                    <th className="text-center py-2 px-2 w-20">Cajas</th>
+                    <th className="text-center py-2 px-2 w-24">Unidades</th>
+                    <th className="text-left py-2 pl-2 w-40">Kilos</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {charcuteria.map((linea) => (
+                    <tr key={linea.id} className="border-b">
+                      <td className="py-2 pr-2 font-semibold">
+                        {linea.codigo_articulo}
+                      </td>
+
+                      <td className="py-2 pr-2">{linea.nombre_articulo}</td>
+
+                      <td className="py-2 px-2 text-center">
+                        {linea.cajas > 0 ? linea.cajas : ""}
+                      </td>
+
+                      <td className="py-2 px-2 text-center">
+                        {linea.unidades > 0 ? linea.unidades : ""}
+                      </td>
+
+                      <td className="py-2 pl-2"></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              {charcuteria.length === 0 && (
+                <p className="text-sm text-slate-500 mt-4">
+                  No hay charcutería en este pedido.
+                </p>
+              )}
+            </section>
+          </section>
+        )}
       </div>
     </main>
   );

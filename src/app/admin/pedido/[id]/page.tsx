@@ -194,7 +194,13 @@ export default function PedidoDetallePage() {
                     <strong>
                       Fecha:
                     </strong>{" "}
-                    {pedido?.fecha}
+                    {pedido?.fecha
+                      ? new Date(
+                          pedido.fecha
+                        ).toLocaleDateString(
+                          "es-ES"
+                        )
+                      : ""}
                   </p>
                 </div>
               </div>
@@ -266,7 +272,13 @@ export default function PedidoDetallePage() {
                     <strong>
                       Fecha:
                     </strong>{" "}
-                    {pedido?.fecha}
+                    {pedido?.fecha
+                      ? new Date(
+                          pedido.fecha
+                        ).toLocaleDateString(
+                          "es-ES"
+                        )
+                      : ""}
                   </p>
                 </div>
               </div>
@@ -291,7 +303,7 @@ export default function PedidoDetallePage() {
                     </th>
 
                     <th className="text-left py-2 pl-2 w-40">
-                      Kilos__________
+                      Kilos
                     </th>
                   </tr>
                 </thead>
@@ -329,9 +341,7 @@ export default function PedidoDetallePage() {
                             : ""}
                         </td>
 
-                        <td className="py-2 pl-2">
-                          __________________
-                        </td>
+                        <td className="py-2 pl-2"></td>
                       </tr>
                     )
                   )}

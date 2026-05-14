@@ -45,10 +45,27 @@ const productos = [
 
 const departamentos = ["Todos", "Bebidas", "Charcutería"];
 
+type Producto = {
+  codigo: string;
+  nombre: string;
+  departamento: string;
+  categoria: string;
+  unidad: string;
+};
+
+type Carrito = {
+  [key: string]: Producto & {
+    cantidad: number;
+  };
+};
+
 export default function Home() {
   const [busqueda, setBusqueda] = useState("");
-  const [departamento, setDepartamento] = useState("Todos");
-  const [carrito, setCarrito] = useState<any>({});
+  const [departamento, setDepartamento] =
+    useState("Todos");
+
+  const [carrito, setCarrito] =
+    useState<Carrito>({});
 
   const productosFiltrados = useMemo(() => {
     const q = busqueda.toLowerCase();
@@ -63,30 +80,30 @@ export default function Home() {
         p.codigo.includes(q) ||
         p.categoria.toLowerCase().includes(q);
 
-      return coincideDepartamento && coincideBusqueda;
+      return (
+        coincideDepartamento && coincideBusqueda
+      );
     });
   }, [busqueda, departamento]);
 
-  const totalCarrito: number = Object.values(carrito).reduce(
-  (acc: number, item: any) => acc + item.cantidad,
-  0
-);
-    (acc: any, item: any) => acc + item.cantidad,
+  const totalCarrito = Object.values(carrito).reduce(
+    (acc, item) => acc + item.cantidad,
     0
   );
 
-  function sumar(producto: any) {
-    setCarrito((prev: any) => ({
+  function sumar(producto: Producto) {
+    setCarrito((prev) => ({
       ...prev,
       [producto.codigo]: {
         ...producto,
-        cantidad: (prev[producto.codigo]?.cantidad || 0) + 1,
+        cantidad:
+          (prev[producto.codigo]?.cantidad || 0) + 1,
       },
     }));
   }
 
   function restar(codigo: string) {
-    setCarrito((prev: any) => {
+    setCarrito((prev) => {
       const actual = prev[codigo];
 
       if (!actual) return prev;
@@ -166,7 +183,8 @@ export default function Home() {
               <p className="text-2xl font-bold">
                 {
                   productos.filter(
-                    (p) => p.departamento === "Bebidas"
+                    (p) =>
+                      p.departamento === "Bebidas"
                   ).length
                 }
               </p>
@@ -185,7 +203,8 @@ export default function Home() {
                 {
                   productos.filter(
                     (p) =>
-                      p.departamento === "Charcutería"
+                      p.departamento ===
+                      "Charcutería"
                   ).length
                 }
               </p>
@@ -212,7 +231,9 @@ export default function Home() {
               {departamentos.map((d) => (
                 <button
                   key={d}
-                  onClick={() => setDepartamento(d)}
+                  onClick={() =>
+                    setDepartamento(d)
+                  }
                   className={`px-4 py-2 rounded-xl border ${
                     departamento === d
                       ? "bg-black text-white"
@@ -289,52 +310,57 @@ export default function Home() {
               </div>
 
               <div className="mt-4 space-y-3">
-                {Object.values(carrito).length === 0 && (
+                {Object.values(carrito).length ===
+                  0 && (
                   <p className="text-slate-500 text-sm">
                     No hay artículos añadidos
                   </p>
                 )}
 
-                {Object.values(carrito).map((item: any) => (
-                  <div
-                    key={item.codigo}
-                    className="border rounded-xl p-3"
-                  >
-                    <div className="flex justify-between">
-                      <div>
-                        <p className="font-semibold text-sm">
-                          {item.nombre}
-                        </p>
+                {Object.values(carrito).map(
+                  (item) => (
+                    <div
+                      key={item.codigo}
+                      className="border rounded-xl p-3"
+                    >
+                      <div className="flex justify-between">
+                        <div>
+                          <p className="font-semibold text-sm">
+                            {item.nombre}
+                          </p>
 
-                        <p className="text-xs text-slate-500">
-                          {item.codigo}
+                          <p className="text-xs text-slate-500">
+                            {item.codigo}
+                          </p>
+                        </div>
+
+                        <p className="font-bold">
+                          x{item.cantidad}
                         </p>
                       </div>
 
-                      <p className="font-bold">
-                        x{item.cantidad}
-                      </p>
-                    </div>
+                      <div className="flex gap-2 mt-3">
+                        <button
+                          onClick={() =>
+                            restar(item.codigo)
+                          }
+                          className="border rounded-lg p-2"
+                        >
+                          <Minus className="w-4 h-4" />
+                        </button>
 
-                    <div className="flex gap-2 mt-3">
-                      <button
-                        onClick={() =>
-                          restar(item.codigo)
-                        }
-                        className="border rounded-lg p-2"
-                      >
-                        <Minus className="w-4 h-4" />
-                      </button>
-
-                      <button
-                        onClick={() => sumar(item)}
-                        className="border rounded-lg p-2"
-                      >
-                        <Plus className="w-4 h-4" />
-                      </button>
+                        <button
+                          onClick={() =>
+                            sumar(item)
+                          }
+                          className="border rounded-lg p-2"
+                        >
+                          <Plus className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  )
+                )}
               </div>
             </div>
           </aside>

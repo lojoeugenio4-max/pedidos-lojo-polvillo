@@ -1,16 +1,25 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { RefreshCw, Printer, CheckCircle, Clock, Eye } from "lucide-react";
+import {
+  RefreshCw,
+  CheckCircle,
+  Clock,
+  Printer,
+  Eye,
+  AlertCircle,
+} from "lucide-react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 
 type Cliente = {
   id: number;
+  codigo: string | null;
   nombre: string;
   telefono: string | null;
   dia_pedido: string | null;
   ruta: string | null;
+  activo: boolean | null;
 };
 
 type Pedido = {
@@ -20,45 +29,109 @@ type Pedido = {
   estado: string;
   impreso: boolean;
   creado_en: string;
-  Clientes?: Cliente | null;
 };
 
+type FilaControl = {
+  cliente: Cliente;
+  pedido: Pedido | null;
+};
+
+function normalizarDia(valor: string | null) {
+  return (valor || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+}
+
+function diaHoyEspana() {
+  return normalizarDia(
+    new Date().toLocaleDateString("es-ES", {
+      weekday: "long",
+      timeZone: "Europe/Madrid",
+    })
+  );
+}
+
+function fechaHoyISO() {
+  const partes = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Madrid",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+
+  const year = partes.find((p) => p.type === "year")?.value;
+  const month = partes.find((p) => p.type === "month")?.value;
+  const day = partes.find((p) => p.type === "day")?.value;
+
+  return `${year}-${month}-${day}`;
+}
+
 export default function AdminPage() {
-  const [pedidos, setPedidos] = useState<Pedido[]>([]);
+  const [filas, setFilas] = useState<FilaControl[]>([]);
+  const [pedidosHoySinClientePrevisto, setPedidosHoySinClientePrevisto] =
+    useState<Pedido[]>([]);
   const [cargando, setCargando] = useState(true);
   const [mensaje, setMensaje] = useState("");
 
-  async function cargarPedidos() {
+  const hoyDia = diaHoyEspana();
+  const hoyFecha = fechaHoyISO();
+
+  async function cargarDatos() {
     setCargando(true);
     setMensaje("");
 
-    const { data, error } = await supabase
-      .from("pedidos")
-      .select(`
-        id,
-        cliente_id,
-        fecha,
-        estado,
-        impreso,
-        creado_en,
-        Clientes (
-          id,
-          nombre,
-          telefono,
-          dia_pedido,
-          ruta
-        )
-      `)
-      .order("creado_en", { ascending: false });
+    const { data: clientesData, error: clientesError } = await supabase
+      .from("Clientes")
+      .select("id, codigo, nombre, telefono, dia_pedido, ruta, activo")
+      .eq("activo", true)
+      .order("ruta", { ascending: true })
+      .order("nombre", { ascending: true });
 
-    if (error) {
-      console.error(error);
-      setMensaje(JSON.stringify(error));
+    if (clientesError) {
+      setMensaje(JSON.stringify(clientesError));
       setCargando(false);
       return;
     }
 
-    setPedidos((data || []) as unknown as Pedido[]);
+    const { data: pedidosData, error: pedidosError } = await supabase
+      .from("pedidos")
+      .select("id, cliente_id, fecha, estado, impreso, creado_en")
+      .eq("fecha", hoyFecha)
+      .order("creado_en", { ascending: false });
+
+    if (pedidosError) {
+      setMensaje(JSON.stringify(pedidosError));
+      setCargando(false);
+      return;
+    }
+
+    const clientes = (clientesData || []) as Cliente[];
+    const pedidos = (pedidosData || []) as Pedido[];
+
+    const clientesPrevistosHoy = clientes.filter(
+      (cliente) => normalizarDia(cliente.dia_pedido) === hoyDia
+    );
+
+    const filasControl: FilaControl[] = clientesPrevistosHoy.map((cliente) => {
+      const pedido =
+        pedidos.find((p) => Number(p.cliente_id) === Number(cliente.id)) || null;
+
+      return {
+        cliente,
+        pedido,
+      };
+    });
+
+    const idsPrevistos = new Set(clientesPrevistosHoy.map((c) => Number(c.id)));
+
+    const pedidosNoPrevistos = pedidos.filter(
+      (pedido) => !idsPrevistos.has(Number(pedido.cliente_id))
+    );
+
+    setFilas(filasControl);
+    setPedidosHoySinClientePrevisto(pedidosNoPrevistos);
     setCargando(false);
   }
 
@@ -73,18 +146,17 @@ export default function AdminPage() {
       return;
     }
 
-    await cargarPedidos();
+    await cargarDatos();
   }
 
   useEffect(() => {
-    cargarPedidos();
+    cargarDatos();
   }, []);
 
-  const hoy = new Date().toISOString().slice(0, 10);
-
-  const pedidosHoy = pedidos.filter((p) => p.fecha === hoy);
-  const recibidos = pedidosHoy.filter((p) => !p.impreso);
-  const impresos = pedidosHoy.filter((p) => p.impreso);
+  const previstas = filas.length;
+  const recibidas = filas.filter((fila) => fila.pedido).length;
+  const faltan = filas.filter((fila) => !fila.pedido).length;
+  const impresas = filas.filter((fila) => fila.pedido?.impreso).length;
 
   return (
     <main className="min-h-screen bg-slate-100 p-4 md:p-6">
@@ -94,13 +166,15 @@ export default function AdminPage() {
             <h1 className="text-3xl md:text-4xl font-bold">
               Panel interno · Pedidos
             </h1>
+
             <p className="text-slate-600 mt-2">
-              Control de pedidos recibidos e impresos
+              Tiendas previstas para hoy:{" "}
+              <strong className="capitalize">{hoyDia}</strong> · {hoyFecha}
             </p>
           </div>
 
           <button
-            onClick={cargarPedidos}
+            onClick={cargarDatos}
             className="bg-black text-white rounded-xl px-4 py-3 flex items-center justify-center gap-2"
           >
             <RefreshCw className="w-4 h-4" />
@@ -108,20 +182,25 @@ export default function AdminPage() {
           </button>
         </header>
 
-        <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <section className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="bg-white rounded-2xl p-4 shadow">
-            <p className="text-sm text-slate-500">Pedidos hoy</p>
-            <p className="text-3xl font-bold">{pedidosHoy.length}</p>
+            <p className="text-sm text-slate-500">Previstas hoy</p>
+            <p className="text-3xl font-bold">{previstas}</p>
           </div>
 
           <div className="bg-white rounded-2xl p-4 shadow">
-            <p className="text-sm text-slate-500">Pendientes de imprimir</p>
-            <p className="text-3xl font-bold">{recibidos.length}</p>
+            <p className="text-sm text-slate-500">Recibidas</p>
+            <p className="text-3xl font-bold">{recibidas}</p>
           </div>
 
           <div className="bg-white rounded-2xl p-4 shadow">
-            <p className="text-sm text-slate-500">Impresos</p>
-            <p className="text-3xl font-bold">{impresos.length}</p>
+            <p className="text-sm text-slate-500">Faltan</p>
+            <p className="text-3xl font-bold">{faltan}</p>
+          </div>
+
+          <div className="bg-white rounded-2xl p-4 shadow">
+            <p className="text-sm text-slate-500">Impresas</p>
+            <p className="text-3xl font-bold">{impresas}</p>
           </div>
         </section>
 
@@ -133,7 +212,7 @@ export default function AdminPage() {
 
         <section className="bg-white rounded-2xl shadow overflow-hidden">
           <div className="p-4 border-b flex items-center justify-between">
-            <h2 className="text-xl font-bold">Pedidos recibidos</h2>
+            <h2 className="text-xl font-bold">Control de tiendas de hoy</h2>
             {cargando && <p className="text-sm text-slate-500">Cargando...</p>}
           </div>
 
@@ -141,8 +220,9 @@ export default function AdminPage() {
             <table className="w-full text-sm">
               <thead className="bg-slate-50 text-slate-600">
                 <tr>
-                  <th className="text-left p-3">Fecha</th>
+                  <th className="text-left p-3">Código</th>
                   <th className="text-left p-3">Tienda</th>
+                  <th className="text-left p-3">Ruta</th>
                   <th className="text-left p-3">Teléfono</th>
                   <th className="text-left p-3">Estado</th>
                   <th className="text-left p-3">Impreso</th>
@@ -151,68 +231,114 @@ export default function AdminPage() {
               </thead>
 
               <tbody>
-                {!cargando && pedidos.length === 0 && (
+                {!cargando && filas.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="p-6 text-center text-slate-500">
-                      Todavía no hay pedidos
+                    <td colSpan={7} className="p-6 text-center text-slate-500">
+                      No hay tiendas previstas para hoy.
                     </td>
                   </tr>
                 )}
 
-                {pedidos.map((pedido) => (
-                  <tr key={pedido.id} className="border-t">
-                    <td className="p-3">{pedido.fecha}</td>
-                    <td className="p-3 font-semibold">
-                      {pedido.Clientes?.nombre || "Sin tienda"}
-                    </td>
-                    <td className="p-3">
-                      {pedido.Clientes?.telefono || "-"}
-                    </td>
-                    <td className="p-3">
-                      <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold">
-                        {pedido.impreso ? (
-                          <CheckCircle className="w-3 h-3" />
+                {filas.map(({ cliente, pedido }) => {
+                  const recibido = Boolean(pedido);
+                  const impreso = Boolean(pedido?.impreso);
+
+                  return (
+                    <tr key={cliente.id} className="border-t">
+                      <td className="p-3">{cliente.codigo || "-"}</td>
+                      <td className="p-3 font-semibold">{cliente.nombre}</td>
+                      <td className="p-3">{cliente.ruta || "-"}</td>
+                      <td className="p-3">{cliente.telefono || "-"}</td>
+
+                      <td className="p-3">
+                        {recibido ? (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-green-100 text-green-700 px-3 py-1 text-xs font-semibold">
+                            <CheckCircle className="w-3 h-3" />
+                            Recibido
+                          </span>
                         ) : (
-                          <Clock className="w-3 h-3" />
+                          <span className="inline-flex items-center gap-1 rounded-full bg-orange-100 text-orange-700 px-3 py-1 text-xs font-semibold">
+                            <Clock className="w-3 h-3" />
+                            Falta
+                          </span>
                         )}
-                        {pedido.estado}
-                      </span>
-                    </td>
-                    <td className="p-3">{pedido.impreso ? "Sí" : "No"}</td>
-                    <td className="p-3">
-                      <div className="flex gap-2">
-                        <Link
-                          href={`/admin/pedido/${pedido.id}`}
-                          className="rounded-lg border px-3 py-2 flex items-center gap-1"
-                        >
-                          <Eye className="w-4 h-4" />
-                          Ver
-                        </Link>
+                      </td>
 
-                        <Link
-                          href={`/admin/pedido/${pedido.id}`}
-                          className="rounded-lg bg-black text-white px-3 py-2 flex items-center gap-1"
-                        >
-                          <Printer className="w-4 h-4" />
-                          Preparar / imprimir
-                        </Link>
+                      <td className="p-3">{impreso ? "Sí" : "No"}</td>
 
-                        {!pedido.impreso && (
-                          <button
-                            onClick={() => marcarImpreso(pedido.id)}
-                            className="rounded-lg border px-3 py-2"
-                          >
-                            Marcar impreso
-                          </button>
+                      <td className="p-3">
+                        {pedido ? (
+                          <div className="flex gap-2 flex-wrap">
+                            <Link
+                              href={`/admin/pedido/${pedido.id}`}
+                              className="rounded-lg border px-3 py-2 flex items-center gap-1"
+                            >
+                              <Eye className="w-4 h-4" />
+                              Ver
+                            </Link>
+
+                            <Link
+                              href={`/admin/pedido/${pedido.id}`}
+                              className="rounded-lg bg-black text-white px-3 py-2 flex items-center gap-1"
+                            >
+                              <Printer className="w-4 h-4" />
+                              Preparar
+                            </Link>
+
+                            {!pedido.impreso && (
+                              <button
+                                onClick={() => marcarImpreso(pedido.id)}
+                                className="rounded-lg border px-3 py-2"
+                              >
+                                Marcar impreso
+                              </button>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-slate-400">Sin pedido</span>
                         )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
         </section>
+
+        {pedidosHoySinClientePrevisto.length > 0 && (
+          <section className="bg-white rounded-2xl shadow overflow-hidden">
+            <div className="p-4 border-b">
+              <h2 className="text-xl font-bold flex items-center gap-2">
+                <AlertCircle className="w-5 h-5" />
+                Pedidos recibidos de tiendas no previstas hoy
+              </h2>
+            </div>
+
+            <div className="p-4 space-y-3">
+              {pedidosHoySinClientePrevisto.map((pedido) => (
+                <div
+                  key={pedido.id}
+                  className="border rounded-xl p-3 flex justify-between items-center gap-3"
+                >
+                  <div>
+                    <p className="font-semibold">Cliente ID {pedido.cliente_id}</p>
+                    <p className="text-sm text-slate-500">
+                      Pedido recibido hoy · {pedido.impreso ? "Impreso" : "No impreso"}
+                    </p>
+                  </div>
+
+                  <Link
+                    href={`/admin/pedido/${pedido.id}`}
+                    className="rounded-lg bg-black text-white px-3 py-2"
+                  >
+                    Ver pedido
+                  </Link>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
       </div>
     </main>
   );

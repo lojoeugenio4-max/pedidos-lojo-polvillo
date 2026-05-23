@@ -158,7 +158,8 @@ export default function PedidoClientePage() {
     tipo: "cajas" | "unidades",
     valor: string
   ) {
-    const cantidad = Math.max(0, Number(valor) || 0);
+    const soloNumeros = valor.replace(/\D/g, "");
+    const cantidad = Math.max(0, Number(soloNumeros) || 0);
 
     setPedido((prev) => {
       const actual = prev[producto.codigo] || {
@@ -502,9 +503,9 @@ export default function PedidoClientePage() {
                       </label>
 
                       <input
-                        type="number"
-                        min="0"
-                        onWheel={(e) => e.currentTarget.blur()}
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
                         value={cajas || ""}
                         onChange={(e) =>
                           actualizarCantidad(p, "cajas", e.target.value)
@@ -521,9 +522,9 @@ export default function PedidoClientePage() {
                         </label>
 
                         <input
-                          type="number"
-                          min="0"
-                          onWheel={(e) => e.currentTarget.blur()}
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
                           value={cajas || ""}
                           onChange={(e) =>
                             actualizarCantidad(p, "cajas", e.target.value)
@@ -539,9 +540,9 @@ export default function PedidoClientePage() {
                         </label>
 
                         <input
-                          type="number"
-                          min="0"
-                          onWheel={(e) => e.currentTarget.blur()}
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
                           value={unidades || ""}
                           onChange={(e) =>
                             actualizarCantidad(p, "unidades", e.target.value)

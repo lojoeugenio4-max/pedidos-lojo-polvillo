@@ -86,6 +86,7 @@ export default function PedidoClientePage() {
   const [cliente, setCliente] = useState<Cliente | null>(null);
   const [cargandoCliente, setCargandoCliente] = useState(true);
   const [productos, setProductos] = useState<Producto[]>([]);
+  const [cargandoProductos, setCargandoProductos] = useState(true);
   const [busqueda, setBusqueda] = useState("");
   const [departamento, setDepartamento] = useState("Bebidas");
   const [categoria, setCategoria] = useState("Todas");
@@ -124,6 +125,8 @@ export default function PedidoClientePage() {
   }
 
   async function cargarProductos() {
+    setCargandoProductos(true);
+
     const { data, error } = await supabase
       .from("productos")
       .select(
@@ -136,6 +139,7 @@ export default function PedidoClientePage() {
 
     if (error) {
       setMensaje(JSON.stringify(error));
+      setCargandoProductos(false);
       return;
     }
 
@@ -145,6 +149,7 @@ export default function PedidoClientePage() {
     })) as Producto[];
 
     setProductos(productosNormalizados);
+    setCargandoProductos(false);
   }
 
   useEffect(() => {
@@ -152,26 +157,36 @@ export default function PedidoClientePage() {
     cargarProductos();
   }, []);
 
+  const productosDelDepartamento = useMemo(() => {
+    return productos.filter(
+      (p) => normalizarTexto(p.departamento) === normalizarTexto(departamento)
+    );
+  }, [productos, departamento]);
+
   const categoriasDisponibles = useMemo(() => {
-    const categorias = productos
-      .filter((p) => p.departamento === departamento)
+    const categorias = productosDelDepartamento
       .map((p) => p.categoria || "Sin categoría")
       .filter((cat) => Boolean(cat && cat.trim()));
 
     return ["Todas", ...Array.from(new Set(categorias)).sort((a, b) =>
       a.localeCompare(b, "es")
     )];
-  }, [departamento]);
+  }, [productosDelDepartamento]);
+
+  useEffect(() => {
+    if (!categoriasDisponibles.includes(categoria)) {
+      setCategoria("Todas");
+    }
+  }, [categoriasDisponibles, categoria]);
 
   const productosFiltrados = useMemo(() => {
     const q = busqueda.toLowerCase().trim();
 
-    return productos
+    return productosDelDepartamento
       .filter((p) => {
-        const coincideDepartamento = p.departamento === departamento;
-
         const coincideCategoria =
-          categoria === "Todas" || p.categoria === categoria;
+          categoria === "Todas" ||
+          normalizarTexto(p.categoria) === normalizarTexto(categoria);
 
         const coincideBusqueda =
           !q ||
@@ -179,7 +194,7 @@ export default function PedidoClientePage() {
           p.codigo.includes(q) ||
           (p.categoria || "").toLowerCase().includes(q);
 
-        return coincideDepartamento && coincideCategoria && coincideBusqueda;
+        return coincideCategoria && coincideBusqueda;
       })
       .sort((a, b) => {
         const ordenA = a.orden_preparacion ?? 9999;
@@ -189,7 +204,7 @@ export default function PedidoClientePage() {
 
         return a.nombre.localeCompare(b.nombre, "es");
       });
-  }, [busqueda, departamento, categoria]);
+  }, [busqueda, categoria, productosDelDepartamento]);
 
   const lineasPedido = Object.values(pedido)
     .filter((item) => item.cajas > 0 || item.unidades > 0)
@@ -339,7 +354,7 @@ export default function PedidoClientePage() {
     }
   }
 
-  if (cargandoCliente) {
+  if (cargandoCliente || cargandoProductos) {
     return (
       <main className="min-h-screen bg-slate-100 p-4 md:p-6">
         <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow p-6">

@@ -11,6 +11,7 @@ import {
   Trash2,
   CalendarDays,
   Eraser,
+  Phone,
 } from "lucide-react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
@@ -100,6 +101,22 @@ function diaHoyEspana() {
 
 function fechaEspana(fecha: string) {
   return new Date(fecha).toLocaleDateString("es-ES");
+}
+
+function formatearTelefono(telefono: string | null) {
+  const limpio = (telefono || "").replace(/\D/g, "");
+
+  if (!limpio) return "-";
+
+  return limpio.replace(/(.{3})/g, "$1.").replace(/\.$/, "");
+}
+
+function claseFila(fila: FilaControl) {
+  if (!fila.pedido) return "bg-red-50 border-l-4 border-red-500";
+  if (fila.pedido.impreso) return "bg-green-50 border-l-4 border-green-500";
+  if (fila.pendienteAntiguo) return "bg-yellow-50 border-l-4 border-yellow-500";
+  if (fila.fueraDeDia) return "bg-orange-50 border-l-4 border-orange-500";
+  return "bg-white";
 }
 
 export default function AdminPedidosPage() {
@@ -225,14 +242,10 @@ export default function AdminPedidosPage() {
       ...filasExtraSemana,
       ...filasPrevistasHoy,
     ].sort((a, b) => {
-      if (a.pendienteAntiguo && !b.pendienteAntiguo) return -1;
-      if (!a.pendienteAntiguo && b.pendienteAntiguo) return 1;
-      if (a.fueraDeDia && !b.fueraDeDia) return -1;
-      if (!a.fueraDeDia && b.fueraDeDia) return 1;
+      const prioridadA = !a.pedido ? 1 : a.pedido.impreso ? 4 : a.pendienteAntiguo ? 2 : a.fueraDeDia ? 3 : 2;
+      const prioridadB = !b.pedido ? 1 : b.pedido.impreso ? 4 : b.pendienteAntiguo ? 2 : b.fueraDeDia ? 3 : 2;
 
-      const fechaA = a.pedido?.fecha || "";
-      const fechaB = b.pedido?.fecha || "";
-      if (fechaA !== fechaB) return fechaA.localeCompare(fechaB);
+      if (prioridadA !== prioridadB) return prioridadA - prioridadB;
 
       const rutaA = a.cliente?.ruta || "";
       const rutaB = b.cliente?.ruta || "";
@@ -310,22 +323,10 @@ export default function AdminPedidosPage() {
     cargarDatos();
   }, []);
 
-  const previstasHoy = filas.filter(
-    (fila) =>
-      fila.cliente &&
-      !fila.fueraDeDia &&
-      !fila.pendienteAntiguo &&
-      normalizarDia(fila.cliente.dia_pedido) === hoyDia
+  const faltan = filas.filter((fila) => !fila.pedido).length;
+  const recibidasSinImprimir = filas.filter(
+    (fila) => fila.pedido && !fila.pedido.impreso
   ).length;
-
-  const recibidas = filas.filter(
-    (fila) => fila.pedido && !fila.fueraDeDia && !fila.pendienteAntiguo
-  ).length;
-
-  const faltan = filas.filter(
-    (fila) => !fila.pedido && !fila.fueraDeDia && !fila.pendienteAntiguo
-  ).length;
-
   const impresas = filas.filter((fila) => fila.pedido?.impreso).length;
   const fueraDeDia = filas.filter((fila) => fila.fueraDeDia).length;
   const pendientesAntiguos = filas.filter((fila) => fila.pendienteAntiguo).length;
@@ -335,15 +336,16 @@ export default function AdminPedidosPage() {
       <div className="max-w-7xl mx-auto space-y-6">
         <header className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <h1 className="text-3xl md:text-4xl font-bold">Pedidos</h1>
+            <h1 className="text-3xl md:text-4xl font-bold">Control de pedidos</h1>
 
             <p className="text-slate-600 mt-2">
-              Semana operativa: <strong>{fechaEspana(semana.inicioISO)}</strong>{" "}
-              a <strong>{fechaEspana(semana.finISO)}</strong>
+              Hoy deben pedir las tiendas de{" "}
+              <strong className="capitalize">{hoyDia}</strong>
             </p>
 
             <p className="text-slate-500 text-sm mt-1">
-              Hoy: <strong className="capitalize">{hoyDia}</strong>
+              Semana operativa: <strong>{fechaEspana(semana.inicioISO)}</strong>{" "}
+              a <strong>{fechaEspana(semana.finISO)}</strong>
             </p>
           </div>
 
@@ -370,59 +372,48 @@ export default function AdminPedidosPage() {
           </div>
         </header>
 
-        <section className="grid grid-cols-1 md:grid-cols-6 gap-4">
-          <div className="bg-white rounded-2xl p-4 shadow">
-            <p className="text-sm text-slate-500">Previstas hoy</p>
-            <p className="text-3xl font-bold">{previstasHoy}</p>
-          </div>
-
-          <div className="bg-white rounded-2xl p-4 shadow">
-            <p className="text-sm text-slate-500">Recibidas</p>
-            <p className="text-3xl font-bold">{recibidas}</p>
-          </div>
-
-          <div className="bg-white rounded-2xl p-4 shadow">
-            <p className="text-sm text-slate-500">Faltan</p>
-            <p className="text-3xl font-bold">{faltan}</p>
-          </div>
-
-          <div className="bg-white rounded-2xl p-4 shadow">
-            <p className="text-sm text-slate-500">Impresas</p>
-            <p className="text-3xl font-bold">{impresas}</p>
-          </div>
-
+        <section className="grid grid-cols-1 md:grid-cols-5 gap-4">
           <div className="bg-red-50 border border-red-200 rounded-2xl p-4 shadow">
-            <p className="text-sm text-red-600">Fuera de día</p>
-            <p className="text-3xl font-bold text-red-700">{fueraDeDia}</p>
+            <p className="text-sm text-red-700">Faltan por pedir</p>
+            <p className="text-4xl font-bold text-red-700">{faltan}</p>
+          </div>
+
+          <div className="bg-white rounded-2xl p-4 shadow">
+            <p className="text-sm text-slate-500">Recibidos sin imprimir</p>
+            <p className="text-4xl font-bold">{recibidasSinImprimir}</p>
+          </div>
+
+          <div className="bg-green-50 border border-green-200 rounded-2xl p-4 shadow">
+            <p className="text-sm text-green-700">Impresos</p>
+            <p className="text-4xl font-bold text-green-700">{impresas}</p>
+          </div>
+
+          <div className="bg-orange-50 border border-orange-200 rounded-2xl p-4 shadow">
+            <p className="text-sm text-orange-700">Fuera de día</p>
+            <p className="text-4xl font-bold text-orange-700">{fueraDeDia}</p>
           </div>
 
           <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-4 shadow">
             <p className="text-sm text-yellow-700">Pendientes antiguos</p>
-            <p className="text-3xl font-bold text-yellow-800">{pendientesAntiguos}</p>
+            <p className="text-4xl font-bold text-yellow-800">
+              {pendientesAntiguos}
+            </p>
           </div>
         </section>
-
-        {pendientesAntiguos > 0 && (
-          <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-xl p-4 text-sm flex items-center gap-2">
-            <AlertCircle className="w-5 h-5" />
-            Hay pedidos antiguos no impresos. No se borran automáticamente.
-          </div>
-        )}
-
-        {fueraDeDia > 0 && (
-          <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl p-4 text-sm flex items-center gap-2">
-            <AlertCircle className="w-5 h-5" />
-            Hay pedidos fuera de su día habitual. Aparecen en rojo.
-          </div>
-        )}
 
         {mensaje && (
           <div className="bg-white border rounded-xl p-4 text-sm">{mensaje}</div>
         )}
 
         <section className="bg-white rounded-2xl shadow overflow-hidden">
-          <div className="p-4 border-b flex items-center justify-between">
-            <h2 className="text-xl font-bold">Control de pedidos</h2>
+          <div className="p-4 border-b flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+            <div>
+              <h2 className="text-xl font-bold">Tiendas de hoy</h2>
+              <p className="text-sm text-slate-500">
+                Rojo = llamar · Verde = pedido impreso · Blanco = recibido pendiente de imprimir
+              </p>
+            </div>
+
             {cargando && <p className="text-sm text-slate-500">Cargando...</p>}
           </div>
 
@@ -430,13 +421,10 @@ export default function AdminPedidosPage() {
             <table className="w-full text-sm">
               <thead className="bg-slate-50 text-slate-600">
                 <tr>
-                  <th className="text-left p-3">Fecha</th>
-                  <th className="text-left p-3">Código</th>
                   <th className="text-left p-3">Tienda</th>
-                  <th className="text-left p-3">Ruta</th>
                   <th className="text-left p-3">Teléfono</th>
+                  <th className="text-left p-3">Ruta</th>
                   <th className="text-left p-3">Estado</th>
-                  <th className="text-left p-3">Impreso</th>
                   <th className="text-left p-3">Acciones</th>
                 </tr>
               </thead>
@@ -444,112 +432,135 @@ export default function AdminPedidosPage() {
               <tbody>
                 {!cargando && filas.length === 0 && (
                   <tr>
-                    <td colSpan={8} className="p-6 text-center text-slate-500">
-                      No hay pedidos ni tiendas pendientes.
+                    <td colSpan={5} className="p-6 text-center text-slate-500">
+                      No hay tiendas ni pedidos pendientes.
                     </td>
                   </tr>
                 )}
 
-                {filas.map(
-                  ({ cliente, pedido, fueraDeDia, pendienteAntiguo }, index) => {
-                    const recibido = Boolean(pedido);
-                    const impreso = Boolean(pedido?.impreso);
+                {filas.map(({ cliente, pedido, fueraDeDia, pendienteAntiguo }, index) => {
+                  const recibido = Boolean(pedido);
+                  const impreso = Boolean(pedido?.impreso);
+                  const telefonoFormateado = formatearTelefono(cliente?.telefono || null);
+                  const telefonoLimpio = (cliente?.telefono || "").replace(/\D/g, "");
 
-                    return (
-                      <tr
-                        key={pedido?.id || cliente?.id || index}
-                        className={`border-t ${
-                          pendienteAntiguo
-                            ? "bg-yellow-50"
-                            : fueraDeDia
-                              ? "bg-red-50"
-                              : ""
-                        }`}
-                      >
-                        <td className="p-3">
-                          {pedido?.fecha ? fechaEspana(pedido.fecha) : "-"}
-                        </td>
-
-                        <td className="p-3">{cliente?.codigo || "-"}</td>
-
-                        <td className="p-3 font-semibold">
+                  return (
+                    <tr
+                      key={pedido?.id || cliente?.id || index}
+                      className={`border-t ${claseFila({
+                        cliente,
+                        pedido,
+                        fueraDeDia,
+                        pendienteAntiguo,
+                      })}`}
+                    >
+                      <td className="p-3">
+                        <p className="font-bold text-base">
                           {cliente?.nombre || `Cliente ID ${pedido?.cliente_id || "-"}`}
-                        </td>
+                        </p>
 
-                        <td className="p-3">{cliente?.ruta || "-"}</td>
+                        <p className="text-xs text-slate-500">
+                          Código {cliente?.codigo || "-"}
+                          {pedido?.fecha ? ` · ${fechaEspana(pedido.fecha)}` : ""}
+                        </p>
+                      </td>
 
-                        <td className="p-3">{cliente?.telefono || "-"}</td>
+                      <td className="p-3">
+                        {telefonoLimpio ? (
+                          <a
+                            href={`tel:${telefonoLimpio}`}
+                            className="inline-flex items-center gap-2 font-bold text-base"
+                          >
+                            <Phone className="w-4 h-4" />
+                            {telefonoFormateado}
+                          </a>
+                        ) : (
+                          <span className="text-slate-400">Sin teléfono</span>
+                        )}
+                      </td>
 
-                        <td className="p-3">
-                          {pendienteAntiguo ? (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-yellow-100 text-yellow-800 px-3 py-1 text-xs font-semibold">
-                              <CalendarDays className="w-3 h-3" />
-                              Pendiente antiguo
-                            </span>
-                          ) : fueraDeDia ? (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-red-100 text-red-700 px-3 py-1 text-xs font-semibold">
-                              <AlertCircle className="w-3 h-3" />
-                              Fuera de día
-                            </span>
-                          ) : recibido ? (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-green-100 text-green-700 px-3 py-1 text-xs font-semibold">
-                              <CheckCircle className="w-3 h-3" />
-                              Recibido
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-orange-100 text-orange-700 px-3 py-1 text-xs font-semibold">
-                              <Clock className="w-3 h-3" />
-                              Falta
-                            </span>
-                          )}
-                        </td>
+                      <td className="p-3">{cliente?.ruta || "-"}</td>
 
-                        <td className="p-3">{impreso ? "Sí" : "No"}</td>
+                      <td className="p-3">
+                        {!recibido ? (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-red-100 text-red-700 px-3 py-1 text-xs font-semibold">
+                            <Clock className="w-3 h-3" />
+                            Falta llamar
+                          </span>
+                        ) : impreso ? (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-green-100 text-green-700 px-3 py-1 text-xs font-semibold">
+                            <CheckCircle className="w-3 h-3" />
+                            Impreso
+                          </span>
+                        ) : pendienteAntiguo ? (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-yellow-100 text-yellow-800 px-3 py-1 text-xs font-semibold">
+                            <CalendarDays className="w-3 h-3" />
+                            Pendiente antiguo
+                          </span>
+                        ) : fueraDeDia ? (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-orange-100 text-orange-700 px-3 py-1 text-xs font-semibold">
+                            <AlertCircle className="w-3 h-3" />
+                            Fuera de día
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 text-slate-700 px-3 py-1 text-xs font-semibold">
+                            <CheckCircle className="w-3 h-3" />
+                            Recibido sin imprimir
+                          </span>
+                        )}
+                      </td>
 
-                        <td className="p-3">
-                          {pedido ? (
-                            <div className="flex gap-2 flex-wrap">
-                              <Link
-                                href={`/admin/pedido/${pedido.id}`}
-                                className="rounded-lg border px-3 py-2 flex items-center gap-1 bg-white"
-                              >
-                                <Eye className="w-4 h-4" />
-                                Ver
-                              </Link>
+                      <td className="p-3">
+                        {pedido ? (
+                          <div className="flex gap-2 flex-wrap">
+                            <Link
+                              href={`/admin/pedido/${pedido.id}`}
+                              className="rounded-lg border px-3 py-2 flex items-center gap-1 bg-white"
+                            >
+                              <Eye className="w-4 h-4" />
+                              Ver
+                            </Link>
 
-                              <Link
-                                href={`/admin/pedido/${pedido.id}`}
-                                className="rounded-lg bg-black text-white px-3 py-2 flex items-center gap-1"
-                              >
-                                <Printer className="w-4 h-4" />
-                                Preparar
-                              </Link>
+                            <Link
+                              href={`/admin/pedido/${pedido.id}`}
+                              className="rounded-lg bg-black text-white px-3 py-2 flex items-center gap-1"
+                            >
+                              <Printer className="w-4 h-4" />
+                              Preparar
+                            </Link>
 
-                              {!pedido.impreso && (
-                                <button
-                                  onClick={() => marcarImpreso(pedido.id)}
-                                  className="rounded-lg border px-3 py-2 bg-white"
-                                >
-                                  Marcar impreso
-                                </button>
-                              )}
-
+                            {!pedido.impreso && (
                               <button
-                                onClick={() => borrarPedido(pedido.id)}
-                                className="rounded-lg border border-red-200 text-red-700 bg-red-50 px-3 py-2 flex items-center gap-1"
+                                onClick={() => marcarImpreso(pedido.id)}
+                                className="rounded-lg border px-3 py-2 bg-white"
                               >
-                                <Trash2 className="w-4 h-4" />
-                                Borrar
+                                Marcar impreso
                               </button>
-                            </div>
-                          ) : (
-                            <span className="text-slate-400">Sin pedido</span>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  }
-                )}
+                            )}
+
+                            <button
+                              onClick={() => borrarPedido(pedido.id)}
+                              className="rounded-lg border border-red-200 text-red-700 bg-red-50 px-3 py-2 flex items-center gap-1"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                              Borrar
+                            </button>
+                          </div>
+                        ) : telefonoLimpio ? (
+                          <a
+                            href={`tel:${telefonoLimpio}`}
+                            className="rounded-lg bg-red-600 text-white px-3 py-2 inline-flex items-center gap-1"
+                          >
+                            <Phone className="w-4 h-4" />
+                            Llamar
+                          </a>
+                        ) : (
+                          <span className="text-slate-400">Sin pedido</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

@@ -12,10 +12,20 @@ import {
 } from "lucide-react";
 import { useParams } from "next/navigation";
 
-import { productos, type Producto } from "@/data/productos";
 import { supabase } from "@/lib/supabase";
 
 const departamentos = ["Bebidas", "Charcutería"];
+
+type Producto = {
+  id: string;
+  codigo: string;
+  nombre: string;
+  departamento: string;
+  categoria: string;
+  unidad: string | null;
+  orden_preparacion: number | null;
+  activo: boolean | null;
+};
 
 type Cliente = {
   id: number;
@@ -75,6 +85,7 @@ export default function PedidoClientePage() {
 
   const [cliente, setCliente] = useState<Cliente | null>(null);
   const [cargandoCliente, setCargandoCliente] = useState(true);
+  const [productos, setProductos] = useState<Producto[]>([]);
   const [busqueda, setBusqueda] = useState("");
   const [departamento, setDepartamento] = useState("Bebidas");
   const [categoria, setCategoria] = useState("Todas");
@@ -112,14 +123,39 @@ export default function PedidoClientePage() {
     setCargandoCliente(false);
   }
 
+  async function cargarProductos() {
+    const { data, error } = await supabase
+      .from("productos")
+      .select(
+        "id, codigo, nombre, departamento, categoria, unidad, orden_preparacion, activo"
+      )
+      .eq("activo", true)
+      .order("departamento", { ascending: true })
+      .order("orden_preparacion", { ascending: true })
+      .order("nombre", { ascending: true });
+
+    if (error) {
+      setMensaje(JSON.stringify(error));
+      return;
+    }
+
+    const productosNormalizados = (data || []).map((p) => ({
+      ...p,
+      categoria: p.categoria || "Sin categoría",
+    })) as Producto[];
+
+    setProductos(productosNormalizados);
+  }
+
   useEffect(() => {
     cargarCliente();
+    cargarProductos();
   }, []);
 
   const categoriasDisponibles = useMemo(() => {
     const categorias = productos
       .filter((p) => p.departamento === departamento)
-      .map((p) => p.categoria)
+      .map((p) => p.categoria || "Sin categoría")
       .filter((cat) => Boolean(cat && cat.trim()));
 
     return ["Todas", ...Array.from(new Set(categorias)).sort((a, b) =>
@@ -141,11 +177,18 @@ export default function PedidoClientePage() {
           !q ||
           p.nombre.toLowerCase().includes(q) ||
           p.codigo.includes(q) ||
-          p.categoria.toLowerCase().includes(q);
+          (p.categoria || "").toLowerCase().includes(q);
 
         return coincideDepartamento && coincideCategoria && coincideBusqueda;
       })
-      .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
+      .sort((a, b) => {
+        const ordenA = a.orden_preparacion ?? 9999;
+        const ordenB = b.orden_preparacion ?? 9999;
+
+        if (ordenA !== ordenB) return ordenA - ordenB;
+
+        return a.nombre.localeCompare(b.nombre, "es");
+      });
   }, [busqueda, departamento, categoria]);
 
   const lineasPedido = Object.values(pedido)

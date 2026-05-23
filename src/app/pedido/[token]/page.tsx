@@ -550,19 +550,21 @@ export default function PedidoClientePage() {
         </div>
 
         <div className="bg-white rounded-2xl p-4 shadow -mt-3">
-          <div className="flex gap-2 overflow-x-auto pb-1">
+          <label className="block text-xs font-semibold text-slate-500 mb-1">
+            Categoría
+          </label>
+
+          <select
+            value={categoria}
+            onChange={(e) => setCategoria(e.target.value)}
+            className="w-full border rounded-xl px-4 py-3 bg-white font-semibold"
+          >
             {categoriasDisponibles.map((cat) => (
-              <button
-                key={cat}
-                onClick={() => setCategoria(cat)}
-                className={`shrink-0 px-4 py-2 rounded-xl border text-sm ${
-                  categoria === cat ? "bg-slate-800 text-white" : "bg-white"
-                }`}
-              >
+              <option key={cat} value={cat}>
                 {cat}
-              </button>
+              </option>
             ))}
-          </div>
+          </select>
         </div>
 
         <section className="space-y-3 pb-40 md:pb-32">

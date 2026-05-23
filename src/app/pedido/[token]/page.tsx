@@ -77,6 +77,7 @@ export default function PedidoClientePage() {
   const [cargandoCliente, setCargandoCliente] = useState(true);
   const [busqueda, setBusqueda] = useState("");
   const [departamento, setDepartamento] = useState("Bebidas");
+  const [categoria, setCategoria] = useState("Todas");
   const [pedido, setPedido] = useState<Pedido>({});
   const [enviando, setEnviando] = useState(false);
   const [mensaje, setMensaje] = useState("");
@@ -115,6 +116,17 @@ export default function PedidoClientePage() {
     cargarCliente();
   }, []);
 
+  const categoriasDisponibles = useMemo(() => {
+    const categorias = productos
+      .filter((p) => p.departamento === departamento)
+      .map((p) => p.categoria)
+      .filter((cat) => Boolean(cat && cat.trim()));
+
+    return ["Todas", ...Array.from(new Set(categorias)).sort((a, b) =>
+      a.localeCompare(b, "es")
+    )];
+  }, [departamento]);
+
   const productosFiltrados = useMemo(() => {
     const q = busqueda.toLowerCase().trim();
 
@@ -122,16 +134,19 @@ export default function PedidoClientePage() {
       .filter((p) => {
         const coincideDepartamento = p.departamento === departamento;
 
+        const coincideCategoria =
+          categoria === "Todas" || p.categoria === categoria;
+
         const coincideBusqueda =
           !q ||
           p.nombre.toLowerCase().includes(q) ||
           p.codigo.includes(q) ||
           p.categoria.toLowerCase().includes(q);
 
-        return coincideDepartamento && coincideBusqueda;
+        return coincideDepartamento && coincideCategoria && coincideBusqueda;
       })
       .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
-  }, [busqueda, departamento]);
+  }, [busqueda, departamento, categoria]);
 
   const lineasPedido = Object.values(pedido)
     .filter((item) => item.cajas > 0 || item.unidades > 0)
@@ -460,7 +475,10 @@ export default function PedidoClientePage() {
                 {departamentos.map((d) => (
                   <button
                     key={d}
-                    onClick={() => setDepartamento(d)}
+                    onClick={() => {
+                    setDepartamento(d);
+                    setCategoria("Todas");
+                  }}
                     className={`px-4 py-2 rounded-xl border ${
                       departamento === d ? "bg-black text-white" : "bg-white"
                     }`}
@@ -470,6 +488,22 @@ export default function PedidoClientePage() {
                 ))}
               </div>
             </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-2xl p-4 shadow -mt-3">
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {categoriasDisponibles.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setCategoria(cat)}
+                className={`shrink-0 px-4 py-2 rounded-xl border text-sm ${
+                  categoria === cat ? "bg-slate-800 text-white" : "bg-white"
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
           </div>
         </div>
 

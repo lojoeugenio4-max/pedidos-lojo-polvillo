@@ -79,6 +79,17 @@ function fechaHoyISO() {
   return `${year}-${month}-${day}`;
 }
 
+function irAlInicioArticulos() {
+  window.setTimeout(() => {
+    document
+      .getElementById("inicio-articulos")
+      ?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+  }, 50);
+}
+
 export default function PedidoClientePage() {
   const params = useParams();
   const token = String(params.token);
@@ -575,7 +586,11 @@ export default function PedidoClientePage() {
 
               <select
                 value={categoria}
-                onChange={(e) => setCategoria(e.target.value)}
+                onChange={(e) => {
+                  setCategoria(e.target.value);
+                  setUltimoArticulo(null);
+                  irAlInicioArticulos();
+                }}
                 className="w-full border rounded-xl px-4 py-3 bg-white font-semibold"
               >
                 {categoriasDisponibles.map((cat) => (
@@ -589,6 +604,8 @@ export default function PedidoClientePage() {
         </div>
 
 
+
+        <div id="inicio-articulos" className="scroll-mt-56" />
 
         <section className="space-y-3 pb-40 md:pb-32">
           {productosFiltrados.map((p) => {

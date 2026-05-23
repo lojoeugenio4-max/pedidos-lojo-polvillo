@@ -504,6 +504,7 @@ export default function PedidoClientePage() {
                       <input
                         type="number"
                         min="0"
+                        onWheel={(e) => e.currentTarget.blur()}
                         value={cajas || ""}
                         onChange={(e) =>
                           actualizarCantidad(p, "cajas", e.target.value)
@@ -522,6 +523,7 @@ export default function PedidoClientePage() {
                         <input
                           type="number"
                           min="0"
+                          onWheel={(e) => e.currentTarget.blur()}
                           value={cajas || ""}
                           onChange={(e) =>
                             actualizarCantidad(p, "cajas", e.target.value)
@@ -539,6 +541,7 @@ export default function PedidoClientePage() {
                         <input
                           type="number"
                           min="0"
+                          onWheel={(e) => e.currentTarget.blur()}
                           value={unidades || ""}
                           onChange={(e) =>
                             actualizarCantidad(p, "unidades", e.target.value)

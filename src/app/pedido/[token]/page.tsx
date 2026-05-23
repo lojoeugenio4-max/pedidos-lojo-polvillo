@@ -309,7 +309,7 @@ export default function PedidoClientePage() {
 
   if (mostrarPreview) {
     return (
-      <main className="min-h-screen bg-slate-100 p-4 md:p-6 pb-64">
+      <main className="min-h-screen bg-slate-100 p-4 md:p-6 pb-80">
         <div className="max-w-4xl mx-auto space-y-6">
           <header className="bg-white rounded-2xl shadow p-4 md:p-6">
             <h1 className="text-3xl md:text-4xl font-bold">
@@ -410,7 +410,7 @@ export default function PedidoClientePage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-100 p-4 md:p-6 pb-64">
+    <main className="min-h-screen bg-slate-100 p-4 md:p-6 pb-80">
       <div className="max-w-7xl mx-auto space-y-6">
         <header className="bg-white rounded-2xl shadow p-4 md:p-6">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -472,7 +472,7 @@ export default function PedidoClientePage() {
           </div>
         </div>
 
-        <section className="space-y-3">
+        <section className="space-y-3 pb-40 md:pb-32">
           {productosFiltrados.map((p) => {
             const cajas = cantidadActual(p, "cajas");
             const unidades = cantidadActual(p, "unidades");
@@ -554,6 +554,8 @@ export default function PedidoClientePage() {
             );
           })}
         </section>
+
+        <div className="h-40 md:h-32" aria-hidden="true" />
       </div>
 
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-2xl p-3 md:p-4 z-50">

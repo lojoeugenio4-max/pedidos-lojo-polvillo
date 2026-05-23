@@ -123,7 +123,7 @@ export default function PedidoDetallePage() {
       <div className="max-w-5xl mx-auto space-y-6 print:max-w-none print:space-y-4">
         <div className="flex justify-between items-center print:hidden">
           <Link
-            href="/admin"
+            href="/admin/pedidos"
             className="inline-flex items-center gap-2 rounded-xl border bg-white px-4 py-2"
           >
             <ArrowLeft className="w-4 h-4" />

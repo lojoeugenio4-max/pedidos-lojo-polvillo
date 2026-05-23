@@ -94,6 +94,7 @@ export default function PedidoClientePage() {
   const [enviando, setEnviando] = useState(false);
   const [mensaje, setMensaje] = useState("");
   const [mostrarPreview, setMostrarPreview] = useState(false);
+  const [ultimoArticulo, setUltimoArticulo] = useState<string | null>(null);
 
   async function cargarCliente() {
     setCargandoCliente(true);
@@ -234,6 +235,17 @@ export default function PedidoClientePage() {
     const soloNumeros = valor.replace(/\D/g, "");
     const cantidad = Math.max(0, Number(soloNumeros) || 0);
 
+    setUltimoArticulo(producto.codigo);
+
+    window.setTimeout(() => {
+      document
+        .getElementById(`producto-${producto.codigo}`)
+        ?.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+    }, 50);
+
     setPedido((prev) => {
       const actual = prev[producto.codigo] || {
         ...producto,
@@ -341,6 +353,15 @@ export default function PedidoClientePage() {
 
       setPedido({});
       setMostrarPreview(false);
+      setBusqueda("");
+      setDepartamento("Bebidas");
+      setCategoria("Todas");
+      setUltimoArticulo(null);
+
+      window.scrollTo({
+        top: 0,
+        behavior: "smooth",
+      });
     } catch (error) {
       console.error(error);
 
@@ -576,8 +597,13 @@ export default function PedidoClientePage() {
 
             return (
               <div
+                id={`producto-${p.codigo}`}
                 key={`${p.codigo}-${p.nombre}`}
-                className="bg-white rounded-2xl p-4 shadow"
+                className={`rounded-2xl p-4 shadow transition-all ${
+                  ultimoArticulo === p.codigo
+                    ? "bg-blue-50 ring-2 ring-blue-400"
+                    : "bg-white"
+                }`}
               >
                 <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-4 md:items-center">
                   <div>

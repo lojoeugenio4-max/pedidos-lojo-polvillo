@@ -516,7 +516,7 @@ export default function PedidoClientePage() {
         </header>
 
         <div className="sticky top-0 z-40 bg-slate-100 pt-2 pb-3">
-          <div className="bg-white rounded-2xl p-4 shadow">
+          <div className="bg-white rounded-2xl p-4 shadow space-y-3">
             <div className="flex flex-col md:flex-row gap-3">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-3 w-5 h-5 text-slate-400" />
@@ -546,26 +546,28 @@ export default function PedidoClientePage() {
                 ))}
               </div>
             </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-500 mb-1">
+                Categoría
+              </label>
+
+              <select
+                value={categoria}
+                onChange={(e) => setCategoria(e.target.value)}
+                className="w-full border rounded-xl px-4 py-3 bg-white font-semibold"
+              >
+                {categoriasDisponibles.map((cat) => (
+                  <option key={cat} value={cat}>
+                    {cat}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl p-4 shadow -mt-3">
-          <label className="block text-xs font-semibold text-slate-500 mb-1">
-            Categoría
-          </label>
 
-          <select
-            value={categoria}
-            onChange={(e) => setCategoria(e.target.value)}
-            className="w-full border rounded-xl px-4 py-3 bg-white font-semibold"
-          >
-            {categoriasDisponibles.map((cat) => (
-              <option key={cat} value={cat}>
-                {cat}
-              </option>
-            ))}
-          </select>
-        </div>
 
         <section className="space-y-3 pb-40 md:pb-32">
           {productosFiltrados.map((p) => {

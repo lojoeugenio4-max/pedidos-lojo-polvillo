@@ -79,15 +79,25 @@ function fechaHoyISO() {
   return `${year}-${month}-${day}`;
 }
 
-function irAlInicioArticulos() {
+function irAlPrimerArticulo() {
   window.setTimeout(() => {
+    const primerArticulo = document.querySelector("[data-producto-visible='true']");
+
+    if (primerArticulo) {
+      primerArticulo.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+      return;
+    }
+
     document
       .getElementById("inicio-articulos")
       ?.scrollIntoView({
         behavior: "smooth",
         block: "start",
       });
-  }, 50);
+  }, 120);
 }
 
 export default function PedidoClientePage() {
@@ -584,22 +594,22 @@ export default function PedidoClientePage() {
                 Categorías
               </p>
 
-              <div className="flex gap-2 flex-wrap">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
                 {categoriasDisponibles.map((cat) => (
                   <button
                     key={cat}
                     onClick={() => {
                       setCategoria(cat);
                       setUltimoArticulo(null);
-                      irAlInicioArticulos();
+                      irAlPrimerArticulo();
                     }}
-                    className={`px-4 py-2 rounded-xl border text-sm font-semibold ${
+                    className={`h-11 rounded-xl border text-sm font-semibold text-center px-3 transition ${
                       categoria === cat
-                        ? "bg-slate-800 text-white"
-                        : "bg-white"
+                        ? "bg-slate-900 text-white border-slate-900 shadow"
+                        : "bg-white hover:bg-slate-50"
                     }`}
                   >
-                    {cat}
+                    <span className="block truncate">{cat}</span>
                   </button>
                 ))}
               </div>
@@ -609,7 +619,7 @@ export default function PedidoClientePage() {
 
 
 
-        <div id="inicio-articulos" className="scroll-mt-56" />
+        <div id="inicio-articulos" className="scroll-mt-80" />
 
         <section className="space-y-3 pb-40 md:pb-32">
           {productosFiltrados.map((p) => {
@@ -619,6 +629,7 @@ export default function PedidoClientePage() {
             return (
               <div
                 id={`producto-${p.codigo}`}
+                data-producto-visible="true"
                 key={`${p.codigo}-${p.nombre}`}
                 className={`rounded-2xl p-4 shadow transition-all ${
                   ultimoArticulo === p.codigo

@@ -81,23 +81,43 @@ function fechaHoyISO() {
 
 function irAlPrimerArticulo() {
   window.setTimeout(() => {
-    const primerArticulo = document.querySelector("[data-producto-visible='true']");
+    const primerArticulo = document.querySelector(
+      "[data-producto-visible='true']"
+    ) as HTMLElement | null;
+
+    const cabecera = document.getElementById("cabecera-filtros");
+    const alturaCabecera = cabecera ? cabecera.offsetHeight : 0;
 
     if (primerArticulo) {
-      primerArticulo.scrollIntoView({
+      const posicion =
+        primerArticulo.getBoundingClientRect().top +
+        window.scrollY -
+        alturaCabecera -
+        12;
+
+      window.scrollTo({
+        top: Math.max(posicion, 0),
         behavior: "smooth",
-        block: "start",
       });
+
       return;
     }
 
-    document
-      .getElementById("inicio-articulos")
-      ?.scrollIntoView({
+    const inicio = document.getElementById("inicio-articulos");
+
+    if (inicio) {
+      const posicion =
+        inicio.getBoundingClientRect().top +
+        window.scrollY -
+        alturaCabecera -
+        12;
+
+      window.scrollTo({
+        top: Math.max(posicion, 0),
         behavior: "smooth",
-        block: "start",
       });
-  }, 160);
+    }
+  }, 250);
 }
 
 export default function PedidoClientePage() {
@@ -116,6 +136,7 @@ export default function PedidoClientePage() {
   const [mensaje, setMensaje] = useState("");
   const [mostrarPreview, setMostrarPreview] = useState(false);
   const [ultimoArticulo, setUltimoArticulo] = useState<string | null>(null);
+  const [scrollPendiente, setScrollPendiente] = useState(false);
 
   async function cargarCliente() {
     setCargandoCliente(true);
@@ -227,6 +248,13 @@ export default function PedidoClientePage() {
         return a.nombre.localeCompare(b.nombre, "es");
       });
   }, [busqueda, categoria, productosDelDepartamento]);
+
+  useEffect(() => {
+    if (!scrollPendiente) return;
+
+    irAlPrimerArticulo();
+    setScrollPendiente(false);
+  }, [scrollPendiente, productosFiltrados]);
 
   const lineasPedido = Object.values(pedido)
     .filter((item) => item.cajas > 0 || item.unidades > 0)
@@ -557,7 +585,10 @@ export default function PedidoClientePage() {
           </div>
         </header>
 
-        <div className="sticky top-0 z-40 bg-slate-100 pt-1 pb-2">
+        <div
+          id="cabecera-filtros"
+          className="sticky top-0 z-40 bg-slate-100 pt-1 pb-2"
+        >
           <div className="bg-white rounded-2xl p-3 shadow space-y-2">
             <div className="flex flex-col md:flex-row gap-3">
               <div className="relative flex-1">
@@ -597,7 +628,7 @@ export default function PedidoClientePage() {
                     onClick={() => {
                       setCategoria(cat);
                       setUltimoArticulo(null);
-                      irAlPrimerArticulo();
+                      setScrollPendiente(true);
                     }}
                     className={`h-9 rounded-lg border text-xs font-bold text-center px-2 transition ${
                       categoria === cat
@@ -615,7 +646,7 @@ export default function PedidoClientePage() {
 
 
 
-        <div id="inicio-articulos" className="scroll-mt-44" />
+        <div id="inicio-articulos" className="scroll-mt-52" />
 
         <section className="space-y-2 pb-40 md:pb-32">
           {productosFiltrados.map((p) => {

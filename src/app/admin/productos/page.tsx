@@ -34,6 +34,7 @@ export default function AdminProductosPage() {
   const [mensaje, setMensaje] = useState("");
   const [busqueda, setBusqueda] = useState("");
   const [editandoId, setEditandoId] = useState<string | null>(null);
+  const [subiendoImagenId, setSubiendoImagenId] = useState<string | null>(null);
 
   const [nuevo, setNuevo] = useState({
     codigo: "",
@@ -233,6 +234,80 @@ export default function AdminProductosPage() {
         ? "Producto reactivado correctamente."
         : "Producto desactivado correctamente."
     );
+  }
+
+  function extensionArchivo(nombre: string) {
+    const partes = nombre.split(".");
+    return partes.length > 1 ? partes.pop()?.toLowerCase() || "jpg" : "jpg";
+  }
+
+  async function subirImagenProducto(
+    producto: Producto,
+    event: React.ChangeEvent<HTMLInputElement>
+  ) {
+    const archivo = event.target.files?.[0];
+
+    if (!archivo) return;
+
+    setMensaje("");
+
+    if (!archivo.type.startsWith("image/")) {
+      setMensaje("El archivo seleccionado no es una imagen.");
+      return;
+    }
+
+    try {
+      setSubiendoImagenId(producto.id);
+
+      const extension = extensionArchivo(archivo.name);
+      const nombreArchivo = `${producto.codigo}-${Date.now()}.${extension}`;
+      const ruta = `productos/${nombreArchivo}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("productos")
+        .upload(ruta, archivo, {
+          cacheControl: "3600",
+          upsert: true,
+        });
+
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage
+        .from("productos")
+        .getPublicUrl(ruta);
+
+      const imagenUrl = data.publicUrl;
+
+      const { error: updateError } = await supabase
+        .from("productos")
+        .update({
+          imagen_url: imagenUrl,
+        })
+        .eq("id", producto.id);
+
+      if (updateError) throw updateError;
+
+      if (editandoId === producto.id) {
+        setEdicion({
+          ...edicion,
+          imagen_url: imagenUrl,
+        });
+      }
+
+      await cargarProductos();
+      setMensaje("Imagen subida correctamente.");
+    } catch (error) {
+      console.error(error);
+
+      if (error instanceof Error) {
+        setMensaje(error.message);
+      } else {
+        setMensaje(JSON.stringify(error));
+      }
+    } finally {
+      setSubiendoImagenId(null);
+      event.target.value = "";
+    }
   }
 
   const activos = productos.filter((p) => p.activo ?? true).length;
@@ -549,30 +624,56 @@ export default function AdminProductosPage() {
                       </td>
 
                       <td className="p-3">
-                        {editando ? (
-                          <input
-                            value={edicion.imagen_url}
-                            onChange={(e) =>
-                              setEdicion({
-                                ...edicion,
-                                imagen_url: e.target.value,
-                              })
-                            }
-                            placeholder="https://..."
-                            className="border rounded-lg px-2 py-1 min-w-64"
-                          />
-                        ) : producto.imagen_url ? (
-                          <a
-                            href={producto.imagen_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 underline"
-                          >
-                            Ver imagen
-                          </a>
-                        ) : (
-                          "-"
-                        )}
+                        <div className="space-y-2 min-w-64">
+                          {producto.imagen_url && (
+                            <div className="flex items-center gap-2">
+                              <img
+                                src={producto.imagen_url}
+                                alt={producto.nombre}
+                                className="w-12 h-12 object-cover rounded-lg border bg-white"
+                              />
+
+                              <a
+                                href={producto.imagen_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-600 underline text-xs"
+                              >
+                                Ver imagen
+                              </a>
+                            </div>
+                          )}
+
+                          {editando && (
+                            <input
+                              value={edicion.imagen_url}
+                              onChange={(e) =>
+                                setEdicion({
+                                  ...edicion,
+                                  imagen_url: e.target.value,
+                                })
+                              }
+                              placeholder="URL imagen"
+                              className="border rounded-lg px-2 py-1 w-full"
+                            />
+                          )}
+
+                          <label className="inline-flex items-center justify-center rounded-lg border bg-white px-3 py-2 text-xs font-semibold cursor-pointer">
+                            {subiendoImagenId === producto.id
+                              ? "Subiendo..."
+                              : producto.imagen_url
+                                ? "Cambiar imagen"
+                                : "Subir imagen"}
+
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              disabled={subiendoImagenId === producto.id}
+                              onChange={(e) => subirImagenProducto(producto, e)}
+                            />
+                          </label>
+                        </div>
                       </td>
 
                       <td className="p-3">

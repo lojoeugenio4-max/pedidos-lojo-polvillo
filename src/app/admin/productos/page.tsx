@@ -241,6 +241,16 @@ export default function AdminProductosPage() {
     return partes.length > 1 ? partes.pop()?.toLowerCase() || "jpg" : "jpg";
   }
 
+  function nombreSeguro(valor: string) {
+    return valor
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9-_]/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/^-|-$/g, "");
+  }
+
   async function subirImagenProducto(
     producto: Producto,
     event: React.ChangeEvent<HTMLInputElement>
@@ -253,6 +263,7 @@ export default function AdminProductosPage() {
 
     if (!archivo.type.startsWith("image/")) {
       setMensaje("El archivo seleccionado no es una imagen.");
+      event.target.value = "";
       return;
     }
 
@@ -260,7 +271,8 @@ export default function AdminProductosPage() {
       setSubiendoImagenId(producto.id);
 
       const extension = extensionArchivo(archivo.name);
-      const nombreArchivo = `${producto.codigo}-${Date.now()}.${extension}`;
+      const codigoSeguro = nombreSeguro(producto.codigo || producto.id);
+      const nombreArchivo = `${codigoSeguro}-${Date.now()}.${extension}`;
 
       const { error: uploadError } = await supabase.storage
         .from("productos")
@@ -278,33 +290,38 @@ export default function AdminProductosPage() {
 
       const imagenUrl = publicData.publicUrl;
 
-      const { data: productoActualizado, error: updateError } = await supabase
+      if (!imagenUrl) {
+        throw new Error("No se pudo obtener la URL pública de la imagen.");
+      }
+
+      const { error: updateError } = await supabase
         .from("productos")
         .update({
           imagen_url: imagenUrl,
         })
-        .eq("id", producto.id)
-        .select(
-          "id, codigo, nombre, departamento, categoria, unidad, orden_preparacion, activo, imagen_url"
-        )
-        .single();
+        .eq("id", producto.id);
 
       if (updateError) throw updateError;
 
       setProductos((prev) =>
         prev.map((p) =>
-          p.id === producto.id ? (productoActualizado as Producto) : p
+          p.id === producto.id
+            ? {
+                ...p,
+                imagen_url: imagenUrl,
+              }
+            : p
         )
       );
 
       if (editandoId === producto.id) {
-        setEdicion({
-          ...edicion,
+        setEdicion((prev) => ({
+          ...prev,
           imagen_url: imagenUrl,
-        });
+        }));
       }
 
-      setMensaje("Imagen subida y guardada correctamente.");
+      setMensaje("Imagen subida y URL guardada correctamente.");
     } catch (error) {
       console.error(error);
 

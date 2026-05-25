@@ -261,31 +261,41 @@ export default function AdminProductosPage() {
 
       const extension = extensionArchivo(archivo.name);
       const nombreArchivo = `${producto.codigo}-${Date.now()}.${extension}`;
-      const ruta = `productos/${nombreArchivo}`;
 
       const { error: uploadError } = await supabase.storage
         .from("productos")
-        .upload(ruta, archivo, {
+        .upload(nombreArchivo, archivo, {
           cacheControl: "3600",
           upsert: true,
+          contentType: archivo.type,
         });
 
       if (uploadError) throw uploadError;
 
-      const { data } = supabase.storage
+      const { data: publicData } = supabase.storage
         .from("productos")
-        .getPublicUrl(ruta);
+        .getPublicUrl(nombreArchivo);
 
-      const imagenUrl = data.publicUrl;
+      const imagenUrl = publicData.publicUrl;
 
-      const { error: updateError } = await supabase
+      const { data: productoActualizado, error: updateError } = await supabase
         .from("productos")
         .update({
           imagen_url: imagenUrl,
         })
-        .eq("id", producto.id);
+        .eq("id", producto.id)
+        .select(
+          "id, codigo, nombre, departamento, categoria, unidad, orden_preparacion, activo, imagen_url"
+        )
+        .single();
 
       if (updateError) throw updateError;
+
+      setProductos((prev) =>
+        prev.map((p) =>
+          p.id === producto.id ? (productoActualizado as Producto) : p
+        )
+      );
 
       if (editandoId === producto.id) {
         setEdicion({
@@ -294,8 +304,7 @@ export default function AdminProductosPage() {
         });
       }
 
-      await cargarProductos();
-      setMensaje("Imagen subida correctamente.");
+      setMensaje("Imagen subida y guardada correctamente.");
     } catch (error) {
       console.error(error);
 

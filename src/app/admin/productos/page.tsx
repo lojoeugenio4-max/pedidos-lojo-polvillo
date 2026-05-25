@@ -35,6 +35,7 @@ export default function AdminProductosPage() {
   const [busqueda, setBusqueda] = useState("");
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [subiendoImagenId, setSubiendoImagenId] = useState<string | null>(null);
+  const [imagenAmpliada, setImagenAmpliada] = useState<string | null>(null);
 
   const [nuevo, setNuevo] = useState({
     codigo: "",
@@ -653,11 +654,18 @@ export default function AdminProductosPage() {
                         <div className="space-y-2 min-w-64">
                           {producto.imagen_url && (
                             <div className="flex items-center gap-2">
-                              <img
-                                src={producto.imagen_url}
-                                alt={producto.nombre}
-                                className="w-12 h-12 object-cover rounded-lg border bg-white"
-                              />
+                              <button
+                                type="button"
+                                onClick={() => setImagenAmpliada(producto.imagen_url)}
+                                className="w-16 h-16 rounded-lg border bg-white overflow-hidden flex items-center justify-center"
+                                title="Ampliar imagen"
+                              >
+                                <img
+                                  src={producto.imagen_url}
+                                  alt={producto.nombre}
+                                  className="w-full h-full object-contain"
+                                />
+                              </button>
 
                               <a
                                 href={producto.imagen_url}
@@ -788,6 +796,33 @@ export default function AdminProductosPage() {
           </div>
         </section>
       </div>
+
+      {imagenAmpliada && (
+        <div
+          className="fixed inset-0 z-50 bg-black/70 p-4 flex items-center justify-center"
+          onClick={() => setImagenAmpliada(null)}
+        >
+          <div
+            className="bg-white rounded-2xl p-4 max-w-4xl max-h-[90vh] w-full flex flex-col gap-3"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-end">
+              <button
+                onClick={() => setImagenAmpliada(null)}
+                className="rounded-lg border px-3 py-2"
+              >
+                Cerrar
+              </button>
+            </div>
+
+            <img
+              src={imagenAmpliada}
+              alt="Imagen ampliada"
+              className="max-h-[75vh] w-full object-contain"
+            />
+          </div>
+        </div>
+      )}
     </main>
   );
 }

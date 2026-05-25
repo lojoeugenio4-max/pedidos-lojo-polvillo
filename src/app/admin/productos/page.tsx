@@ -23,6 +23,7 @@ type Producto = {
   unidad: string | null;
   orden_preparacion: number | null;
   activo: boolean | null;
+  imagen_url: string | null;
 };
 
 const departamentos = ["Bebidas", "Charcutería"];
@@ -41,6 +42,7 @@ export default function AdminProductosPage() {
     categoria: "",
     unidad: "ud",
     orden_preparacion: "",
+    imagen_url: "",
   });
 
   const [edicion, setEdicion] = useState({
@@ -50,6 +52,7 @@ export default function AdminProductosPage() {
     categoria: "",
     unidad: "ud",
     orden_preparacion: "",
+    imagen_url: "",
     activo: true,
   });
 
@@ -60,7 +63,7 @@ export default function AdminProductosPage() {
     const { data, error } = await supabase
       .from("productos")
       .select(
-        "id, codigo, nombre, departamento, categoria, unidad, orden_preparacion, activo"
+        "id, codigo, nombre, departamento, categoria, unidad, orden_preparacion, activo, imagen_url"
       )
       .order("departamento", { ascending: true })
       .order("orden_preparacion", { ascending: true })
@@ -115,6 +118,7 @@ export default function AdminProductosPage() {
       departamento: nuevo.departamento,
       categoria: nuevo.categoria.trim() || null,
       unidad: nuevo.unidad.trim() || null,
+      imagen_url: nuevo.imagen_url.trim() || null,
       orden_preparacion: nuevo.orden_preparacion
         ? Number(nuevo.orden_preparacion)
         : 9999,
@@ -133,6 +137,7 @@ export default function AdminProductosPage() {
       categoria: "",
       unidad: "ud",
       orden_preparacion: "",
+      imagen_url: "",
     });
 
     await cargarProductos();
@@ -152,6 +157,7 @@ export default function AdminProductosPage() {
         producto.orden_preparacion !== undefined
           ? String(producto.orden_preparacion)
           : "",
+      imagen_url: producto.imagen_url || "",
       activo: producto.activo ?? true,
     });
   }
@@ -181,6 +187,7 @@ export default function AdminProductosPage() {
         departamento: edicion.departamento,
         categoria: edicion.categoria.trim() || null,
         unidad: edicion.unidad.trim() || null,
+        imagen_url: edicion.imagen_url.trim() || null,
         orden_preparacion: edicion.orden_preparacion
           ? Number(edicion.orden_preparacion)
           : 9999,
@@ -289,7 +296,7 @@ export default function AdminProductosPage() {
         <section className="bg-white rounded-2xl shadow p-4 space-y-4">
           <h2 className="text-xl font-bold">Nuevo producto</h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-8 gap-3">
             <input
               value={nuevo.codigo}
               onChange={(e) =>
@@ -338,6 +345,15 @@ export default function AdminProductosPage() {
               }
               placeholder="Unidad"
               className="border rounded-xl px-3 py-2"
+            />
+
+            <input
+              value={nuevo.imagen_url}
+              onChange={(e) =>
+                setNuevo({ ...nuevo, imagen_url: e.target.value })
+              }
+              placeholder="URL imagen"
+              className="border rounded-xl px-3 py-2 md:col-span-2"
             />
 
             <input
@@ -394,6 +410,7 @@ export default function AdminProductosPage() {
                   <th className="text-left p-3">Departamento</th>
                   <th className="text-left p-3">Categoría</th>
                   <th className="text-left p-3">Unidad</th>
+                  <th className="text-left p-3">Imagen</th>
                   <th className="text-left p-3">Activo</th>
                   <th className="text-left p-3">Acciones</th>
                 </tr>
@@ -403,7 +420,7 @@ export default function AdminProductosPage() {
                 {!cargando && productosFiltrados.length === 0 && (
                   <tr>
                     <td
-                      colSpan={8}
+                      colSpan={9}
                       className="p-6 text-center text-slate-500"
                     >
                       No hay productos.
@@ -528,6 +545,33 @@ export default function AdminProductosPage() {
                           />
                         ) : (
                           producto.unidad || "-"
+                        )}
+                      </td>
+
+                      <td className="p-3">
+                        {editando ? (
+                          <input
+                            value={edicion.imagen_url}
+                            onChange={(e) =>
+                              setEdicion({
+                                ...edicion,
+                                imagen_url: e.target.value,
+                              })
+                            }
+                            placeholder="https://..."
+                            className="border rounded-lg px-2 py-1 min-w-64"
+                          />
+                        ) : producto.imagen_url ? (
+                          <a
+                            href={producto.imagen_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 underline"
+                          >
+                            Ver imagen
+                          </a>
+                        ) : (
+                          "-"
                         )}
                       </td>
 

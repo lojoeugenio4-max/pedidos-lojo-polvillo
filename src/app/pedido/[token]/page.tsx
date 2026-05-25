@@ -86,7 +86,7 @@ function irAlPrimerArticulo() {
     if (primerArticulo) {
       primerArticulo.scrollIntoView({
         behavior: "smooth",
-        block: "center",
+        block: "start",
       });
       return;
     }
@@ -97,7 +97,7 @@ function irAlPrimerArticulo() {
         behavior: "smooth",
         block: "start",
       });
-  }, 120);
+  }, 160);
 }
 
 export default function PedidoClientePage() {
@@ -427,7 +427,7 @@ export default function PedidoClientePage() {
     return (
       <main className="min-h-screen bg-slate-100 p-4 md:p-6 pb-80">
         <div className="max-w-4xl mx-auto space-y-6">
-          <header className="bg-white rounded-2xl shadow p-4 md:p-6">
+          <header className="bg-white rounded-2xl shadow p-3 md:p-6">
             <h1 className="text-3xl md:text-4xl font-bold">
               Revisar pedido
             </h1>
@@ -528,14 +528,14 @@ export default function PedidoClientePage() {
   return (
     <main className="min-h-screen bg-slate-100 p-4 md:p-6 pb-80">
       <div className="max-w-7xl mx-auto space-y-6">
-        <header className="bg-white rounded-2xl shadow p-4 md:p-6">
+        <header className="bg-white rounded-2xl shadow p-3 md:p-6">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
-              <h1 className="text-3xl md:text-4xl font-bold">
+              <h1 className="text-2xl md:text-4xl font-bold">
                 Polvillo · Pedido
               </h1>
 
-              <p className="text-slate-600 mt-2">
+              <p className="text-slate-600 mt-1">
                 Pedido de <strong>{cliente.nombre}</strong>
               </p>
 
@@ -546,7 +546,7 @@ export default function PedidoClientePage() {
               )}
             </div>
 
-            <div className="bg-slate-100 rounded-2xl p-4 flex items-center gap-3">
+            <div className="bg-slate-100 rounded-2xl p-3 flex items-center gap-3">
               <ShoppingCart className="w-6 h-6" />
 
               <div>
@@ -557,8 +557,8 @@ export default function PedidoClientePage() {
           </div>
         </header>
 
-        <div className="sticky top-0 z-40 bg-slate-100 pt-2 pb-3">
-          <div className="bg-white rounded-2xl p-4 shadow space-y-3">
+        <div className="sticky top-0 z-40 bg-slate-100 pt-1 pb-2">
+          <div className="bg-white rounded-2xl p-3 shadow space-y-2">
             <div className="flex flex-col md:flex-row gap-3">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-3 w-5 h-5 text-slate-400" />
@@ -566,8 +566,8 @@ export default function PedidoClientePage() {
                 <input
                   value={busqueda}
                   onChange={(e) => setBusqueda(e.target.value)}
-                  placeholder="Buscar por código, artículo o categoría..."
-                  className="w-full border rounded-xl py-3 pl-10 pr-4"
+                  placeholder="Buscar..."
+                  className="w-full border rounded-xl py-2.5 pl-10 pr-4"
                 />
               </div>
 
@@ -579,7 +579,7 @@ export default function PedidoClientePage() {
                     setDepartamento(d);
                     setCategoria("Todas");
                   }}
-                    className={`px-4 py-2 rounded-xl border ${
+                    className={`px-3 py-2 rounded-xl border text-sm font-semibold ${
                       departamento === d ? "bg-black text-white" : "bg-white"
                     }`}
                   >
@@ -590,11 +590,7 @@ export default function PedidoClientePage() {
             </div>
 
             <div>
-              <p className="text-xs font-semibold text-slate-500 mb-2">
-                Categorías
-              </p>
-
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-1.5">
                 {categoriasDisponibles.map((cat) => (
                   <button
                     key={cat}
@@ -603,7 +599,7 @@ export default function PedidoClientePage() {
                       setUltimoArticulo(null);
                       irAlPrimerArticulo();
                     }}
-                    className={`h-11 rounded-xl border text-sm font-semibold text-center px-3 transition ${
+                    className={`h-9 rounded-lg border text-xs font-bold text-center px-2 transition ${
                       categoria === cat
                         ? "bg-slate-900 text-white border-slate-900 shadow"
                         : "bg-white hover:bg-slate-50"
@@ -619,9 +615,9 @@ export default function PedidoClientePage() {
 
 
 
-        <div id="inicio-articulos" className="scroll-mt-80" />
+        <div id="inicio-articulos" className="scroll-mt-44" />
 
-        <section className="space-y-3 pb-40 md:pb-32">
+        <section className="space-y-2 pb-40 md:pb-32">
           {productosFiltrados.map((p) => {
             const cajas = cantidadActual(p, "cajas");
             const unidades = cantidadActual(p, "unidades");
@@ -631,7 +627,7 @@ export default function PedidoClientePage() {
                 id={`producto-${p.codigo}`}
                 data-producto-visible="true"
                 key={`${p.codigo}-${p.nombre}`}
-                className={`rounded-2xl p-4 shadow transition-all ${
+                className={`rounded-xl p-3 shadow transition-all ${
                   ultimoArticulo === p.codigo
                     ? "bg-blue-50 ring-2 ring-blue-400"
                     : "bg-white"
@@ -643,9 +639,11 @@ export default function PedidoClientePage() {
                       Código {p.codigo}
                     </p>
 
-                    <h2 className="font-bold mt-1">{p.nombre}</h2>
+                    <h2 className="font-bold text-sm md:text-base mt-0.5 leading-tight">
+                      {p.nombre}
+                    </h2>
 
-                    <p className="text-sm text-slate-500 mt-1">
+                    <p className="text-xs text-slate-500 mt-0.5">
                       {p.departamento} · {p.categoria}
                     </p>
                   </div>
@@ -664,14 +662,14 @@ export default function PedidoClientePage() {
                         onChange={(e) =>
                           actualizarCantidad(p, "cajas", e.target.value)
                         }
-                        className="w-full border rounded-xl px-3 py-2 text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        className="w-full border rounded-xl px-3 py-1.5 text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         placeholder="0"
                       />
                     </div>
                   ) : (
                     <div className="grid grid-cols-2 gap-3 w-full md:w-72">
                       <div>
-                        <label className="block text-xs font-semibold text-slate-500 mb-1">
+                        <label className="block text-xs font-semibold text-slate-500 mb-0.5">
                           CAJAS
                         </label>
 
@@ -683,13 +681,13 @@ export default function PedidoClientePage() {
                           onChange={(e) =>
                             actualizarCantidad(p, "cajas", e.target.value)
                           }
-                          className="w-full border rounded-xl px-3 py-2 text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          className="w-full border rounded-xl px-3 py-1.5 text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                           placeholder="0"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-xs font-semibold text-slate-500 mb-1">
+                        <label className="block text-xs font-semibold text-slate-500 mb-0.5">
                           UNIDADES
                         </label>
 
@@ -701,7 +699,7 @@ export default function PedidoClientePage() {
                           onChange={(e) =>
                             actualizarCantidad(p, "unidades", e.target.value)
                           }
-                          className="w-full border rounded-xl px-3 py-2 text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          className="w-full border rounded-xl px-3 py-1.5 text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                           placeholder="0"
                         />
                       </div>

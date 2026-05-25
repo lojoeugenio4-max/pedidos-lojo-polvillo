@@ -138,6 +138,7 @@ export default function PedidoClientePage() {
   const [mostrarPreview, setMostrarPreview] = useState(false);
   const [ultimoArticulo, setUltimoArticulo] = useState<string | null>(null);
   const [scrollPendiente, setScrollPendiente] = useState(false);
+  const [imagenAmpliada, setImagenAmpliada] = useState<string | null>(null);
 
   async function cargarCliente() {
     setCargandoCliente(true);
@@ -668,12 +669,19 @@ export default function PedidoClientePage() {
                 <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-4 md:items-center">
                   <div className="flex gap-3 items-start">
                     {p.imagen_url && (
-                      <img
-                        src={p.imagen_url}
-                        alt={p.nombre}
-                        className="w-16 h-16 md:w-20 md:h-20 object-cover rounded-xl border bg-white shrink-0"
-                        loading="lazy"
-                      />
+                      <button
+                        type="button"
+                        onClick={() => setImagenAmpliada(p.imagen_url)}
+                        className="w-16 h-16 md:w-20 md:h-20 rounded-xl border bg-white shrink-0 overflow-hidden flex items-center justify-center"
+                        title="Ampliar imagen"
+                      >
+                        <img
+                          src={p.imagen_url}
+                          alt={p.nombre}
+                          className="w-full h-full object-contain"
+                          loading="lazy"
+                        />
+                      </button>
                     )}
 
                     <div>
@@ -792,6 +800,33 @@ export default function PedidoClientePage() {
           </div>
         </div>
       </div>
+
+      {imagenAmpliada && (
+        <div
+          className="fixed inset-0 z-[999] bg-black/70 p-4 flex items-center justify-center"
+          onClick={() => setImagenAmpliada(null)}
+        >
+          <div
+            className="bg-white rounded-2xl p-4 max-w-4xl max-h-[90vh] w-full flex flex-col gap-3"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-end">
+              <button
+                onClick={() => setImagenAmpliada(null)}
+                className="rounded-lg border px-3 py-2"
+              >
+                Cerrar
+              </button>
+            </div>
+
+            <img
+              src={imagenAmpliada}
+              alt="Imagen ampliada"
+              className="max-h-[75vh] w-full object-contain"
+            />
+          </div>
+        </div>
+      )}
     </main>
   );
 }

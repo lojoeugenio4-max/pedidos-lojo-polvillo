@@ -25,6 +25,7 @@ type Producto = {
   unidad: string | null;
   orden_preparacion: number | null;
   activo: boolean | null;
+  imagen_url: string | null;
 };
 
 type Cliente = {
@@ -173,7 +174,7 @@ export default function PedidoClientePage() {
     const { data, error } = await supabase
       .from("productos")
       .select(
-        "id, codigo, nombre, departamento, categoria, unidad, orden_preparacion, activo"
+        "id, codigo, nombre, departamento, categoria, unidad, orden_preparacion, activo, imagen_url"
       )
       .eq("activo", true)
       .order("departamento", { ascending: true })
@@ -665,18 +666,29 @@ export default function PedidoClientePage() {
                 }`}
               >
                 <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-4 md:items-center">
-                  <div>
-                    <p className="text-xs text-slate-500">
-                      Código {p.codigo}
-                    </p>
+                  <div className="flex gap-3 items-start">
+                    {p.imagen_url && (
+                      <img
+                        src={p.imagen_url}
+                        alt={p.nombre}
+                        className="w-16 h-16 md:w-20 md:h-20 object-cover rounded-xl border bg-white shrink-0"
+                        loading="lazy"
+                      />
+                    )}
 
-                    <h2 className="font-bold text-sm md:text-base mt-0.5 leading-tight">
-                      {p.nombre}
-                    </h2>
+                    <div>
+                      <p className="text-xs text-slate-500">
+                        Código {p.codigo}
+                      </p>
 
-                    <p className="text-xs text-slate-500 mt-0.5">
-                      {p.departamento} · {p.categoria}
-                    </p>
+                      <h2 className="font-bold text-sm md:text-base mt-0.5 leading-tight">
+                        {p.nombre}
+                      </h2>
+
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        {p.departamento} · {p.categoria}
+                      </p>
+                    </div>
                   </div>
 
                   {p.departamento === "Bebidas" ? (

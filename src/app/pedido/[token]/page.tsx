@@ -477,29 +477,55 @@ export default function PedidoClientePage() {
       const diaHoy = diaHoyEspana();
       const diaCliente = normalizarTexto(cliente.dia_pedido);
       const fueraDeDia = Boolean(diaCliente) && diaCliente !== diaHoy;
+      const hoy = fechaHoyISO();
 
       /*
-        Regla:
-        - Si existe un pedido de hoy del cliente SIN imprimir, se modifica ese pedido.
-        - Si no existe pedido sin imprimir, se crea un pedido nuevo adicional.
-        - Nunca se modifica un pedido impreso.
+        Regla segura:
+        1. Si NO hay pedido impreso hoy:
+           - se modifica el último pedido no impreso del cliente.
+        2. Si SÍ hay pedido impreso hoy:
+           - solo se modifica un pedido no impreso creado DESPUÉS del último impreso.
+           - si no existe, se crea pedido adicional nuevo.
+        3. Nunca se actualizan líneas de un pedido impreso.
       */
-      const { data: pedidosAbiertos, error: buscarError } = await supabase
+
+      const { data: pedidosHoyData, error: pedidosHoyError } = await supabase
         .from("pedidos")
-        .select("id, impreso, estado")
+        .select("id, impreso, estado, creado_en")
         .eq("cliente_id", cliente.id)
-        .eq("fecha", fechaHoyISO())
-        .eq("impreso", false)
+        .eq("fecha", hoy)
         .neq("estado", "sustituido")
-        .order("creado_en", { ascending: false })
-        .limit(1);
+        .order("creado_en", { ascending: false });
 
-      if (buscarError) throw buscarError;
+      if (pedidosHoyError) throw pedidosHoyError;
 
-      const pedidoAbierto =
-        pedidosAbiertos && pedidosAbiertos.length > 0
-          ? pedidosAbiertos[0]
-          : null;
+      const pedidosHoy = pedidosHoyData || [];
+
+      const pedidosImpresos = pedidosHoy.filter(
+        (p) => p.impreso === true || p.estado === "impreso"
+      );
+
+      const ultimoPedidoImpreso = pedidosImpresos[0] || null;
+
+      const pedidosNoImpresos = pedidosHoy.filter(
+        (p) => p.impreso !== true && p.estado !== "impreso"
+      );
+
+      let pedidoAbierto = null as null | {
+        id: string;
+        impreso: boolean | null;
+        estado: string | null;
+        creado_en: string;
+      };
+
+      if (ultimoPedidoImpreso) {
+        pedidoAbierto =
+          pedidosNoImpresos.find(
+            (p) => new Date(p.creado_en) > new Date(ultimoPedidoImpreso.creado_en)
+          ) || null;
+      } else {
+        pedidoAbierto = pedidosNoImpresos[0] || null;
+      }
 
       let pedidoId = "";
 
@@ -511,9 +537,9 @@ export default function PedidoClientePage() {
           .update({
             estado: fueraDeDia ? "fuera_de_dia" : "recibido",
             fuera_de_dia: fueraDeDia,
-            impreso: false,
           })
           .eq("id", pedidoId)
+          .neq("estado", "impreso")
           .eq("impreso", false);
 
         if (actualizarPedidoError) throw actualizarPedidoError;
@@ -529,7 +555,7 @@ export default function PedidoClientePage() {
           .from("pedidos")
           .insert({
             cliente_id: cliente.id,
-            fecha: fechaHoyISO(),
+            fecha: hoy,
             estado: fueraDeDia ? "fuera_de_dia" : "recibido",
             impreso: false,
             fuera_de_dia: fueraDeDia,
@@ -560,9 +586,11 @@ export default function PedidoClientePage() {
       setMensaje(
         pedidoAbierto
           ? "Pedido modificado correctamente."
-          : fueraDeDia
-            ? "Pedido adicional enviado correctamente. Aviso: fuera del día habitual."
-            : "Pedido enviado correctamente."
+          : ultimoPedidoImpreso
+            ? "Pedido adicional enviado correctamente."
+            : fueraDeDia
+              ? "Pedido enviado correctamente. Aviso: fuera del día habitual."
+              : "Pedido enviado correctamente."
       );
 
       setPedido({});

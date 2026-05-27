@@ -397,7 +397,87 @@ export default function AdminPedidosPage() {
           <div className="bg-white border rounded-xl p-4 text-sm">{mensaje}</div>
         )}
 
-        <section className="bg-white rounded-2xl shadow overflow-hidden">
+<section className="bg-white rounded-2xl shadow overflow-hidden">
+          <div className="p-4 border-b">
+            <h2 className="text-xl font-bold">
+              Tiendas que faltan hoy
+            </h2>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-slate-50 text-slate-600">
+                <tr>
+                  <th className="text-left p-3">Tienda</th>
+                  <th className="text-left p-3">Teléfono</th>
+                  <th className="text-left p-3">Ruta</th>
+                  <th className="text-left p-3">Acción</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {!cargando && tiendasQueFaltan.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="p-6 text-center text-slate-500">
+                      No faltan tiendas de hoy.
+                    </td>
+                  </tr>
+                )}
+
+                {tiendasQueFaltan.map((cliente) => {
+                  const telefonoFormateado = formatearTelefono(cliente.telefono);
+                  const telefonoLimpio = (cliente.telefono || "").replace(
+                    /\D/g,
+                    ""
+                  );
+
+                  return (
+                    <tr key={cliente.id} className="border-t bg-red-50">
+                      <td className="p-3">
+                        <p className="font-bold text-base">{cliente.nombre}</p>
+                        <p className="text-xs text-slate-500">
+                          Código {cliente.codigo || "-"}
+                        </p>
+                      </td>
+
+                      <td className="p-3">
+                        {telefonoLimpio ? (
+                          <a
+                            href={`tel:${telefonoLimpio}`}
+                            className="inline-flex items-center gap-2 font-bold text-base"
+                          >
+                            <Phone className="w-4 h-4" />
+                            {telefonoFormateado}
+                          </a>
+                        ) : (
+                          <span className="text-slate-400">Sin teléfono</span>
+                        )}
+                      </td>
+
+                      <td className="p-3">{cliente.ruta || "-"}</td>
+
+                      <td className="p-3">
+                        {telefonoLimpio ? (
+                          <a
+                            href={`tel:${telefonoLimpio}`}
+                            className="rounded-lg bg-red-600 text-white px-3 py-2 inline-flex items-center gap-1"
+                          >
+                            <Phone className="w-4 h-4" />
+                            Llamar
+                          </a>
+                        ) : (
+                          <span className="text-slate-400">Sin teléfono</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+<section className="bg-white rounded-2xl shadow overflow-hidden">
           <div className="p-4 border-b flex flex-col md:flex-row md:items-center md:justify-between gap-2">
             <div>
               <h2 className="text-xl font-bold">
@@ -546,86 +626,6 @@ export default function AdminPedidosPage() {
                             Borrar
                           </button>
                         </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        <section className="bg-white rounded-2xl shadow overflow-hidden">
-          <div className="p-4 border-b">
-            <h2 className="text-xl font-bold">
-              Tiendas que faltan hoy
-            </h2>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-slate-50 text-slate-600">
-                <tr>
-                  <th className="text-left p-3">Tienda</th>
-                  <th className="text-left p-3">Teléfono</th>
-                  <th className="text-left p-3">Ruta</th>
-                  <th className="text-left p-3">Acción</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {!cargando && tiendasQueFaltan.length === 0 && (
-                  <tr>
-                    <td colSpan={4} className="p-6 text-center text-slate-500">
-                      No faltan tiendas de hoy.
-                    </td>
-                  </tr>
-                )}
-
-                {tiendasQueFaltan.map((cliente) => {
-                  const telefonoFormateado = formatearTelefono(cliente.telefono);
-                  const telefonoLimpio = (cliente.telefono || "").replace(
-                    /\D/g,
-                    ""
-                  );
-
-                  return (
-                    <tr key={cliente.id} className="border-t bg-red-50">
-                      <td className="p-3">
-                        <p className="font-bold text-base">{cliente.nombre}</p>
-                        <p className="text-xs text-slate-500">
-                          Código {cliente.codigo || "-"}
-                        </p>
-                      </td>
-
-                      <td className="p-3">
-                        {telefonoLimpio ? (
-                          <a
-                            href={`tel:${telefonoLimpio}`}
-                            className="inline-flex items-center gap-2 font-bold text-base"
-                          >
-                            <Phone className="w-4 h-4" />
-                            {telefonoFormateado}
-                          </a>
-                        ) : (
-                          <span className="text-slate-400">Sin teléfono</span>
-                        )}
-                      </td>
-
-                      <td className="p-3">{cliente.ruta || "-"}</td>
-
-                      <td className="p-3">
-                        {telefonoLimpio ? (
-                          <a
-                            href={`tel:${telefonoLimpio}`}
-                            className="rounded-lg bg-red-600 text-white px-3 py-2 inline-flex items-center gap-1"
-                          >
-                            <Phone className="w-4 h-4" />
-                            Llamar
-                          </a>
-                        ) : (
-                          <span className="text-slate-400">Sin teléfono</span>
-                        )}
                       </td>
                     </tr>
                   );

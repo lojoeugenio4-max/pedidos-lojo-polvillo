@@ -183,20 +183,33 @@ export default function AdminPedidosPage() {
       clientesPrevistosHoy.map((cliente) => Number(cliente.id))
     );
 
-    const filasPrevistasHoy: FilaControl[] = clientesPrevistosHoy.map(
-      (cliente) => {
-        const pedido =
-          pedidosSemana.find((p) => Number(p.cliente_id) === Number(cliente.id)) ||
-          null;
+    const filasPrevistasHoy: FilaControl[] = [];
 
-        return {
+    clientesPrevistosHoy.forEach((cliente) => {
+      const pedidosCliente = pedidosSemana.filter(
+        (p) => Number(p.cliente_id) === Number(cliente.id)
+      );
+
+      if (pedidosCliente.length === 0) {
+        filasPrevistasHoy.push({
+          cliente,
+          pedido: null,
+          fueraDeDia: false,
+          pendienteAntiguo: false,
+        });
+
+        return;
+      }
+
+      pedidosCliente.forEach((pedido) => {
+        filasPrevistasHoy.push({
           cliente,
           pedido,
           fueraDeDia: Boolean(pedido?.fuera_de_dia),
           pendienteAntiguo: false,
-        };
-      }
-    );
+        });
+      });
+    });
 
     const pedidosExtraSemana = pedidosSemana.filter(
       (pedido) =>

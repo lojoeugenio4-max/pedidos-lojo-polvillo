@@ -161,6 +161,45 @@ export default function PedidoClientePage() {
     useState<PedidoExistente | null>(null);
   const [pedidoImpresoHoy, setPedidoImpresoHoy] =
     useState<PedidoExistente | null>(null);
+  const [mensajeAviso, setMensajeAviso] = useState<string | null>(null);
+  const [mostrarAviso, setMostrarAviso] = useState(false);
+
+  async function cargarAvisos(clienteActual: Cliente) {
+    const diaCliente = normalizarTexto(clienteActual.dia_pedido);
+
+    const { data, error } = await supabase
+      .from("mensajes_clientes")
+      .select("id, mensaje, cliente_id, dia_pedido, para_todos, activo, creado_en")
+      .eq("activo", true)
+      .order("creado_en", { ascending: false });
+
+    if (error) {
+      console.error(error);
+      return;
+    }
+
+    const aviso = (data || []).find((m) => {
+      if (m.para_todos) return true;
+
+      if (m.cliente_id && Number(m.cliente_id) === Number(clienteActual.id)) {
+        return true;
+      }
+
+      if (m.dia_pedido && normalizarTexto(m.dia_pedido) === diaCliente) {
+        return true;
+      }
+
+      return false;
+    });
+
+    if (aviso) {
+      setMensajeAviso(aviso.mensaje);
+      setMostrarAviso(true);
+    } else {
+      setMensajeAviso(null);
+      setMostrarAviso(false);
+    }
+  }
 
   async function cargarCliente() {
     setCargandoCliente(true);
@@ -188,6 +227,7 @@ export default function PedidoClientePage() {
     }
 
     setCliente(clienteEncontrado);
+    await cargarAvisos(clienteEncontrado);
     setCargandoCliente(false);
   }
 
@@ -907,6 +947,31 @@ export default function PedidoClientePage() {
           </div>
         </div>
       </div>
+
+      {mostrarAviso && mensajeAviso && (
+        <div className="fixed inset-0 z-[1000] bg-black/60 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 space-y-5">
+            <div className="flex items-center gap-3">
+              <AlertCircle className="w-7 h-7 text-orange-500" />
+
+              <h2 className="text-2xl font-bold">
+                Aviso importante
+              </h2>
+            </div>
+
+            <div className="text-slate-700 whitespace-pre-wrap text-base leading-relaxed">
+              {mensajeAviso}
+            </div>
+
+            <button
+              onClick={() => setMostrarAviso(false)}
+              className="w-full bg-black text-white rounded-xl py-3 font-bold"
+            >
+              Aceptar y hacer pedido
+            </button>
+          </div>
+        </div>
+      )}
 
       {imagenAmpliada && (
         <div

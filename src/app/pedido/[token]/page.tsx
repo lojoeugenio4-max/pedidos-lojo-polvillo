@@ -476,33 +476,37 @@ export default function PedidoClientePage() {
 
       const diaHoy = diaHoyEspana();
       const diaCliente = normalizarTexto(cliente.dia_pedido);
-
       const fueraDeDia = Boolean(diaCliente) && diaCliente !== diaHoy;
 
-      const { data: pedidosNoImpresosAhora, error: buscarPedidoError } =
-        await supabase
-          .from("pedidos")
-          .select("id, impreso, estado")
-          .eq("cliente_id", cliente.id)
-          .eq("fecha", fechaHoyISO())
-          .eq("impreso", false)
-          .neq("estado", "sustituido")
-          .order("creado_en", { ascending: false })
-          .limit(1);
+      /*
+        Regla:
+        - Si existe un pedido de hoy del cliente SIN imprimir, se modifica ese pedido.
+        - Si no existe pedido sin imprimir, se crea un pedido nuevo adicional.
+        - Nunca se modifica un pedido impreso.
+      */
+      const { data: pedidosAbiertos, error: buscarError } = await supabase
+        .from("pedidos")
+        .select("id, impreso, estado")
+        .eq("cliente_id", cliente.id)
+        .eq("fecha", fechaHoyISO())
+        .eq("impreso", false)
+        .neq("estado", "sustituido")
+        .order("creado_en", { ascending: false })
+        .limit(1);
 
-      if (buscarPedidoError) throw buscarPedidoError;
+      if (buscarError) throw buscarError;
 
-      const pedidoNoImpresoActual =
-        pedidosNoImpresosAhora && pedidosNoImpresosAhora.length > 0
-          ? pedidosNoImpresosAhora[0]
+      const pedidoAbierto =
+        pedidosAbiertos && pedidosAbiertos.length > 0
+          ? pedidosAbiertos[0]
           : null;
 
       let pedidoId = "";
 
-      if (pedidoNoImpresoActual) {
-        pedidoId = pedidoNoImpresoActual.id;
+      if (pedidoAbierto) {
+        pedidoId = pedidoAbierto.id;
 
-        const { error: updatePedidoError } = await supabase
+        const { error: actualizarPedidoError } = await supabase
           .from("pedidos")
           .update({
             estado: fueraDeDia ? "fuera_de_dia" : "recibido",
@@ -512,7 +516,7 @@ export default function PedidoClientePage() {
           .eq("id", pedidoId)
           .eq("impreso", false);
 
-        if (updatePedidoError) throw updatePedidoError;
+        if (actualizarPedidoError) throw actualizarPedidoError;
 
         const { error: borrarLineasError } = await supabase
           .from("lineas_pedido")
@@ -554,13 +558,11 @@ export default function PedidoClientePage() {
       if (lineasError) throw lineasError;
 
       setMensaje(
-        pedidoExistente
+        pedidoAbierto
           ? "Pedido modificado correctamente."
-          : pedidoImpresoHoy
-            ? "Pedido adicional enviado correctamente."
-            : fueraDeDia
-              ? "Pedido enviado correctamente. Aviso: fuera del día habitual."
-              : "Pedido enviado correctamente."
+          : fueraDeDia
+            ? "Pedido adicional enviado correctamente. Aviso: fuera del día habitual."
+            : "Pedido enviado correctamente."
       );
 
       setPedido({});
@@ -569,8 +571,6 @@ export default function PedidoClientePage() {
       setDepartamento("Bebidas");
       setCategoria("Todas");
       setUltimoArticulo(null);
-      setPedidoExistente(null);
-      setPedidoImpresoHoy(null);
 
       window.scrollTo({
         top: 0,
@@ -631,17 +631,6 @@ export default function PedidoClientePage() {
           </header>
 
           <section className="bg-white rounded-2xl shadow p-4 md:p-6 space-y-6">
-            {pedidoExistente && (
-              <div className="bg-blue-50 border border-blue-200 text-blue-800 rounded-xl p-3 text-sm">
-                Vas a modificar el pedido enviado hoy. Se sustituirán sus líneas por esta revisión.
-              </div>
-            )}
-
-            {pedidoImpresoHoy && !pedidoExistente && (
-              <div className="bg-orange-50 border border-orange-200 text-orange-800 rounded-xl p-3 text-sm">
-                El pedido anterior ya está impreso. Este envío se guardará como pedido adicional.
-              </div>
-            )}
 
             {bebidasPedido.length > 0 && (
               <div>
@@ -767,20 +756,6 @@ export default function PedidoClientePage() {
             </div>
           </div>
         </header>
-
-        {pedidoExistente && (
-          <div className="bg-blue-50 border border-blue-200 text-blue-800 rounded-xl p-3 text-sm">
-            <strong>Pedido cargado para modificar.</strong>{" "}
-            Este pedido aún no está impreso. Si confirmas, se actualizará el pedido existente.
-          </div>
-        )}
-
-        {pedidoImpresoHoy && (
-          <div className="bg-orange-50 border border-orange-200 text-orange-800 rounded-xl p-3 text-sm">
-            <strong>Ya tienes un pedido impreso hoy.</strong>{" "}
-            Si envías otro pedido, se guardará como pedido adicional.
-          </div>
-        )}
 
         <div
           id="cabecera-filtros"

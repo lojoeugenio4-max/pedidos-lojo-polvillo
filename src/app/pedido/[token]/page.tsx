@@ -477,99 +477,8 @@ export default function PedidoClientePage() {
       const diaHoy = diaHoyEspana();
       const diaCliente = normalizarTexto(cliente.dia_pedido);
       const fueraDeDia = Boolean(diaCliente) && diaCliente !== diaHoy;
-      const hoy = fechaHoyISO();
-
-      /*
-        Regla segura:
-        1. Si NO hay pedido impreso hoy:
-           - se modifica el último pedido no impreso del cliente.
-        2. Si SÍ hay pedido impreso hoy:
-           - solo se modifica un pedido no impreso creado DESPUÉS del último impreso.
-           - si no existe, se crea pedido adicional nuevo.
-        3. Nunca se actualizan líneas de un pedido impreso.
-      */
-
-      const { data: pedidosHoyData, error: pedidosHoyError } = await supabase
-        .from("pedidos")
-        .select("id, impreso, estado, creado_en")
-        .eq("cliente_id", cliente.id)
-        .eq("fecha", hoy)
-        .neq("estado", "sustituido")
-        .order("creado_en", { ascending: false });
-
-      if (pedidosHoyError) throw pedidosHoyError;
-
-      const pedidosHoy = pedidosHoyData || [];
-
-      const pedidosImpresos = pedidosHoy.filter(
-        (p) => p.impreso === true || p.estado === "impreso"
-      );
-
-      const ultimoPedidoImpreso = pedidosImpresos[0] || null;
-
-      const pedidosNoImpresos = pedidosHoy.filter(
-        (p) => p.impreso !== true && p.estado !== "impreso"
-      );
-
-      let pedidoAbierto = null as null | {
-        id: string;
-        impreso: boolean | null;
-        estado: string | null;
-        creado_en: string;
-      };
-
-      if (ultimoPedidoImpreso) {
-        pedidoAbierto =
-          pedidosNoImpresos.find(
-            (p) => new Date(p.creado_en) > new Date(ultimoPedidoImpreso.creado_en)
-          ) || null;
-      } else {
-        pedidoAbierto = pedidosNoImpresos[0] || null;
-      }
-
-      let pedidoId = "";
-
-      if (pedidoAbierto) {
-        pedidoId = pedidoAbierto.id;
-
-        const { error: actualizarPedidoError } = await supabase
-          .from("pedidos")
-          .update({
-            estado: fueraDeDia ? "fuera_de_dia" : "recibido",
-            fuera_de_dia: fueraDeDia,
-          })
-          .eq("id", pedidoId)
-          .neq("estado", "impreso")
-          .eq("impreso", false);
-
-        if (actualizarPedidoError) throw actualizarPedidoError;
-
-        const { error: borrarLineasError } = await supabase
-          .from("lineas_pedido")
-          .delete()
-          .eq("pedido_id", pedidoId);
-
-        if (borrarLineasError) throw borrarLineasError;
-      } else {
-        const { data: pedidoCreado, error: pedidoError } = await supabase
-          .from("pedidos")
-          .insert({
-            cliente_id: cliente.id,
-            fecha: hoy,
-            estado: fueraDeDia ? "fuera_de_dia" : "recibido",
-            impreso: false,
-            fuera_de_dia: fueraDeDia,
-          })
-          .select("id")
-          .single();
-
-        if (pedidoError) throw pedidoError;
-
-        pedidoId = pedidoCreado.id;
-      }
 
       const lineas = lineasPedido.map((item) => ({
-        pedido_id: pedidoId,
         codigo_articulo: item.codigo,
         nombre_articulo: item.nombre,
         departamento: item.departamento,
@@ -577,20 +486,20 @@ export default function PedidoClientePage() {
         unidades: item.unidades,
       }));
 
-      const { error: lineasError } = await supabase
-        .from("lineas_pedido")
-        .insert(lineas);
+      const { error } = await supabase.rpc("guardar_pedido_cliente", {
+        p_cliente_id: cliente.id,
+        p_fecha: fechaHoyISO(),
+        p_estado: fueraDeDia ? "fuera_de_dia" : "recibido",
+        p_fuera_de_dia: fueraDeDia,
+        p_lineas: lineas,
+      });
 
-      if (lineasError) throw lineasError;
+      if (error) throw error;
 
       setMensaje(
-        pedidoAbierto
-          ? "Pedido modificado correctamente."
-          : ultimoPedidoImpreso
-            ? "Pedido adicional enviado correctamente."
-            : fueraDeDia
-              ? "Pedido enviado correctamente. Aviso: fuera del día habitual."
-              : "Pedido enviado correctamente."
+        fueraDeDia
+          ? "Pedido enviado correctamente. Aviso: fuera del día habitual."
+          : "Pedido enviado correctamente."
       );
 
       setPedido({});

@@ -166,11 +166,16 @@ export default function PedidoClientePage() {
 
   async function cargarAvisos(clienteActual: Cliente) {
     const diaCliente = normalizarTexto(clienteActual.dia_pedido);
+    const hoy = fechaHoyISO();
 
     const { data, error } = await supabase
       .from("mensajes_clientes")
-      .select("id, mensaje, cliente_id, dia_pedido, para_todos, activo, creado_en")
+      .select(
+        "id, mensaje, cliente_id, dia_pedido, para_todos, activo, fecha_inicio, fecha_fin, mostrar_una_sola_vez, creado_en"
+      )
       .eq("activo", true)
+      .lte("fecha_inicio", hoy)
+      .or(`fecha_fin.is.null,fecha_fin.gte.${hoy}`)
       .order("creado_en", { ascending: false });
 
     if (error) {
@@ -178,7 +183,7 @@ export default function PedidoClientePage() {
       return;
     }
 
-    const aviso = (data || []).find((m) => {
+    const posiblesAvisos = (data || []).filter((m) => {
       if (m.para_todos) return true;
 
       if (m.cliente_id && Number(m.cliente_id) === Number(clienteActual.id)) {
@@ -192,13 +197,74 @@ export default function PedidoClientePage() {
       return false;
     });
 
-    if (aviso) {
+    for (const aviso of posiblesAvisos) {
+      if (aviso.mostrar_una_sola_vez) {
+        const { data: leidoData, error: leidoError } = await supabase
+          .from("mensajes_clientes_leidos")
+          .select("id")
+          .eq("mensaje_id", aviso.id)
+          .eq("cliente_id", clienteActual.id)
+          .maybeSingle();
+
+        if (leidoError) {
+          console.error(leidoError);
+          continue;
+        }
+
+        if (leidoData) continue;
+      }
+
       setMensajeAviso(aviso.mensaje);
       setMostrarAviso(true);
-    } else {
-      setMensajeAviso(null);
-      setMostrarAviso(false);
+      return;
     }
+
+    setMensajeAviso(null);
+    setMostrarAviso(false);
+  }
+
+  async function aceptarAviso() {
+    if (!cliente || !mensajeAviso) {
+      setMostrarAviso(false);
+      return;
+    }
+
+    const diaCliente = normalizarTexto(cliente.dia_pedido);
+    const hoy = fechaHoyISO();
+
+    const { data, error } = await supabase
+      .from("mensajes_clientes")
+      .select(
+        "id, mensaje, cliente_id, dia_pedido, para_todos, activo, fecha_inicio, fecha_fin, mostrar_una_sola_vez, creado_en"
+      )
+      .eq("activo", true)
+      .lte("fecha_inicio", hoy)
+      .or(`fecha_fin.is.null,fecha_fin.gte.${hoy}`)
+      .order("creado_en", { ascending: false });
+
+    if (error) {
+      console.error(error);
+      setMostrarAviso(false);
+      return;
+    }
+
+    const aviso = (data || []).find((m) => {
+      const coincide =
+        m.para_todos ||
+        (m.cliente_id && Number(m.cliente_id) === Number(cliente.id)) ||
+        (m.dia_pedido && normalizarTexto(m.dia_pedido) === diaCliente);
+
+      return coincide && m.mensaje === mensajeAviso;
+    });
+
+    if (aviso?.mostrar_una_sola_vez) {
+      await supabase.from("mensajes_clientes_leidos").upsert({
+        mensaje_id: aviso.id,
+        cliente_id: cliente.id,
+      });
+    }
+
+    setMostrarAviso(false);
   }
 
   async function cargarCliente() {
@@ -964,7 +1030,7 @@ export default function PedidoClientePage() {
             </div>
 
             <button
-              onClick={() => setMostrarAviso(false)}
+              onClick={aceptarAviso}
               className="w-full bg-black text-white rounded-xl py-3 font-bold"
             >
               Aceptar y hacer pedido

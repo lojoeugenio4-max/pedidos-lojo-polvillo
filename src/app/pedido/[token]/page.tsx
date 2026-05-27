@@ -225,27 +225,51 @@ export default function PedidoClientePage() {
   ) {
     const fechaHoy = fechaHoyISO();
 
-    const { data: pedidosHoy, error: pedidosError } = await supabase
+    const { data: pedidosNoImpresosData, error: noImpresosError } =
+      await supabase
+        .from("pedidos")
+        .select("id, cliente_id, fecha, estado, impreso, creado_en, fuera_de_dia")
+        .eq("cliente_id", clienteId)
+        .eq("fecha", fechaHoy)
+        .eq("impreso", false)
+        .neq("estado", "sustituido")
+        .order("creado_en", { ascending: false })
+        .limit(1);
+
+    if (noImpresosError) {
+      setMensaje(JSON.stringify(noImpresosError));
+      return;
+    }
+
+    const pedidoNoImpreso =
+      ((pedidosNoImpresosData || [])[0] as PedidoExistente | undefined) ||
+      null;
+
+    const { data: pedidosImpresosData, error: impresosError } = await supabase
       .from("pedidos")
       .select("id, cliente_id, fecha, estado, impreso, creado_en, fuera_de_dia")
       .eq("cliente_id", clienteId)
       .eq("fecha", fechaHoy)
+      .eq("impreso", true)
       .neq("estado", "sustituido")
-      .order("creado_en", { ascending: false });
+      .order("creado_en", { ascending: false })
+      .limit(1);
 
-    if (pedidosError) {
-      setMensaje(JSON.stringify(pedidosError));
+    if (impresosError) {
+      setMensaje(JSON.stringify(impresosError));
       return;
     }
 
-    const pedidos = (pedidosHoy || []) as PedidoExistente[];
-    const pedidoNoImpreso = pedidos.find((p) => !p.impreso) || null;
-    const pedidoImpreso = pedidos.find((p) => p.impreso) || null;
+    const pedidoImpreso =
+      ((pedidosImpresosData || [])[0] as PedidoExistente | undefined) || null;
 
     setPedidoExistente(pedidoNoImpreso);
     setPedidoImpresoHoy(pedidoNoImpreso ? null : pedidoImpreso);
 
-    if (!pedidoNoImpreso) return;
+    if (!pedidoNoImpreso) {
+      setPedido({});
+      return;
+    }
 
     const { data: lineasData, error: lineasError } = await supabase
       .from("lineas_pedido")
@@ -457,7 +481,7 @@ export default function PedidoClientePage() {
 
       let pedidoId = pedidoExistente?.id || "";
 
-      if (pedidoExistente && !pedidoExistente.impreso) {
+      if (pedidoExistente && pedidoExistente.impreso === false) {
         const { error: updatePedidoError } = await supabase
           .from("pedidos")
           .update({

@@ -3,6 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import {
+  MessageCircle,
   ClipboardList,
   Users,
   Package,
@@ -82,6 +83,21 @@ export default function AdminHomePage() {
                   {opcion.descripcion}
                 </p>
               </Link>
+
+            <Link
+              href="/admin/mensajes"
+              className="bg-white rounded-2xl shadow p-6 hover:shadow-lg transition border"
+            >
+              <div className="flex items-center gap-3">
+                <MessageCircle className="w-7 h-7" />
+                <h2 className="text-xl font-bold">Mensajes</h2>
+              </div>
+
+              <p className="text-slate-500 mt-2">
+                Enviar mensajes WhatsApp a clientes
+              </p>
+            </Link>
+
             );
           })}
         </section>

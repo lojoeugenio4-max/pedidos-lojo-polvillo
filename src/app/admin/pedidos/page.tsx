@@ -322,16 +322,15 @@ export default function AdminPedidosPage() {
     ({ pendienteAntiguo }) => pendienteAntiguo
   ).length;
 
-  const mostrarFaltan =
-    filtro === "todos" || filtro === "faltan";
+  const mostrarFaltan = filtro === "todos" || filtro === "faltan";
 
   const pedidosFiltrados = pedidos.filter(({ pedido, pendienteAntiguo }) => {
     if (filtro === "todos") return true;
+    if (filtro === "faltan") return false;
     if (filtro === "sin_imprimir") return !pedido.impreso;
     if (filtro === "impresos") return Boolean(pedido.impreso);
     if (filtro === "fuera_dia") return Boolean(pedido.fuera_de_dia);
     if (filtro === "antiguos") return pendienteAntiguo;
-    if (filtro === "faltan") return false;
     return true;
   });
 
@@ -387,10 +386,7 @@ export default function AdminPedidosPage() {
         <section className="grid grid-cols-1 md:grid-cols-6 gap-4">
           <button
             onClick={() => setFiltro("todos")}
-            className={claseTarjeta(
-              filtro === "todos",
-              "bg-slate-900 text-white"
-            )}
+            className={claseTarjeta(filtro === "todos", "bg-slate-900 text-white")}
           >
             <p className="text-sm text-slate-200">Ver</p>
             <p className="text-3xl font-bold">Todos</p>
@@ -409,10 +405,7 @@ export default function AdminPedidosPage() {
 
           <button
             onClick={() => setFiltro("sin_imprimir")}
-            className={claseTarjeta(
-              filtro === "sin_imprimir",
-              "bg-white"
-            )}
+            className={claseTarjeta(filtro === "sin_imprimir", "bg-white")}
           >
             <p className="text-sm text-slate-500">Recibidos sin imprimir</p>
             <p className="text-4xl font-bold">{recibidosSinImprimir}</p>
@@ -456,6 +449,7 @@ export default function AdminPedidosPage() {
           <div className="bg-white border rounded-xl p-4 text-sm">{mensaje}</div>
         )}
 
+        {mostrarFaltan && (
 <section className="bg-white rounded-2xl shadow overflow-hidden">
           <div className="p-4 border-b">
             <h2 className="text-xl font-bold">
@@ -535,6 +529,7 @@ export default function AdminPedidosPage() {
             </table>
           </div>
         </section>
+        )}
 
 <section className="bg-white rounded-2xl shadow overflow-hidden">
           <div className="p-4 border-b flex flex-col md:flex-row md:items-center md:justify-between gap-2">
@@ -697,7 +692,4 @@ export default function AdminPedidosPage() {
       </div>
     </main>
   );
-}        {mostrarFaltan && (
-        )}
-
-
+}

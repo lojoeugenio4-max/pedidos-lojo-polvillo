@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   AlertCircle,
   CalendarDays,
@@ -36,10 +36,9 @@ type Pedido = {
   fuera_de_dia: boolean | null;
 };
 
-type FilaControl = {
-  tipo: "pedido" | "falta";
+type PedidoFila = {
+  pedido: Pedido;
   cliente: Cliente | null;
-  pedido: Pedido | null;
   pendienteAntiguo: boolean;
 };
 
@@ -120,27 +119,26 @@ function formatearTelefono(telefono: string | null) {
   return limpio.replace(/(.{3})/g, "$1.").replace(/\.$/, "");
 }
 
-function claseFila(fila: FilaControl) {
-  if (fila.tipo === "falta") return "bg-red-50 border-l-4 border-red-500";
-  if (fila.pendienteAntiguo) return "bg-yellow-50 border-l-4 border-yellow-500";
-  if (fila.pedido?.impreso) return "bg-green-50 border-l-4 border-green-500";
-  if (fila.pedido?.fuera_de_dia) return "bg-orange-50 border-l-4 border-orange-500";
+function clasePedido(pedido: Pedido, pendienteAntiguo: boolean) {
+  if (pendienteAntiguo) return "bg-yellow-50 border-l-4 border-yellow-500";
+  if (pedido.impreso) return "bg-green-50 border-l-4 border-green-500";
+  if (pedido.fuera_de_dia) return "bg-orange-50 border-l-4 border-orange-500";
   return "bg-white";
 }
 
 export default function AdminPedidosPage() {
-  const [filas, setFilas] = useState<FilaControl[]>([]);
+  const [clientes, setClientes] = useState<Cliente[]>([]);
+  const [pedidos, setPedidos] = useState<PedidoFila[]>([]);
   const [cargando, setCargando] = useState(true);
   const [mensaje, setMensaje] = useState("");
 
   const hoyDia = diaHoyEspana();
+  const hoyISO = fechaHoyISO();
   const semana = obtenerSemanaOperativa();
 
   async function cargarDatos() {
     setCargando(true);
     setMensaje("");
-
-    const hoyISO = fechaHoyISO();
 
     const { data: clientesData, error: clientesError } = await supabase
       .from("Clientes")
@@ -155,12 +153,14 @@ export default function AdminPedidosPage() {
       return;
     }
 
+    const clientesLista = (clientesData || []) as Cliente[];
+    setClientes(clientesLista);
+
     const { data: pedidosSemanaData, error: pedidosSemanaError } = await supabase
       .from("pedidos")
       .select("id, cliente_id, fecha, estado, impreso, creado_en, fuera_de_dia")
       .gte("fecha", semana.inicioISO)
       .lte("fecha", semana.finISO)
-      .neq("estado", "sustituido")
       .order("fecha", { ascending: false })
       .order("creado_en", { ascending: false });
 
@@ -176,7 +176,6 @@ export default function AdminPedidosPage() {
         .select("id, cliente_id, fecha, estado, impreso, creado_en, fuera_de_dia")
         .lt("fecha", semana.inicioISO)
         .eq("impreso", false)
-        .neq("estado", "sustituido")
         .order("fecha", { ascending: true })
         .order("creado_en", { ascending: false });
 
@@ -186,98 +185,46 @@ export default function AdminPedidosPage() {
       return;
     }
 
-    const clientes = (clientesData || []) as Cliente[];
-    const pedidosSemana = (pedidosSemanaData || []) as Pedido[];
-    const pendientesAntiguos = (pendientesAntiguosData || []) as Pedido[];
+    const pedidosSemana = ((pedidosSemanaData || []) as Pedido[]).filter(
+      (pedido) => pedido.estado !== "sustituido"
+    );
 
-    const filasPedidosSemana: FilaControl[] = pedidosSemana.map((pedido) => {
-      const cliente =
-        clientes.find((c) => Number(c.id) === Number(pedido.cliente_id)) || null;
+    const pendientesAntiguos = ((pendientesAntiguosData || []) as Pedido[]).filter(
+      (pedido) => pedido.estado !== "sustituido"
+    );
 
-      return {
-        tipo: "pedido",
-        cliente,
+    const filas: PedidoFila[] = [
+      ...pedidosSemana.map((pedido) => ({
         pedido,
+        cliente:
+          clientesLista.find((c) => Number(c.id) === Number(pedido.cliente_id)) ||
+          null,
         pendienteAntiguo: false,
-      };
-    });
+      })),
+      ...pendientesAntiguos.map((pedido) => ({
+        pedido,
+        cliente:
+          clientesLista.find((c) => Number(c.id) === Number(pedido.cliente_id)) ||
+          null,
+        pendienteAntiguo: true,
+      })),
+    ];
 
-    const filasPendientesAntiguos: FilaControl[] = pendientesAntiguos.map(
-      (pedido) => {
-        const cliente =
-          clientes.find((c) => Number(c.id) === Number(pedido.cliente_id)) || null;
-
-        return {
-          tipo: "pedido",
-          cliente,
-          pedido,
-          pendienteAntiguo: true,
-        };
-      }
-    );
-
-    const clientesPrevistosHoy = clientes.filter(
-      (cliente) => normalizarDia(cliente.dia_pedido) === hoyDia
-    );
-
-    const clientesConPedidoHoy = new Set(
-      pedidosSemana
-        .filter((pedido) => pedido.fecha === hoyISO)
-        .map((pedido) => Number(pedido.cliente_id))
-    );
-
-    const filasFaltanHoy: FilaControl[] = clientesPrevistosHoy
-      .filter((cliente) => !clientesConPedidoHoy.has(Number(cliente.id)))
-      .map((cliente) => ({
-        tipo: "falta",
-        cliente,
-        pedido: null,
-        pendienteAntiguo: false,
-      }));
-
-    const filasOrdenadas = [
-      ...filasFaltanHoy,
-      ...filasPendientesAntiguos,
-      ...filasPedidosSemana,
-    ].sort((a, b) => {
-      const prioridadA =
-        a.tipo === "falta"
-          ? 1
-          : a.pendienteAntiguo
-            ? 2
-            : !a.pedido?.impreso
-              ? 3
-              : 4;
-
-      const prioridadB =
-        b.tipo === "falta"
-          ? 1
-          : b.pendienteAntiguo
-            ? 2
-            : !b.pedido?.impreso
-              ? 3
-              : 4;
-
-      if (prioridadA !== prioridadB) return prioridadA - prioridadB;
-
-      const rutaA = a.cliente?.ruta || "";
-      const rutaB = b.cliente?.ruta || "";
-      if (rutaA !== rutaB) return rutaA.localeCompare(rutaB);
-
+    filas.sort((a, b) => {
       const nombreA = a.cliente?.nombre || "";
       const nombreB = b.cliente?.nombre || "";
+
       if (nombreA !== nombreB) return nombreA.localeCompare(nombreB, "es");
 
-      const fechaA = a.pedido?.fecha || "";
-      const fechaB = b.pedido?.fecha || "";
+      const fechaA = a.pedido.fecha || "";
+      const fechaB = b.pedido.fecha || "";
+
       if (fechaA !== fechaB) return fechaB.localeCompare(fechaA);
 
-      const creadoA = a.pedido?.creado_en || "";
-      const creadoB = b.pedido?.creado_en || "";
-      return creadoB.localeCompare(creadoA);
+      return (b.pedido.creado_en || "").localeCompare(a.pedido.creado_en || "");
     });
 
-    setFilas(filasOrdenadas);
+    setPedidos(filas);
     setCargando(false);
   }
 
@@ -344,20 +291,42 @@ export default function AdminPedidosPage() {
     cargarDatos();
   }, []);
 
-  const faltan = filas.filter((fila) => fila.tipo === "falta").length;
-  const recibidasSinImprimir = filas.filter(
-    (fila) => fila.pedido && !fila.pedido.impreso
+  const clientesConPedidoHoy = useMemo(() => {
+    return new Set(
+      pedidos
+        .filter(({ pedido }) => pedido.fecha === hoyISO)
+        .map(({ pedido }) => Number(pedido.cliente_id))
+    );
+  }, [pedidos, hoyISO]);
+
+  const tiendasQueFaltan = clientes.filter(
+    (cliente) =>
+      normalizarDia(cliente.dia_pedido) === hoyDia &&
+      !clientesConPedidoHoy.has(Number(cliente.id))
+  );
+
+  const recibidosSinImprimir = pedidos.filter(
+    ({ pedido }) => !pedido.impreso
   ).length;
-  const impresas = filas.filter((fila) => fila.pedido?.impreso).length;
-  const fueraDeDia = filas.filter((fila) => fila.pedido?.fuera_de_dia).length;
-  const pendientesAntiguos = filas.filter((fila) => fila.pendienteAntiguo).length;
+
+  const impresos = pedidos.filter(({ pedido }) => pedido.impreso).length;
+
+  const fueraDeDia = pedidos.filter(
+    ({ pedido }) => pedido.fuera_de_dia
+  ).length;
+
+  const pendientesAntiguos = pedidos.filter(
+    ({ pendienteAntiguo }) => pendienteAntiguo
+  ).length;
 
   return (
     <main className="min-h-screen bg-slate-100 p-4 md:p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         <header className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <h1 className="text-3xl md:text-4xl font-bold">Control de pedidos</h1>
+            <h1 className="text-3xl md:text-4xl font-bold">
+              Control de pedidos
+            </h1>
 
             <p className="text-slate-600 mt-2">
               Hoy deben pedir las tiendas de{" "}
@@ -396,17 +365,19 @@ export default function AdminPedidosPage() {
         <section className="grid grid-cols-1 md:grid-cols-5 gap-4">
           <div className="bg-red-50 border border-red-200 rounded-2xl p-4 shadow">
             <p className="text-sm text-red-700">Faltan por pedir</p>
-            <p className="text-4xl font-bold text-red-700">{faltan}</p>
+            <p className="text-4xl font-bold text-red-700">
+              {tiendasQueFaltan.length}
+            </p>
           </div>
 
           <div className="bg-white rounded-2xl p-4 shadow">
             <p className="text-sm text-slate-500">Recibidos sin imprimir</p>
-            <p className="text-4xl font-bold">{recibidasSinImprimir}</p>
+            <p className="text-4xl font-bold">{recibidosSinImprimir}</p>
           </div>
 
           <div className="bg-green-50 border border-green-200 rounded-2xl p-4 shadow">
             <p className="text-sm text-green-700">Impresos</p>
-            <p className="text-4xl font-bold text-green-700">{impresas}</p>
+            <p className="text-4xl font-bold text-green-700">{impresos}</p>
           </div>
 
           <div className="bg-orange-50 border border-orange-200 rounded-2xl p-4 shadow">
@@ -416,7 +387,9 @@ export default function AdminPedidosPage() {
 
           <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-4 shadow">
             <p className="text-sm text-yellow-700">Pendientes antiguos</p>
-            <p className="text-4xl font-bold text-yellow-800">{pendientesAntiguos}</p>
+            <p className="text-4xl font-bold text-yellow-800">
+              {pendientesAntiguos}
+            </p>
           </div>
         </section>
 
@@ -427,9 +400,13 @@ export default function AdminPedidosPage() {
         <section className="bg-white rounded-2xl shadow overflow-hidden">
           <div className="p-4 border-b flex flex-col md:flex-row md:items-center md:justify-between gap-2">
             <div>
-              <h2 className="text-xl font-bold">Pedidos y tiendas pendientes</h2>
+              <h2 className="text-xl font-bold">
+                Pedidos recibidos
+              </h2>
+
               <p className="text-sm text-slate-500">
-                Cada pedido aparece como una fila independiente. Si una tienda manda varios pedidos, se verán todos.
+                Total cargados: <strong>{pedidos.length}</strong>. Cada fila es
+                un pedido real de Supabase.
               </p>
             </div>
 
@@ -450,31 +427,34 @@ export default function AdminPedidosPage() {
               </thead>
 
               <tbody>
-                {!cargando && filas.length === 0 && (
+                {!cargando && pedidos.length === 0 && (
                   <tr>
                     <td colSpan={6} className="p-6 text-center text-slate-500">
-                      No hay tiendas ni pedidos pendientes.
+                      No hay pedidos recibidos.
                     </td>
                   </tr>
                 )}
 
-                {filas.map(({ tipo, cliente, pedido, pendienteAntiguo }, index) => {
-                  const telefonoFormateado = formatearTelefono(cliente?.telefono || null);
-                  const telefonoLimpio = (cliente?.telefono || "").replace(/\D/g, "");
+                {pedidos.map(({ pedido, cliente, pendienteAntiguo }) => {
+                  const telefonoFormateado = formatearTelefono(
+                    cliente?.telefono || null
+                  );
+                  const telefonoLimpio = (cliente?.telefono || "").replace(
+                    /\D/g,
+                    ""
+                  );
 
                   return (
                     <tr
-                      key={pedido?.id || `cliente-${cliente?.id || index}`}
-                      className={`border-t ${claseFila({
-                        tipo,
-                        cliente,
+                      key={pedido.id}
+                      className={`border-t ${clasePedido(
                         pedido,
-                        pendienteAntiguo,
-                      })}`}
+                        pendienteAntiguo
+                      )}`}
                     >
                       <td className="p-3">
                         <p className="font-bold text-base">
-                          {cliente?.nombre || `Cliente ID ${pedido?.cliente_id || "-"}`}
+                          {cliente?.nombre || `Cliente ID ${pedido.cliente_id}`}
                         </p>
 
                         <p className="text-xs text-slate-500">
@@ -483,17 +463,12 @@ export default function AdminPedidosPage() {
                       </td>
 
                       <td className="p-3">
-                        {pedido ? (
-                          <div>
-                            <p className="font-bold">{fechaEspana(pedido.fecha)}</p>
+                        <p className="font-bold">{fechaEspana(pedido.fecha)}</p>
 
-                            <p className="text-xs text-slate-500">
-                              {horaEspana(pedido.creado_en)} · Ref. {pedido.id.slice(0, 8)}
-                            </p>
-                          </div>
-                        ) : (
-                          <span className="text-slate-400">Sin pedido</span>
-                        )}
+                        <p className="text-xs text-slate-500">
+                          {horaEspana(pedido.creado_en)} · Ref.{" "}
+                          {pedido.id.slice(0, 8)}
+                        </p>
                       </td>
 
                       <td className="p-3">
@@ -513,22 +488,17 @@ export default function AdminPedidosPage() {
                       <td className="p-3">{cliente?.ruta || "-"}</td>
 
                       <td className="p-3">
-                        {tipo === "falta" ? (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-red-100 text-red-700 px-3 py-1 text-xs font-semibold">
-                            <Clock className="w-3 h-3" />
-                            Falta llamar
-                          </span>
-                        ) : pendienteAntiguo ? (
+                        {pendienteAntiguo ? (
                           <span className="inline-flex items-center gap-1 rounded-full bg-yellow-100 text-yellow-800 px-3 py-1 text-xs font-semibold">
                             <CalendarDays className="w-3 h-3" />
                             Pendiente antiguo
                           </span>
-                        ) : pedido?.impreso ? (
+                        ) : pedido.impreso ? (
                           <span className="inline-flex items-center gap-1 rounded-full bg-green-100 text-green-700 px-3 py-1 text-xs font-semibold">
                             <CheckCircle className="w-3 h-3" />
                             Impreso
                           </span>
-                        ) : pedido?.fuera_de_dia ? (
+                        ) : pedido.fuera_de_dia ? (
                           <span className="inline-flex items-center gap-1 rounded-full bg-orange-100 text-orange-700 px-3 py-1 text-xs font-semibold">
                             <AlertCircle className="w-3 h-3" />
                             Fuera de día
@@ -542,42 +512,110 @@ export default function AdminPedidosPage() {
                       </td>
 
                       <td className="p-3">
-                        {pedido ? (
-                          <div className="flex gap-2 flex-wrap">
-                            <Link
-                              href={`/admin/pedido/${pedido.id}`}
-                              className="rounded-lg border px-3 py-2 flex items-center gap-1 bg-white"
-                            >
-                              <Eye className="w-4 h-4" />
-                              Ver
-                            </Link>
+                        <div className="flex gap-2 flex-wrap">
+                          <Link
+                            href={`/admin/pedido/${pedido.id}`}
+                            className="rounded-lg border px-3 py-2 flex items-center gap-1 bg-white"
+                          >
+                            <Eye className="w-4 h-4" />
+                            Ver
+                          </Link>
 
-                            <Link
-                              href={`/admin/pedido/${pedido.id}`}
-                              className="rounded-lg bg-black text-white px-3 py-2 flex items-center gap-1"
-                            >
-                              <Printer className="w-4 h-4" />
-                              Preparar
-                            </Link>
+                          <Link
+                            href={`/admin/pedido/${pedido.id}`}
+                            className="rounded-lg bg-black text-white px-3 py-2 flex items-center gap-1"
+                          >
+                            <Printer className="w-4 h-4" />
+                            Preparar
+                          </Link>
 
-                            {!pedido.impreso && (
-                              <button
-                                onClick={() => marcarImpreso(pedido.id)}
-                                className="rounded-lg border px-3 py-2 bg-white"
-                              >
-                                Marcar impreso
-                              </button>
-                            )}
-
+                          {!pedido.impreso && (
                             <button
-                              onClick={() => borrarPedido(pedido.id)}
-                              className="rounded-lg border border-red-200 text-red-700 bg-red-50 px-3 py-2 flex items-center gap-1"
+                              onClick={() => marcarImpreso(pedido.id)}
+                              className="rounded-lg border px-3 py-2 bg-white"
                             >
-                              <Trash2 className="w-4 h-4" />
-                              Borrar
+                              Marcar impreso
                             </button>
-                          </div>
-                        ) : telefonoLimpio ? (
+                          )}
+
+                          <button
+                            onClick={() => borrarPedido(pedido.id)}
+                            className="rounded-lg border border-red-200 text-red-700 bg-red-50 px-3 py-2 flex items-center gap-1"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                            Borrar
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section className="bg-white rounded-2xl shadow overflow-hidden">
+          <div className="p-4 border-b">
+            <h2 className="text-xl font-bold">
+              Tiendas que faltan hoy
+            </h2>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-slate-50 text-slate-600">
+                <tr>
+                  <th className="text-left p-3">Tienda</th>
+                  <th className="text-left p-3">Teléfono</th>
+                  <th className="text-left p-3">Ruta</th>
+                  <th className="text-left p-3">Acción</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {!cargando && tiendasQueFaltan.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="p-6 text-center text-slate-500">
+                      No faltan tiendas de hoy.
+                    </td>
+                  </tr>
+                )}
+
+                {tiendasQueFaltan.map((cliente) => {
+                  const telefonoFormateado = formatearTelefono(cliente.telefono);
+                  const telefonoLimpio = (cliente.telefono || "").replace(
+                    /\D/g,
+                    ""
+                  );
+
+                  return (
+                    <tr key={cliente.id} className="border-t bg-red-50">
+                      <td className="p-3">
+                        <p className="font-bold text-base">{cliente.nombre}</p>
+                        <p className="text-xs text-slate-500">
+                          Código {cliente.codigo || "-"}
+                        </p>
+                      </td>
+
+                      <td className="p-3">
+                        {telefonoLimpio ? (
+                          <a
+                            href={`tel:${telefonoLimpio}`}
+                            className="inline-flex items-center gap-2 font-bold text-base"
+                          >
+                            <Phone className="w-4 h-4" />
+                            {telefonoFormateado}
+                          </a>
+                        ) : (
+                          <span className="text-slate-400">Sin teléfono</span>
+                        )}
+                      </td>
+
+                      <td className="p-3">{cliente.ruta || "-"}</td>
+
+                      <td className="p-3">
+                        {telefonoLimpio ? (
                           <a
                             href={`tel:${telefonoLimpio}`}
                             className="rounded-lg bg-red-600 text-white px-3 py-2 inline-flex items-center gap-1"
@@ -586,7 +624,7 @@ export default function AdminPedidosPage() {
                             Llamar
                           </a>
                         ) : (
-                          <span className="text-slate-400">Sin pedido</span>
+                          <span className="text-slate-400">Sin teléfono</span>
                         )}
                       </td>
                     </tr>

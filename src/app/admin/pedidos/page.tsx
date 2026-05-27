@@ -73,6 +73,10 @@ function fechaMadrid() {
   return new Date(year, month - 1, day);
 }
 
+function fechaHoyISO() {
+  return fechaISODesdeDate(fechaMadrid());
+}
+
 function obtenerSemanaOperativa() {
   const hoy = fechaMadrid();
   const diaSemana = hoy.getDay();
@@ -103,6 +107,13 @@ function fechaEspana(fecha: string) {
   return new Date(fecha).toLocaleDateString("es-ES");
 }
 
+function horaEspana(fecha: string) {
+  return new Date(fecha).toLocaleTimeString("es-ES", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 function formatearTelefono(telefono: string | null) {
   const limpio = (telefono || "").replace(/\D/g, "");
 
@@ -131,6 +142,8 @@ export default function AdminPedidosPage() {
     setCargando(true);
     setMensaje("");
 
+    const hoyISO = fechaHoyISO();
+
     const { data: clientesData, error: clientesError } = await supabase
       .from("Clientes")
       .select("id, codigo, nombre, telefono, dia_pedido, ruta, activo")
@@ -149,6 +162,8 @@ export default function AdminPedidosPage() {
       .select("id, cliente_id, fecha, estado, impreso, creado_en, fuera_de_dia")
       .gte("fecha", semana.inicioISO)
       .lte("fecha", semana.finISO)
+      .neq("estado", "sustituido")
+      .order("fecha", { ascending: false })
       .order("creado_en", { ascending: false });
 
     if (pedidosSemanaError) {
@@ -163,7 +178,9 @@ export default function AdminPedidosPage() {
         .select("id, cliente_id, fecha, estado, impreso, creado_en, fuera_de_dia")
         .lt("fecha", semana.inicioISO)
         .eq("impreso", false)
-        .order("fecha", { ascending: true });
+        .neq("estado", "sustituido")
+        .order("fecha", { ascending: true })
+        .order("creado_en", { ascending: false });
 
     if (pendientesAntiguosError) {
       setMensaje(JSON.stringify(pendientesAntiguosError));
@@ -175,66 +192,17 @@ export default function AdminPedidosPage() {
     const pedidosSemana = (pedidosSemanaData || []) as Pedido[];
     const pendientesAntiguos = (pendientesAntiguosData || []) as Pedido[];
 
-    const clientesPrevistosHoy = clientes.filter(
-      (cliente) => normalizarDia(cliente.dia_pedido) === hoyDia
-    );
+    const filasPedidosSemana: FilaControl[] = pedidosSemana.map((pedido) => {
+      const cliente =
+        clientes.find((c) => Number(c.id) === Number(pedido.cliente_id)) || null;
 
-    const idsPrevistosHoy = new Set(
-      clientesPrevistosHoy.map((cliente) => Number(cliente.id))
-    );
-
-    const filasPrevistasHoy: FilaControl[] = [];
-
-    clientesPrevistosHoy.forEach((cliente) => {
-      const pedidosCliente = pedidosSemana.filter(
-        (p) => Number(p.cliente_id) === Number(cliente.id)
-      );
-
-      if (pedidosCliente.length === 0) {
-        filasPrevistasHoy.push({
-          cliente,
-          pedido: null,
-          fueraDeDia: false,
-          pendienteAntiguo: false,
-        });
-
-        return;
-      }
-
-      pedidosCliente.forEach((pedido) => {
-        filasPrevistasHoy.push({
-          cliente,
-          pedido,
-          fueraDeDia: Boolean(pedido?.fuera_de_dia),
-          pendienteAntiguo: false,
-        });
-      });
+      return {
+        cliente,
+        pedido,
+        fueraDeDia: Boolean(pedido.fuera_de_dia),
+        pendienteAntiguo: false,
+      };
     });
-
-    const pedidosExtraSemana = pedidosSemana.filter(
-      (pedido) =>
-        Boolean(pedido.fuera_de_dia) ||
-        !idsPrevistosHoy.has(Number(pedido.cliente_id))
-    );
-
-    const filasExtraSemana: FilaControl[] = pedidosExtraSemana
-      .filter(
-        (pedido) =>
-          !filasPrevistasHoy.some(
-            (fila) => fila.pedido && fila.pedido.id === pedido.id
-          )
-      )
-      .map((pedido) => {
-        const cliente =
-          clientes.find((c) => Number(c.id) === Number(pedido.cliente_id)) || null;
-
-        return {
-          cliente,
-          pedido,
-          fueraDeDia: Boolean(pedido.fuera_de_dia),
-          pendienteAntiguo: false,
-        };
-      });
 
     const filasPendientesAntiguos: FilaControl[] = pendientesAntiguos.map(
       (pedido) => {
@@ -250,13 +218,45 @@ export default function AdminPedidosPage() {
       }
     );
 
+    const clientesPrevistosHoy = clientes.filter(
+      (cliente) => normalizarDia(cliente.dia_pedido) === hoyDia
+    );
+
+    const clientesConPedidoHoy = new Set(
+      pedidosSemana
+        .filter((pedido) => pedido.fecha === hoyISO)
+        .map((pedido) => Number(pedido.cliente_id))
+    );
+
+    const filasFaltanHoy: FilaControl[] = clientesPrevistosHoy
+      .filter((cliente) => !clientesConPedidoHoy.has(Number(cliente.id)))
+      .map((cliente) => ({
+        cliente,
+        pedido: null,
+        fueraDeDia: false,
+        pendienteAntiguo: false,
+      }));
+
     const filasOrdenadas = [
+      ...filasFaltanHoy,
       ...filasPendientesAntiguos,
-      ...filasExtraSemana,
-      ...filasPrevistasHoy,
+      ...filasPedidosSemana,
     ].sort((a, b) => {
-      const prioridadA = !a.pedido ? 1 : a.pedido.impreso ? 4 : a.pendienteAntiguo ? 2 : a.fueraDeDia ? 3 : 2;
-      const prioridadB = !b.pedido ? 1 : b.pedido.impreso ? 4 : b.pendienteAntiguo ? 2 : b.fueraDeDia ? 3 : 2;
+      const prioridadA = !a.pedido
+        ? 1
+        : a.pendienteAntiguo
+          ? 2
+          : !a.pedido.impreso
+            ? 3
+            : 4;
+
+      const prioridadB = !b.pedido
+        ? 1
+        : b.pendienteAntiguo
+          ? 2
+          : !b.pedido.impreso
+            ? 3
+            : 4;
 
       if (prioridadA !== prioridadB) return prioridadA - prioridadB;
 
@@ -266,7 +266,15 @@ export default function AdminPedidosPage() {
 
       const nombreA = a.cliente?.nombre || "";
       const nombreB = b.cliente?.nombre || "";
-      return nombreA.localeCompare(nombreB, "es");
+      if (nombreA !== nombreB) return nombreA.localeCompare(nombreB, "es");
+
+      const fechaA = a.pedido?.fecha || "";
+      const fechaB = b.pedido?.fecha || "";
+      if (fechaA !== fechaB) return fechaB.localeCompare(fechaA);
+
+      const creadoA = a.pedido?.creado_en || "";
+      const creadoB = b.pedido?.creado_en || "";
+      return creadoB.localeCompare(creadoA);
     });
 
     setFilas(filasOrdenadas);
@@ -421,9 +429,9 @@ export default function AdminPedidosPage() {
         <section className="bg-white rounded-2xl shadow overflow-hidden">
           <div className="p-4 border-b flex flex-col md:flex-row md:items-center md:justify-between gap-2">
             <div>
-              <h2 className="text-xl font-bold">Tiendas de hoy</h2>
+              <h2 className="text-xl font-bold">Pedidos y tiendas de hoy</h2>
               <p className="text-sm text-slate-500">
-                Rojo = llamar · Verde = pedido impreso · Blanco = recibido pendiente de imprimir
+                Rojo = llamar · Blanco = pendiente de imprimir · Verde = impreso · Si una tienda envía varios pedidos, aparecen separados
               </p>
             </div>
 
@@ -435,6 +443,7 @@ export default function AdminPedidosPage() {
               <thead className="bg-slate-50 text-slate-600">
                 <tr>
                   <th className="text-left p-3">Tienda</th>
+                  <th className="text-left p-3">Pedido</th>
                   <th className="text-left p-3">Teléfono</th>
                   <th className="text-left p-3">Ruta</th>
                   <th className="text-left p-3">Estado</th>
@@ -445,7 +454,7 @@ export default function AdminPedidosPage() {
               <tbody>
                 {!cargando && filas.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="p-6 text-center text-slate-500">
+                    <td colSpan={6} className="p-6 text-center text-slate-500">
                       No hay tiendas ni pedidos pendientes.
                     </td>
                   </tr>
@@ -459,7 +468,7 @@ export default function AdminPedidosPage() {
 
                   return (
                     <tr
-                      key={pedido?.id || cliente?.id || index}
+                      key={pedido?.id || `cliente-${cliente?.id || index}`}
                       className={`border-t ${claseFila({
                         cliente,
                         pedido,
@@ -474,8 +483,20 @@ export default function AdminPedidosPage() {
 
                         <p className="text-xs text-slate-500">
                           Código {cliente?.codigo || "-"}
-                          {pedido?.fecha ? ` · ${fechaEspana(pedido.fecha)}` : ""}
                         </p>
+                      </td>
+
+                      <td className="p-3">
+                        {pedido ? (
+                          <div>
+                            <p className="font-bold">{fechaEspana(pedido.fecha)}</p>
+                            <p className="text-xs text-slate-500">
+                              {horaEspana(pedido.creado_en)} · Ref. {pedido.id.slice(0, 8)}
+                            </p>
+                          </div>
+                        ) : (
+                          <span className="text-slate-400">Sin pedido</span>
+                        )}
                       </td>
 
                       <td className="p-3">

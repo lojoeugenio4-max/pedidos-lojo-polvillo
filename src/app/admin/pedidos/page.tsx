@@ -2,16 +2,16 @@
 
 import React, { useEffect, useState } from "react";
 import {
-  RefreshCw,
+  AlertCircle,
+  CalendarDays,
   CheckCircle,
   Clock,
-  Printer,
-  Eye,
-  AlertCircle,
-  Trash2,
-  CalendarDays,
   Eraser,
+  Eye,
   Phone,
+  Printer,
+  RefreshCw,
+  Trash2,
 } from "lucide-react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
@@ -30,16 +30,16 @@ type Pedido = {
   id: string;
   cliente_id: number;
   fecha: string;
-  estado: string;
-  impreso: boolean;
+  estado: string | null;
+  impreso: boolean | null;
   creado_en: string;
   fuera_de_dia: boolean | null;
 };
 
 type FilaControl = {
+  tipo: "pedido" | "falta";
   cliente: Cliente | null;
   pedido: Pedido | null;
-  fueraDeDia: boolean;
   pendienteAntiguo: boolean;
 };
 
@@ -116,17 +116,15 @@ function horaEspana(fecha: string) {
 
 function formatearTelefono(telefono: string | null) {
   const limpio = (telefono || "").replace(/\D/g, "");
-
   if (!limpio) return "-";
-
   return limpio.replace(/(.{3})/g, "$1.").replace(/\.$/, "");
 }
 
 function claseFila(fila: FilaControl) {
-  if (!fila.pedido) return "bg-red-50 border-l-4 border-red-500";
-  if (fila.pedido.impreso) return "bg-green-50 border-l-4 border-green-500";
+  if (fila.tipo === "falta") return "bg-red-50 border-l-4 border-red-500";
   if (fila.pendienteAntiguo) return "bg-yellow-50 border-l-4 border-yellow-500";
-  if (fila.fueraDeDia) return "bg-orange-50 border-l-4 border-orange-500";
+  if (fila.pedido?.impreso) return "bg-green-50 border-l-4 border-green-500";
+  if (fila.pedido?.fuera_de_dia) return "bg-orange-50 border-l-4 border-orange-500";
   return "bg-white";
 }
 
@@ -197,9 +195,9 @@ export default function AdminPedidosPage() {
         clientes.find((c) => Number(c.id) === Number(pedido.cliente_id)) || null;
 
       return {
+        tipo: "pedido",
         cliente,
         pedido,
-        fueraDeDia: Boolean(pedido.fuera_de_dia),
         pendienteAntiguo: false,
       };
     });
@@ -210,9 +208,9 @@ export default function AdminPedidosPage() {
           clientes.find((c) => Number(c.id) === Number(pedido.cliente_id)) || null;
 
         return {
+          tipo: "pedido",
           cliente,
           pedido,
-          fueraDeDia: Boolean(pedido.fuera_de_dia),
           pendienteAntiguo: true,
         };
       }
@@ -231,9 +229,9 @@ export default function AdminPedidosPage() {
     const filasFaltanHoy: FilaControl[] = clientesPrevistosHoy
       .filter((cliente) => !clientesConPedidoHoy.has(Number(cliente.id)))
       .map((cliente) => ({
+        tipo: "falta",
         cliente,
         pedido: null,
-        fueraDeDia: false,
         pendienteAntiguo: false,
       }));
 
@@ -242,21 +240,23 @@ export default function AdminPedidosPage() {
       ...filasPendientesAntiguos,
       ...filasPedidosSemana,
     ].sort((a, b) => {
-      const prioridadA = !a.pedido
-        ? 1
-        : a.pendienteAntiguo
-          ? 2
-          : !a.pedido.impreso
-            ? 3
-            : 4;
+      const prioridadA =
+        a.tipo === "falta"
+          ? 1
+          : a.pendienteAntiguo
+            ? 2
+            : !a.pedido?.impreso
+              ? 3
+              : 4;
 
-      const prioridadB = !b.pedido
-        ? 1
-        : b.pendienteAntiguo
-          ? 2
-          : !b.pedido.impreso
-            ? 3
-            : 4;
+      const prioridadB =
+        b.tipo === "falta"
+          ? 1
+          : b.pendienteAntiguo
+            ? 2
+            : !b.pedido?.impreso
+              ? 3
+              : 4;
 
       if (prioridadA !== prioridadB) return prioridadA - prioridadB;
 
@@ -344,12 +344,12 @@ export default function AdminPedidosPage() {
     cargarDatos();
   }, []);
 
-  const faltan = filas.filter((fila) => !fila.pedido).length;
+  const faltan = filas.filter((fila) => fila.tipo === "falta").length;
   const recibidasSinImprimir = filas.filter(
     (fila) => fila.pedido && !fila.pedido.impreso
   ).length;
   const impresas = filas.filter((fila) => fila.pedido?.impreso).length;
-  const fueraDeDia = filas.filter((fila) => fila.fueraDeDia).length;
+  const fueraDeDia = filas.filter((fila) => fila.pedido?.fuera_de_dia).length;
   const pendientesAntiguos = filas.filter((fila) => fila.pendienteAntiguo).length;
 
   return (
@@ -416,9 +416,7 @@ export default function AdminPedidosPage() {
 
           <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-4 shadow">
             <p className="text-sm text-yellow-700">Pendientes antiguos</p>
-            <p className="text-4xl font-bold text-yellow-800">
-              {pendientesAntiguos}
-            </p>
+            <p className="text-4xl font-bold text-yellow-800">{pendientesAntiguos}</p>
           </div>
         </section>
 
@@ -429,9 +427,9 @@ export default function AdminPedidosPage() {
         <section className="bg-white rounded-2xl shadow overflow-hidden">
           <div className="p-4 border-b flex flex-col md:flex-row md:items-center md:justify-between gap-2">
             <div>
-              <h2 className="text-xl font-bold">Pedidos y tiendas de hoy</h2>
+              <h2 className="text-xl font-bold">Pedidos y tiendas pendientes</h2>
               <p className="text-sm text-slate-500">
-                Rojo = llamar · Blanco = pendiente de imprimir · Verde = impreso · Si una tienda envía varios pedidos, aparecen separados
+                Cada pedido aparece como una fila independiente. Si una tienda manda varios pedidos, se verán todos.
               </p>
             </div>
 
@@ -460,9 +458,7 @@ export default function AdminPedidosPage() {
                   </tr>
                 )}
 
-                {filas.map(({ cliente, pedido, fueraDeDia, pendienteAntiguo }, index) => {
-                  const recibido = Boolean(pedido);
-                  const impreso = Boolean(pedido?.impreso);
+                {filas.map(({ tipo, cliente, pedido, pendienteAntiguo }, index) => {
                   const telefonoFormateado = formatearTelefono(cliente?.telefono || null);
                   const telefonoLimpio = (cliente?.telefono || "").replace(/\D/g, "");
 
@@ -470,9 +466,9 @@ export default function AdminPedidosPage() {
                     <tr
                       key={pedido?.id || `cliente-${cliente?.id || index}`}
                       className={`border-t ${claseFila({
+                        tipo,
                         cliente,
                         pedido,
-                        fueraDeDia,
                         pendienteAntiguo,
                       })}`}
                     >
@@ -490,6 +486,7 @@ export default function AdminPedidosPage() {
                         {pedido ? (
                           <div>
                             <p className="font-bold">{fechaEspana(pedido.fecha)}</p>
+
                             <p className="text-xs text-slate-500">
                               {horaEspana(pedido.creado_en)} · Ref. {pedido.id.slice(0, 8)}
                             </p>
@@ -516,22 +513,22 @@ export default function AdminPedidosPage() {
                       <td className="p-3">{cliente?.ruta || "-"}</td>
 
                       <td className="p-3">
-                        {!recibido ? (
+                        {tipo === "falta" ? (
                           <span className="inline-flex items-center gap-1 rounded-full bg-red-100 text-red-700 px-3 py-1 text-xs font-semibold">
                             <Clock className="w-3 h-3" />
                             Falta llamar
-                          </span>
-                        ) : impreso ? (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-green-100 text-green-700 px-3 py-1 text-xs font-semibold">
-                            <CheckCircle className="w-3 h-3" />
-                            Impreso
                           </span>
                         ) : pendienteAntiguo ? (
                           <span className="inline-flex items-center gap-1 rounded-full bg-yellow-100 text-yellow-800 px-3 py-1 text-xs font-semibold">
                             <CalendarDays className="w-3 h-3" />
                             Pendiente antiguo
                           </span>
-                        ) : fueraDeDia ? (
+                        ) : pedido?.impreso ? (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-green-100 text-green-700 px-3 py-1 text-xs font-semibold">
+                            <CheckCircle className="w-3 h-3" />
+                            Impreso
+                          </span>
+                        ) : pedido?.fuera_de_dia ? (
                           <span className="inline-flex items-center gap-1 rounded-full bg-orange-100 text-orange-700 px-3 py-1 text-xs font-semibold">
                             <AlertCircle className="w-3 h-3" />
                             Fuera de día

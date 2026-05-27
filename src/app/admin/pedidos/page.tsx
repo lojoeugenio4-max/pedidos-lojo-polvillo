@@ -131,6 +131,9 @@ export default function AdminPedidosPage() {
   const [pedidos, setPedidos] = useState<PedidoFila[]>([]);
   const [cargando, setCargando] = useState(true);
   const [mensaje, setMensaje] = useState("");
+  const [filtro, setFiltro] = useState<
+    "todos" | "faltan" | "sin_imprimir" | "impresos" | "fuera_dia" | "antiguos"
+  >("todos");
 
   const hoyDia = diaHoyEspana();
   const hoyISO = fechaHoyISO();
@@ -319,6 +322,25 @@ export default function AdminPedidosPage() {
     ({ pendienteAntiguo }) => pendienteAntiguo
   ).length;
 
+  const mostrarFaltan =
+    filtro === "todos" || filtro === "faltan";
+
+  const pedidosFiltrados = pedidos.filter(({ pedido, pendienteAntiguo }) => {
+    if (filtro === "todos") return true;
+    if (filtro === "sin_imprimir") return !pedido.impreso;
+    if (filtro === "impresos") return Boolean(pedido.impreso);
+    if (filtro === "fuera_dia") return Boolean(pedido.fuera_de_dia);
+    if (filtro === "antiguos") return pendienteAntiguo;
+    if (filtro === "faltan") return false;
+    return true;
+  });
+
+  function claseTarjeta(activo: boolean, base: string) {
+    return `${base} rounded-2xl p-4 shadow text-left transition ${
+      activo ? "ring-4 ring-black/20 scale-[1.02]" : "hover:scale-[1.01]"
+    }`;
+  }
+
   return (
     <main className="min-h-screen bg-slate-100 p-4 md:p-6">
       <div className="max-w-7xl mx-auto space-y-6">
@@ -362,35 +384,72 @@ export default function AdminPedidosPage() {
           </div>
         </header>
 
-        <section className="grid grid-cols-1 md:grid-cols-5 gap-4">
-          <div className="bg-red-50 border border-red-200 rounded-2xl p-4 shadow">
-            <p className="text-sm text-red-700">Faltan por pedir</p>
-            <p className="text-4xl font-bold text-red-700">
-              {tiendasQueFaltan.length}
-            </p>
-          </div>
+        <section className="grid grid-cols-1 md:grid-cols-6 gap-4">
+          <button
+            onClick={() => setFiltro("todos")}
+            className={claseTarjeta(
+              filtro === "todos",
+              "bg-slate-900 text-white"
+            )}
+          >
+            <p className="text-sm text-slate-200">Ver</p>
+            <p className="text-3xl font-bold">Todos</p>
+          </button>
 
-          <div className="bg-white rounded-2xl p-4 shadow">
+          <button
+            onClick={() => setFiltro("faltan")}
+            className={claseTarjeta(
+              filtro === "faltan",
+              "bg-red-50 border border-red-200 text-red-700"
+            )}
+          >
+            <p className="text-sm">Faltan por pedir</p>
+            <p className="text-4xl font-bold">{tiendasQueFaltan.length}</p>
+          </button>
+
+          <button
+            onClick={() => setFiltro("sin_imprimir")}
+            className={claseTarjeta(
+              filtro === "sin_imprimir",
+              "bg-white"
+            )}
+          >
             <p className="text-sm text-slate-500">Recibidos sin imprimir</p>
             <p className="text-4xl font-bold">{recibidosSinImprimir}</p>
-          </div>
+          </button>
 
-          <div className="bg-green-50 border border-green-200 rounded-2xl p-4 shadow">
-            <p className="text-sm text-green-700">Impresos</p>
-            <p className="text-4xl font-bold text-green-700">{impresos}</p>
-          </div>
+          <button
+            onClick={() => setFiltro("impresos")}
+            className={claseTarjeta(
+              filtro === "impresos",
+              "bg-green-50 border border-green-200 text-green-700"
+            )}
+          >
+            <p className="text-sm">Impresos</p>
+            <p className="text-4xl font-bold">{impresos}</p>
+          </button>
 
-          <div className="bg-orange-50 border border-orange-200 rounded-2xl p-4 shadow">
-            <p className="text-sm text-orange-700">Fuera de día</p>
-            <p className="text-4xl font-bold text-orange-700">{fueraDeDia}</p>
-          </div>
+          <button
+            onClick={() => setFiltro("fuera_dia")}
+            className={claseTarjeta(
+              filtro === "fuera_dia",
+              "bg-orange-50 border border-orange-200 text-orange-700"
+            )}
+          >
+            <p className="text-sm">Fuera de día</p>
+            <p className="text-4xl font-bold">{fueraDeDia}</p>
+          </button>
 
-          <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-4 shadow">
-            <p className="text-sm text-yellow-700">Pendientes antiguos</p>
-            <p className="text-4xl font-bold text-yellow-800">
-              {pendientesAntiguos}
-            </p>
-          </div>
+          <button
+            onClick={() => setFiltro("antiguos")}
+            className={claseTarjeta(
+              filtro === "antiguos",
+              "bg-yellow-50 border border-yellow-200 text-yellow-800"
+            )}
+          >
+            <p className="text-sm">Pendientes antiguos</p>
+            <p className="text-4xl font-bold">{pendientesAntiguos}</p>
+          </button>
         </section>
 
         {mensaje && (
@@ -485,7 +544,8 @@ export default function AdminPedidosPage() {
               </h2>
 
               <p className="text-sm text-slate-500">
-                Total cargados: <strong>{pedidos.length}</strong>. Cada fila es
+                Mostrando: <strong>{pedidosFiltrados.length}</strong> de{" "}
+                <strong>{pedidos.length}</strong>. Cada fila es
                 un pedido real de Supabase.
               </p>
             </div>
@@ -507,7 +567,7 @@ export default function AdminPedidosPage() {
               </thead>
 
               <tbody>
-                {!cargando && pedidos.length === 0 && (
+                {!cargando && pedidosFiltrados.length === 0 && (
                   <tr>
                     <td colSpan={6} className="p-6 text-center text-slate-500">
                       No hay pedidos recibidos.
@@ -515,7 +575,7 @@ export default function AdminPedidosPage() {
                   </tr>
                 )}
 
-                {pedidos.map(({ pedido, cliente, pendienteAntiguo }) => {
+                {pedidosFiltrados.map(({ pedido, cliente, pendienteAntiguo }) => {
                   const telefonoFormateado = formatearTelefono(
                     cliente?.telefono || null
                   );
@@ -637,4 +697,7 @@ export default function AdminPedidosPage() {
       </div>
     </main>
   );
-}
+}        {mostrarFaltan && (
+        )}
+
+

@@ -31,6 +31,9 @@ type MensajeCliente = {
   dia_pedido: string | null;
   para_todos: boolean | null;
   activo: boolean | null;
+  fecha_inicio: string | null;
+  fecha_fin: string | null;
+  mostrar_una_sola_vez: boolean | null;
   creado_en: string;
 };
 
@@ -43,6 +46,26 @@ const dias = [
   "sábado",
   "domingo",
 ];
+
+function fechaHoyISO() {
+  const partes = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Madrid",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+
+  const year = partes.find((p) => p.type === "year")?.value;
+  const month = partes.find((p) => p.type === "month")?.value;
+  const day = partes.find((p) => p.type === "day")?.value;
+
+  return `${year}-${month}-${day}`;
+}
+
+function fechaEspana(fecha: string | null) {
+  if (!fecha) return "-";
+  return new Date(fecha).toLocaleDateString("es-ES");
+}
 
 function normalizarDia(valor: string | null) {
   return (valor || "")
@@ -65,6 +88,9 @@ export default function AdminMensajesPage() {
   const [mensaje, setMensaje] = useState(
     "Buenos días. Tenemos un aviso importante antes de realizar el pedido."
   );
+  const [fechaInicio, setFechaInicio] = useState(fechaHoyISO());
+  const [fechaFin, setFechaFin] = useState("");
+  const [mostrarUnaSolaVez, setMostrarUnaSolaVez] = useState(false);
 
   async function cargarDatos() {
     setCargando(true);
@@ -86,7 +112,9 @@ export default function AdminMensajesPage() {
 
     const { data: mensajesData, error: mensajesError } = await supabase
       .from("mensajes_clientes")
-      .select("id, mensaje, cliente_id, dia_pedido, para_todos, activo, creado_en")
+      .select(
+        "id, mensaje, cliente_id, dia_pedido, para_todos, activo, fecha_inicio, fecha_fin, mostrar_una_sola_vez, creado_en"
+      )
       .order("creado_en", { ascending: false });
 
     if (mensajesError) {
@@ -152,6 +180,9 @@ export default function AdminMensajesPage() {
       cliente_id: modo === "tienda" ? Number(clienteId) : null,
       dia_pedido: modo === "dia" ? diaSeleccionado : null,
       para_todos: modo === "todas",
+      fecha_inicio: fechaInicio || fechaHoyISO(),
+      fecha_fin: fechaFin || null,
+      mostrar_una_sola_vez: mostrarUnaSolaVez,
       activo: true,
     };
 
@@ -362,6 +393,45 @@ export default function AdminMensajesPage() {
             placeholder="Escribe el aviso..."
           />
 
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-slate-500 mb-1">
+                Fecha inicio
+              </label>
+
+              <input
+                type="date"
+                value={fechaInicio}
+                onChange={(e) => setFechaInicio(e.target.value)}
+                className="w-full border rounded-xl px-4 py-3"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-500 mb-1">
+                Fecha fin
+              </label>
+
+              <input
+                type="date"
+                value={fechaFin}
+                onChange={(e) => setFechaFin(e.target.value)}
+                className="w-full border rounded-xl px-4 py-3"
+              />
+            </div>
+
+            <label className="flex items-center gap-3 border rounded-xl px-4 py-3 font-semibold bg-white">
+              <input
+                type="checkbox"
+                checked={mostrarUnaSolaVez}
+                onChange={(e) => setMostrarUnaSolaVez(e.target.checked)}
+                className="w-5 h-5"
+              />
+
+              Mostrar una sola vez
+            </label>
+          </div>
+
           <button
             onClick={guardarMensaje}
             className="bg-black text-white rounded-xl px-5 py-3 font-bold inline-flex items-center gap-2"
@@ -382,6 +452,7 @@ export default function AdminMensajesPage() {
                 <tr>
                   <th className="text-left p-3">Destino</th>
                   <th className="text-left p-3">Mensaje</th>
+                  <th className="text-left p-3">Vigencia</th>
                   <th className="text-left p-3">Estado</th>
                   <th className="text-left p-3">Acciones</th>
                 </tr>
@@ -390,7 +461,7 @@ export default function AdminMensajesPage() {
               <tbody>
                 {!cargando && mensajes.length === 0 && (
                   <tr>
-                    <td colSpan={4} className="p-6 text-center text-slate-500">
+                    <td colSpan={5} className="p-6 text-center text-slate-500">
                       No hay avisos creados.
                     </td>
                   </tr>
@@ -402,6 +473,20 @@ export default function AdminMensajesPage() {
 
                     <td className="p-3 max-w-xl">
                       <p className="line-clamp-3">{m.mensaje}</p>
+                    </td>
+
+                    <td className="p-3 text-sm">
+                      <p>
+                        Desde: <strong>{fechaEspana(m.fecha_inicio)}</strong>
+                      </p>
+                      <p>
+                        Hasta: <strong>{fechaEspana(m.fecha_fin)}</strong>
+                      </p>
+                      {m.mostrar_una_sola_vez && (
+                        <p className="text-blue-700 font-semibold">
+                          Una sola vez
+                        </p>
+                      )}
                     </td>
 
                     <td className="p-3">

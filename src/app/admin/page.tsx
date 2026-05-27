@@ -1,105 +1,95 @@
 "use client";
 
-import React from "react";
 import Link from "next/link";
 import {
-  MessageCircle,
-  ClipboardList,
-  Users,
   Package,
-  ArrowRight,
-  Home,
+  Users,
+  ShoppingCart,
+  MessageCircle,
 } from "lucide-react";
 
-const opciones = [
-  {
-    titulo: "Pedidos",
-    descripcion:
-      "Ver pedidos recibidos, tiendas pendientes, fuera de día e impresión.",
-    href: "/admin/pedidos",
-    icono: ClipboardList,
-  },
-  {
-    titulo: "Clientes",
-    descripcion:
-      "Crear clientes, editar rutas, días de pedido y copiar enlaces.",
-    href: "/admin/clientes",
-    icono: Users,
-  },
-  {
-    titulo: "Artículos",
-    descripcion:
-      "Gestionar productos, activar/desactivar y ordenar picking.",
-    href: "/admin/productos",
-    icono: Package,
-  },
-];
-
-export default function AdminHomePage() {
+export default function AdminPage() {
   return (
-    <main className="min-h-screen bg-slate-100 p-4 md:p-6">
-      <div className="max-w-6xl mx-auto space-y-6">
-        <header className="bg-white rounded-2xl shadow p-6">
-          <div className="flex items-center gap-3">
-            <div className="rounded-2xl bg-black text-white p-3">
-              <Home className="w-7 h-7" />
-            </div>
+    <main className="min-h-screen bg-slate-100 p-6">
+      <div className="max-w-7xl mx-auto space-y-6">
+        <header>
+          <h1 className="text-4xl font-bold">
+            Panel de control
+          </h1>
 
-            <div>
-              <h1 className="text-3xl md:text-4xl font-bold">
-                Panel de administración
-              </h1>
-
-              <p className="text-slate-600 mt-2">
-                Gestión interna de pedidos, clientes y artículos.
-              </p>
-            </div>
-          </div>
+          <p className="text-slate-600 mt-2">
+            Gestión de clientes, productos y pedidos
+          </p>
         </header>
 
-        <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {opciones.map((opcion) => {
-            const Icono = opcion.icono;
+        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <Link
+            href="/admin/clientes"
+            className="bg-white rounded-2xl shadow p-6 hover:shadow-lg transition border"
+          >
+            <div className="flex items-center gap-3">
+              <Users className="w-7 h-7" />
 
-            return (
-              <Link
-                key={opcion.href}
-                href={opcion.href}
-                className="bg-white rounded-2xl shadow p-6 hover:shadow-lg transition-shadow border border-transparent hover:border-slate-300"
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="rounded-2xl bg-slate-100 p-4">
-                    <Icono className="w-8 h-8" />
-                  </div>
+              <h2 className="text-xl font-bold">
+                Clientes
+              </h2>
+            </div>
 
-                  <ArrowRight className="w-5 h-5 text-slate-400" />
-                </div>
+            <p className="text-slate-500 mt-2">
+              Gestión de clientes y enlaces
+            </p>
+          </Link>
 
-                <h2 className="text-2xl font-bold mt-6">
-                  {opcion.titulo}
-                </h2>
+          <Link
+            href="/admin/productos"
+            className="bg-white rounded-2xl shadow p-6 hover:shadow-lg transition border"
+          >
+            <div className="flex items-center gap-3">
+              <Package className="w-7 h-7" />
 
-                <p className="text-slate-600 mt-2 leading-relaxed">
-                  {opcion.descripcion}
-                </p>
-              </Link>
+              <h2 className="text-xl font-bold">
+                Productos
+              </h2>
+            </div>
 
-            <Link
-              href="/admin/mensajes"
-              className="bg-white rounded-2xl shadow p-6 hover:shadow-lg transition border"
-            >
-              <div className="flex items-center gap-3">
-                <MessageCircle className="w-7 h-7" />
-                <h2 className="text-xl font-bold">Mensajes</h2>
-              </div>
+            <p className="text-slate-500 mt-2">
+              Gestión de productos y categorías
+            </p>
+          </Link>
 
-              <p className="text-slate-500 mt-2">
-                Enviar mensajes WhatsApp a clientes
-              </p>
-            </Link>
+          <Link
+            href="/admin/pedidos"
+            className="bg-white rounded-2xl shadow p-6 hover:shadow-lg transition border"
+          >
+            <div className="flex items-center gap-3">
+              <ShoppingCart className="w-7 h-7" />
 
-            );
-          })}
+              <h2 className="text-xl font-bold">
+                Pedidos
+              </h2>
+            </div>
+
+            <p className="text-slate-500 mt-2">
+              Control de pedidos recibidos
+            </p>
+          </Link>
+
+          <Link
+            href="/admin/mensajes"
+            className="bg-white rounded-2xl shadow p-6 hover:shadow-lg transition border"
+          >
+            <div className="flex items-center gap-3">
+              <MessageCircle className="w-7 h-7" />
+
+              <h2 className="text-xl font-bold">
+                Mensajes
+              </h2>
+            </div>
+
+            <p className="text-slate-500 mt-2">
+              Enviar mensajes WhatsApp a clientes
+            </p>
+          </Link>
         </section>
       </div>
     </main>

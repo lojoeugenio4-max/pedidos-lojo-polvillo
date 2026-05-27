@@ -2,12 +2,13 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import {
-  MessageCircle,
+  ArrowLeft,
+  Bell,
+  CheckCircle,
   RefreshCw,
   Search,
   Send,
   Users,
-  ArrowLeft,
 } from "lucide-react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
@@ -21,6 +22,16 @@ type Cliente = {
   ruta: string | null;
   activo: boolean | null;
   token_pedido: string | null;
+};
+
+type MensajeCliente = {
+  id: string;
+  mensaje: string;
+  cliente_id: number | null;
+  dia_pedido: string | null;
+  para_todos: boolean | null;
+  activo: boolean | null;
+  creado_en: string;
 };
 
 const dias = [
@@ -41,66 +52,59 @@ function normalizarDia(valor: string | null) {
     .trim();
 }
 
-function limpiarTelefono(telefono: string | null) {
-  const limpio = (telefono || "").replace(/\D/g, "");
-
-  if (!limpio) return "";
-
-  if (limpio.startsWith("34")) return limpio;
-
-  return `34${limpio}`;
-}
-
-function formatearTelefono(telefono: string | null) {
-  const limpio = (telefono || "").replace(/\D/g, "");
-
-  if (!limpio) return "-";
-
-  return limpio.replace(/(.{3})/g, "$1.").replace(/\.$/, "");
-}
-
-function crearEnlaceWhatsapp(telefono: string, mensaje: string) {
-  return `https://wa.me/${telefono}?text=${encodeURIComponent(mensaje)}`;
-}
-
 export default function AdminMensajesPage() {
   const [clientes, setClientes] = useState<Cliente[]>([]);
+  const [mensajes, setMensajes] = useState<MensajeCliente[]>([]);
   const [cargando, setCargando] = useState(true);
   const [mensajeError, setMensajeError] = useState("");
+  const [mensajeOk, setMensajeOk] = useState("");
   const [busqueda, setBusqueda] = useState("");
   const [modo, setModo] = useState<"tienda" | "todas" | "dia">("tienda");
   const [clienteId, setClienteId] = useState("");
   const [diaSeleccionado, setDiaSeleccionado] = useState("lunes");
   const [mensaje, setMensaje] = useState(
-    "Buenos días. Te recordamos que puedes enviar tu pedido desde el enlace habitual. Gracias."
+    "Buenos días. Tenemos un aviso importante antes de realizar el pedido."
   );
 
-  async function cargarClientes() {
+  async function cargarDatos() {
     setCargando(true);
     setMensajeError("");
+    setMensajeOk("");
 
-    const { data, error } = await supabase
+    const { data: clientesData, error: clientesError } = await supabase
       .from("Clientes")
       .select("id, codigo, nombre, telefono, dia_pedido, ruta, activo, token_pedido")
       .eq("activo", true)
       .order("ruta", { ascending: true })
       .order("nombre", { ascending: true });
 
-    if (error) {
-      setMensajeError(JSON.stringify(error));
+    if (clientesError) {
+      setMensajeError(JSON.stringify(clientesError));
       setCargando(false);
       return;
     }
 
-    setClientes((data || []) as Cliente[]);
+    const { data: mensajesData, error: mensajesError } = await supabase
+      .from("mensajes_clientes")
+      .select("id, mensaje, cliente_id, dia_pedido, para_todos, activo, creado_en")
+      .order("creado_en", { ascending: false });
+
+    if (mensajesError) {
+      setMensajeError(JSON.stringify(mensajesError));
+      setCargando(false);
+      return;
+    }
+
+    setClientes((clientesData || []) as Cliente[]);
+    setMensajes((mensajesData || []) as MensajeCliente[]);
     setCargando(false);
   }
 
   useEffect(() => {
-    cargarClientes();
+    cargarDatos();
   }, []);
 
-  const clientesFiltradosBusqueda = useMemo(() => {
+  const clientesFiltrados = useMemo(() => {
     const q = busqueda.toLowerCase().trim();
 
     if (!q) return clientes;
@@ -110,50 +114,92 @@ export default function AdminMensajesPage() {
         cliente.nombre.toLowerCase().includes(q) ||
         (cliente.codigo || "").toLowerCase().includes(q) ||
         (cliente.ruta || "").toLowerCase().includes(q) ||
-        (cliente.telefono || "").toLowerCase().includes(q) ||
         (cliente.dia_pedido || "").toLowerCase().includes(q)
       );
     });
   }, [clientes, busqueda]);
 
   const destinatarios = useMemo(() => {
-    if (modo === "todas") {
-      return clientesFiltradosBusqueda;
-    }
+    if (modo === "todas") return clientesFiltrados;
 
     if (modo === "dia") {
-      return clientesFiltradosBusqueda.filter(
+      return clientesFiltrados.filter(
         (cliente) =>
           normalizarDia(cliente.dia_pedido) === normalizarDia(diaSeleccionado)
       );
     }
 
     const cliente = clientes.find((c) => String(c.id) === clienteId);
-
     return cliente ? [cliente] : [];
-  }, [
-    modo,
-    clientes,
-    clientesFiltradosBusqueda,
-    clienteId,
-    diaSeleccionado,
-  ]);
+  }, [modo, clientes, clientesFiltrados, clienteId, diaSeleccionado]);
 
-  const destinatariosConTelefono = destinatarios.filter((cliente) =>
-    Boolean(limpiarTelefono(cliente.telefono))
-  );
+  async function guardarMensaje() {
+    setMensajeError("");
+    setMensajeOk("");
 
-  function mensajeParaCliente(cliente: Cliente) {
-    const enlacePedido =
-      cliente.token_pedido && typeof window !== "undefined"
-        ? `${window.location.origin}/pedido/${cliente.token_pedido}`
-        : "";
+    if (!mensaje.trim()) {
+      setMensajeError("Escribe un mensaje.");
+      return;
+    }
 
-    return mensaje
-      .replaceAll("{tienda}", cliente.nombre)
-      .replaceAll("{codigo}", cliente.codigo || "")
-      .replaceAll("{dia}", cliente.dia_pedido || "")
-      .replaceAll("{enlace}", enlacePedido);
+    if (modo === "tienda" && !clienteId) {
+      setMensajeError("Selecciona una tienda.");
+      return;
+    }
+
+    const nuevoMensaje = {
+      mensaje: mensaje.trim(),
+      cliente_id: modo === "tienda" ? Number(clienteId) : null,
+      dia_pedido: modo === "dia" ? diaSeleccionado : null,
+      para_todos: modo === "todas",
+      activo: true,
+    };
+
+    const { error } = await supabase
+      .from("mensajes_clientes")
+      .insert(nuevoMensaje);
+
+    if (error) {
+      setMensajeError(JSON.stringify(error));
+      return;
+    }
+
+    await cargarDatos();
+
+    setMensajeOk(
+      modo === "todas"
+        ? "Aviso guardado para todos los clientes."
+        : modo === "dia"
+          ? `Aviso guardado para clientes de ${diaSeleccionado}.`
+          : "Aviso guardado para la tienda seleccionada."
+    );
+  }
+
+  async function desactivarMensaje(id: string) {
+    const confirmar = window.confirm("¿Quieres desactivar este aviso?");
+
+    if (!confirmar) return;
+
+    const { error } = await supabase
+      .from("mensajes_clientes")
+      .update({ activo: false })
+      .eq("id", id);
+
+    if (error) {
+      setMensajeError(JSON.stringify(error));
+      return;
+    }
+
+    await cargarDatos();
+    setMensajeOk("Aviso desactivado.");
+  }
+
+  function destinoMensaje(m: MensajeCliente) {
+    if (m.para_todos) return "Todos los clientes";
+    if (m.dia_pedido) return `Día: ${m.dia_pedido}`;
+
+    const cliente = clientes.find((c) => Number(c.id) === Number(m.cliente_id));
+    return cliente ? cliente.nombre : `Cliente ID ${m.cliente_id || "-"}`;
   }
 
   return (
@@ -162,11 +208,11 @@ export default function AdminMensajesPage() {
         <header className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <h1 className="text-3xl md:text-4xl font-bold">
-              Mensajes a clientes
+              Avisos a clientes
             </h1>
 
             <p className="text-slate-600 mt-2">
-              Genera mensajes de WhatsApp para una tienda, todas o por día de pedido.
+              Crea avisos que aparecerán al cliente antes de hacer el pedido.
             </p>
           </div>
 
@@ -180,7 +226,7 @@ export default function AdminMensajesPage() {
             </Link>
 
             <button
-              onClick={cargarClientes}
+              onClick={cargarDatos}
               className="bg-black text-white rounded-xl px-4 py-3 flex items-center justify-center gap-2"
             >
               <RefreshCw className="w-4 h-4" />
@@ -188,12 +234,6 @@ export default function AdminMensajesPage() {
             </button>
           </div>
         </header>
-
-        {mensajeError && (
-          <div className="bg-white border rounded-xl p-4 text-sm">
-            {mensajeError}
-          </div>
-        )}
 
         <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="bg-white rounded-2xl p-4 shadow">
@@ -206,18 +246,31 @@ export default function AdminMensajesPage() {
             <p className="text-4xl font-bold">{destinatarios.length}</p>
           </div>
 
-          <div className="bg-green-50 border border-green-200 rounded-2xl p-4 shadow">
-            <p className="text-sm text-green-700">Con teléfono</p>
-            <p className="text-4xl font-bold text-green-700">
-              {destinatariosConTelefono.length}
+          <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 shadow">
+            <p className="text-sm text-blue-700">Avisos activos</p>
+            <p className="text-4xl font-bold text-blue-700">
+              {mensajes.filter((m) => m.activo).length}
             </p>
           </div>
         </section>
 
+        {mensajeError && (
+          <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl p-4 text-sm">
+            {mensajeError}
+          </div>
+        )}
+
+        {mensajeOk && (
+          <div className="bg-green-50 border border-green-200 text-green-700 rounded-xl p-4 text-sm flex items-center gap-2">
+            <CheckCircle className="w-5 h-5" />
+            {mensajeOk}
+          </div>
+        )}
+
         <section className="bg-white rounded-2xl shadow p-4 md:p-6 space-y-4">
           <h2 className="text-xl font-bold flex items-center gap-2">
             <Users className="w-5 h-5" />
-            Selección de destinatarios
+            Destinatarios
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -257,6 +310,7 @@ export default function AdminMensajesPage() {
                 className="border rounded-xl px-4 py-3 bg-white"
               >
                 <option value="">Selecciona una tienda</option>
+
                 {clientes.map((cliente) => (
                   <option key={cliente.id} value={cliente.id}>
                     {cliente.nombre} · {cliente.codigo || "sin código"}
@@ -286,7 +340,7 @@ export default function AdminMensajesPage() {
                 <input
                   value={busqueda}
                   onChange={(e) => setBusqueda(e.target.value)}
-                  placeholder="Filtrar por tienda, ruta, teléfono..."
+                  placeholder="Filtrar por tienda, ruta o día..."
                   className="w-full border rounded-xl py-3 pl-10 pr-4"
                 />
               </div>
@@ -294,10 +348,10 @@ export default function AdminMensajesPage() {
           </div>
         </section>
 
-        <section className="bg-white rounded-2xl shadow p-4 md:p-6 space-y-3">
+        <section className="bg-white rounded-2xl shadow p-4 md:p-6 space-y-4">
           <h2 className="text-xl font-bold flex items-center gap-2">
-            <MessageCircle className="w-5 h-5" />
-            Mensaje
+            <Bell className="w-5 h-5" />
+            Aviso
           </h2>
 
           <textarea
@@ -305,94 +359,77 @@ export default function AdminMensajesPage() {
             onChange={(e) => setMensaje(e.target.value)}
             rows={5}
             className="w-full border rounded-xl p-4"
-            placeholder="Escribe el mensaje..."
+            placeholder="Escribe el aviso..."
           />
 
-          <div className="text-sm text-slate-500 space-y-1">
-            <p>Puedes usar estas variables:</p>
-            <p>
-              <strong>{"{tienda}"}</strong> nombre de tienda ·{" "}
-              <strong>{"{codigo}"}</strong> código ·{" "}
-              <strong>{"{dia}"}</strong> día de pedido ·{" "}
-              <strong>{"{enlace}"}</strong> enlace de pedido
-            </p>
-          </div>
+          <button
+            onClick={guardarMensaje}
+            className="bg-black text-white rounded-xl px-5 py-3 font-bold inline-flex items-center gap-2"
+          >
+            <Send className="w-4 h-4" />
+            Guardar aviso
+          </button>
         </section>
 
         <section className="bg-white rounded-2xl shadow overflow-hidden">
-          <div className="p-4 border-b flex flex-col md:flex-row md:items-center md:justify-between gap-2">
-            <div>
-              <h2 className="text-xl font-bold">Destinatarios</h2>
-              <p className="text-sm text-slate-500">
-                WhatsApp se abre con el mensaje preparado. Hay que enviarlo manualmente.
-              </p>
-            </div>
-
-            {cargando && <p className="text-sm text-slate-500">Cargando...</p>}
+          <div className="p-4 border-b">
+            <h2 className="text-xl font-bold">Avisos creados</h2>
           </div>
 
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-slate-50 text-slate-600">
                 <tr>
-                  <th className="text-left p-3">Tienda</th>
-                  <th className="text-left p-3">Teléfono</th>
-                  <th className="text-left p-3">Día</th>
-                  <th className="text-left p-3">Ruta</th>
-                  <th className="text-left p-3">Acción</th>
+                  <th className="text-left p-3">Destino</th>
+                  <th className="text-left p-3">Mensaje</th>
+                  <th className="text-left p-3">Estado</th>
+                  <th className="text-left p-3">Acciones</th>
                 </tr>
               </thead>
 
               <tbody>
-                {!cargando && destinatarios.length === 0 && (
+                {!cargando && mensajes.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="p-6 text-center text-slate-500">
-                      No hay destinatarios seleccionados.
+                    <td colSpan={4} className="p-6 text-center text-slate-500">
+                      No hay avisos creados.
                     </td>
                   </tr>
                 )}
 
-                {destinatarios.map((cliente) => {
-                  const telefono = limpiarTelefono(cliente.telefono);
-                  const textoFinal = mensajeParaCliente(cliente);
+                {mensajes.map((m) => (
+                  <tr key={m.id} className="border-t">
+                    <td className="p-3 font-semibold">{destinoMensaje(m)}</td>
 
-                  return (
-                    <tr key={cliente.id} className="border-t">
-                      <td className="p-3">
-                        <p className="font-bold">{cliente.nombre}</p>
-                        <p className="text-xs text-slate-500">
-                          Código {cliente.codigo || "-"}
-                        </p>
-                      </td>
+                    <td className="p-3 max-w-xl">
+                      <p className="line-clamp-3">{m.mensaje}</p>
+                    </td>
 
-                      <td className="p-3 font-semibold">
-                        {formatearTelefono(cliente.telefono)}
-                      </td>
+                    <td className="p-3">
+                      {m.activo ? (
+                        <span className="rounded-full bg-green-100 text-green-700 px-3 py-1 text-xs font-semibold">
+                          Activo
+                        </span>
+                      ) : (
+                        <span className="rounded-full bg-slate-100 text-slate-500 px-3 py-1 text-xs font-semibold">
+                          Desactivado
+                        </span>
+                      )}
+                    </td>
 
-                      <td className="p-3">{cliente.dia_pedido || "-"}</td>
-
-                      <td className="p-3">{cliente.ruta || "-"}</td>
-
-                      <td className="p-3">
-                        {telefono ? (
-                          <a
-                            href={crearEnlaceWhatsapp(telefono, textoFinal)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="rounded-lg bg-green-600 text-white px-3 py-2 inline-flex items-center gap-2"
-                          >
-                            <Send className="w-4 h-4" />
-                            Abrir WhatsApp
-                          </a>
-                        ) : (
-                          <span className="text-red-500 font-semibold">
-                            Sin teléfono
-                          </span>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
+                    <td className="p-3">
+                      {m.activo ? (
+                        <button
+                          onClick={() => desactivarMensaje(m.id)}
+                          className="rounded-lg border px-3 py-2 bg-white"
+                        >
+                          Desactivar
+                        </button>
+                      ) : (
+                        <span className="text-slate-400">Sin acciones</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>

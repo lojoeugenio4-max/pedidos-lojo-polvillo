@@ -479,23 +479,45 @@ export default function PedidoClientePage() {
 
       const fueraDeDia = Boolean(diaCliente) && diaCliente !== diaHoy;
 
-      let pedidoId = pedidoExistente?.id || "";
+      const { data: pedidosNoImpresosAhora, error: buscarPedidoError } =
+        await supabase
+          .from("pedidos")
+          .select("id, impreso, estado")
+          .eq("cliente_id", cliente.id)
+          .eq("fecha", fechaHoyISO())
+          .eq("impreso", false)
+          .neq("estado", "sustituido")
+          .order("creado_en", { ascending: false })
+          .limit(1);
 
-      if (pedidoExistente && pedidoExistente.impreso === false) {
+      if (buscarPedidoError) throw buscarPedidoError;
+
+      const pedidoNoImpresoActual =
+        pedidosNoImpresosAhora && pedidosNoImpresosAhora.length > 0
+          ? pedidosNoImpresosAhora[0]
+          : null;
+
+      let pedidoId = "";
+
+      if (pedidoNoImpresoActual) {
+        pedidoId = pedidoNoImpresoActual.id;
+
         const { error: updatePedidoError } = await supabase
           .from("pedidos")
           .update({
             estado: fueraDeDia ? "fuera_de_dia" : "recibido",
             fuera_de_dia: fueraDeDia,
+            impreso: false,
           })
-          .eq("id", pedidoExistente.id);
+          .eq("id", pedidoId)
+          .eq("impreso", false);
 
         if (updatePedidoError) throw updatePedidoError;
 
         const { error: borrarLineasError } = await supabase
           .from("lineas_pedido")
           .delete()
-          .eq("pedido_id", pedidoExistente.id);
+          .eq("pedido_id", pedidoId);
 
         if (borrarLineasError) throw borrarLineasError;
       } else {

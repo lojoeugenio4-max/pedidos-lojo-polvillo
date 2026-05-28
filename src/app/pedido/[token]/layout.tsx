@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 const SITE_URL = "https://app-pedidos-clientes-2.vercel.app";
 
 type ClienteMetadata = {
@@ -14,19 +17,21 @@ async function obtenerClientePorToken(token: string): Promise<ClienteMetadata | 
     return null;
   }
 
-  const url = `${supabaseUrl}/rest/v1/Clientes?token_pedido=eq.${encodeURIComponent(
-    token
-  )}&select=nombre&limit=1`;
+  const url =
+    `${supabaseUrl}/rest/v1/Clientes` +
+    `?token_pedido=eq.${encodeURIComponent(token)}` +
+    `&select=nombre` +
+    `&limit=1`;
 
   try {
     const respuesta = await fetch(url, {
+      method: "GET",
       headers: {
         apikey: supabaseAnonKey,
         Authorization: `Bearer ${supabaseAnonKey}`,
+        "Content-Type": "application/json",
       },
-      next: {
-        revalidate: 60,
-      },
+      cache: "no-store",
     });
 
     if (!respuesta.ok) {
@@ -35,7 +40,11 @@ async function obtenerClientePorToken(token: string): Promise<ClienteMetadata | 
 
     const data = (await respuesta.json()) as ClienteMetadata[];
 
-    return data[0] || null;
+    if (!data || data.length === 0) {
+      return null;
+    }
+
+    return data[0];
   } catch {
     return null;
   }
@@ -44,10 +53,10 @@ async function obtenerClientePorToken(token: string): Promise<ClienteMetadata | 
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ token: string }> | { token: string };
+  params: Promise<{ token: string }>;
 }): Promise<Metadata> {
-  const resolvedParams = await params;
-  const cliente = await obtenerClientePorToken(resolvedParams.token);
+  const { token } = await params;
+  const cliente = await obtenerClientePorToken(token);
 
   const title = cliente?.nombre
     ? `Pedido de ${cliente.nombre}`
@@ -60,6 +69,7 @@ export async function generateMetadata({
     openGraph: {
       title,
       description: "Realiza tu pedido de forma rápida y sencilla",
+      url: `${SITE_URL}/pedido/${token}`,
       siteName: "Lojo · Pedido Online",
       images: [
         {

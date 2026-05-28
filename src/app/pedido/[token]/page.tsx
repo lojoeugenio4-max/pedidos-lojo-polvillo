@@ -630,7 +630,7 @@ export default function PedidoClientePage() {
       setEnviando(true);
 
       const fechaObjetivoPedido = fechaPedidoObjetivoISO(cliente.dia_pedido);
-      const fueraDeDia = false;
+      const fueraDeDia = fechaObjetivoPedido !== fechaHoyISO();
 
       const lineas = lineasPedido.map((item) => ({
         codigo_articulo: item.codigo,
@@ -644,16 +644,16 @@ export default function PedidoClientePage() {
         p_cliente_id: cliente.id,
         p_fecha: fechaObjetivoPedido,
         p_estado: "recibido",
-        p_fuera_de_dia: false,
+        p_fuera_de_dia: fueraDeDia,
         p_lineas: lineas,
       });
 
       if (error) throw error;
 
       setMensaje(
-        fechaObjetivoPedido === fechaHoyISO()
-          ? "Pedido enviado correctamente."
-          : `Pedido enviado correctamente para el día ${fechaObjetivoPedido}.`
+        fueraDeDia
+          ? `Pedido recibido correctamente para tu próximo día de pedido: ${fechaObjetivoPedido}.`
+          : "Pedido enviado correctamente."
       );
 
       setPedido({});

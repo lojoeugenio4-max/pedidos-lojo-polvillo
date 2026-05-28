@@ -204,6 +204,10 @@ export default function PedidoClientePage() {
     useState<PedidoExistente | null>(null);
   const [pedidoImpresoHoy, setPedidoImpresoHoy] =
     useState<PedidoExistente | null>(null);
+  const [avisoPedido, setAvisoPedido] = useState<{
+    titulo: string;
+    texto: string;
+  } | null>(null);
   const [mensajeAviso, setMensajeAviso] = useState<string | null>(null);
   const [mostrarAviso, setMostrarAviso] = useState(false);
 
@@ -415,6 +419,20 @@ export default function PedidoClientePage() {
     setPedidoExistente(pedidoNoImpreso);
     setPedidoImpresoHoy(pedidoNoImpreso ? null : pedidoImpreso);
 
+    if (pedidoNoImpreso) {
+      setAvisoPedido({
+        titulo: "Pedido cargado para modificar",
+        texto:
+          "Ya tenías un pedido enviado para tu próximo día de pedido y todavía no está impreso. Puedes modificarlo y volver a enviarlo.",
+      });
+    } else if (pedidoImpreso) {
+      setAvisoPedido({
+        titulo: "Pedido ya impreso",
+        texto:
+          "Tu pedido anterior ya está impreso. Si envías otro pedido, se guardará como pedido adicional.",
+      });
+    }
+
     if (!pedidoNoImpreso) {
       setPedido({});
       return;
@@ -447,9 +465,6 @@ export default function PedidoClientePage() {
     });
 
     setPedido(pedidoCargado);
-    setMensaje(
-      "Ya tenías un pedido de hoy sin imprimir. Puedes modificarlo y volver a enviarlo."
-    );
   }
 
   useEffect(() => {
@@ -548,15 +563,6 @@ export default function PedidoClientePage() {
     const cantidad = Math.max(0, Number(soloNumeros) || 0);
 
     setUltimoArticulo(producto.codigo);
-
-    window.setTimeout(() => {
-      document
-        .getElementById(`producto-${producto.codigo}`)
-        ?.scrollIntoView({
-          behavior: "smooth",
-          block: "center",
-        });
-    }, 50);
 
     setPedido((prev) => {
       const actual = prev[producto.codigo] || {
@@ -780,7 +786,7 @@ export default function PedidoClientePage() {
         </div>
 
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-2xl p-3 md:p-4 z-50">
-          <div className="max-w-4xl mx-auto flex flex-col md:flex-row gap-3 md:items-center md:justify-between">
+          <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-[auto_auto] gap-2 md:items-center md:justify-between">
             <button
               onClick={() => setMostrarPreview(false)}
               disabled={enviando}
@@ -916,7 +922,7 @@ export default function PedidoClientePage() {
                     : "bg-white"
                 }`}
               >
-                <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-2 md:items-center">
+                <div className="grid grid-cols-[1fr_auto] gap-2 items-center">
                   <div className="flex gap-2 items-start">
                     {p.imagen_url && (
                       <button
@@ -934,12 +940,12 @@ export default function PedidoClientePage() {
                       </button>
                     )}
 
-                    <div>
+                    <div className="min-w-0">
                       <p className="text-[11px] text-slate-500 leading-tight">
                         Código {p.codigo}
                       </p>
 
-                      <h2 className="font-bold text-sm md:text-base leading-tight">
+                      <h2 className="font-bold text-sm md:text-base leading-tight break-words">
                         {p.nombre}
                       </h2>
 
@@ -950,7 +956,7 @@ export default function PedidoClientePage() {
                   </div>
 
                   {p.departamento === "Bebidas" ? (
-                    <div className="w-full md:w-32">
+                    <div className="w-20 md:w-32">
                       <label className="block text-xs font-semibold text-slate-500 mb-1">
                         CAJAS
                       </label>
@@ -963,12 +969,12 @@ export default function PedidoClientePage() {
                         onChange={(e) =>
                           actualizarCantidad(p, "cajas", e.target.value)
                         }
-                        className="w-full border rounded-lg px-3 py-1 text-center text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        className="w-full border rounded-lg px-2 py-1 text-center text-base md:text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         placeholder="0"
                       />
                     </div>
                   ) : (
-                    <div className="grid grid-cols-2 gap-2 w-full md:w-64">
+                    <div className="grid grid-cols-2 gap-1.5 w-36 md:w-64">
                       <div>
                         <label className="block text-[11px] font-semibold text-slate-500 mb-0.5">
                           CAJAS
@@ -982,7 +988,7 @@ export default function PedidoClientePage() {
                           onChange={(e) =>
                             actualizarCantidad(p, "cajas", e.target.value)
                           }
-                          className="w-full border rounded-lg px-3 py-1 text-center text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          className="w-full border rounded-lg px-2 py-1 text-center text-base md:text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                           placeholder="0"
                         />
                       </div>
@@ -1000,7 +1006,7 @@ export default function PedidoClientePage() {
                           onChange={(e) =>
                             actualizarCantidad(p, "unidades", e.target.value)
                           }
-                          className="w-full border rounded-lg px-3 py-1 text-center text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          className="w-full border rounded-lg px-2 py-1 text-center text-base md:text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                           placeholder="0"
                         />
                       </div>
@@ -1015,23 +1021,23 @@ export default function PedidoClientePage() {
         <div className="h-36 md:h-32" aria-hidden="true" />
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-2xl p-3 md:p-4 z-50">
-        <div className="max-w-7xl mx-auto flex flex-col gap-2">
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-2xl p-2 md:p-4 z-50">
+        <div className="max-w-7xl mx-auto space-y-1.5">
           {mensaje && (
-            <p className="text-xs md:text-sm font-medium text-center">
+            <p className="text-xs md:text-sm font-medium text-center line-clamp-2">
               {mensaje}
             </p>
           )}
 
-          <div className="flex items-center gap-2">
-            <div className="shrink-0 min-w-16">
+          <div className="grid grid-cols-[auto_auto_1fr] items-center gap-2">
+            <div className="min-w-14">
               <p className="text-[11px] text-slate-500 leading-none">Líneas</p>
               <p className="text-xl font-bold leading-tight">{totalLineas}</p>
             </div>
 
             <button
               onClick={limpiarPedido}
-              className="shrink-0 text-red-500 flex items-center gap-1 text-xs px-2"
+              className="text-red-500 flex items-center gap-1 text-xs px-2 py-2"
             >
               <Trash2 className="w-4 h-4" />
               Limpiar
@@ -1040,7 +1046,7 @@ export default function PedidoClientePage() {
             <button
               onClick={abrirPreview}
               disabled={enviando}
-              className="flex-1 bg-black text-white rounded-xl py-3 px-4 font-bold flex items-center justify-center gap-2 disabled:bg-slate-400"
+              className="bg-black text-white rounded-xl py-3 px-3 font-bold flex items-center justify-center gap-2 disabled:bg-slate-400"
             >
               <Send className="w-4 h-4" />
               Revisar pedido
@@ -1048,6 +1054,31 @@ export default function PedidoClientePage() {
           </div>
         </div>
       </div>
+
+      {avisoPedido && (
+        <div className="fixed inset-0 z-[1000] bg-black/60 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 space-y-5">
+            <div className="flex items-center gap-3">
+              <AlertCircle className="w-7 h-7 text-orange-500" />
+
+              <h2 className="text-2xl font-bold">
+                {avisoPedido.titulo}
+              </h2>
+            </div>
+
+            <div className="text-slate-700 whitespace-pre-wrap text-base leading-relaxed">
+              {avisoPedido.texto}
+            </div>
+
+            <button
+              onClick={() => setAvisoPedido(null)}
+              className="w-full bg-black text-white rounded-xl py-3 font-bold"
+            >
+              Aceptar y continuar
+            </button>
+          </div>
+        </div>
+      )}
 
       {mostrarAviso && mensajeAviso && (
         <div className="fixed inset-0 z-[1000] bg-black/60 flex items-center justify-center p-4">

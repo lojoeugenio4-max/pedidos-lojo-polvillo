@@ -325,13 +325,13 @@ export default function AdminPedidosPage() {
   const mostrarFaltan = filtro === "todos" || filtro === "faltan";
 
   const pedidosFiltrados = pedidos.filter(({ pedido, pendienteAntiguo }) => {
-    if (filtro === "todos") return true;
+    if (filtro === "todos") return !pedido.impreso;
     if (filtro === "faltan") return false;
     if (filtro === "sin_imprimir") return !pedido.impreso;
     if (filtro === "impresos") return Boolean(pedido.impreso);
-    if (filtro === "fuera_dia") return Boolean(pedido.fuera_de_dia);
-    if (filtro === "antiguos") return pendienteAntiguo;
-    return true;
+    if (filtro === "fuera_dia") return Boolean(pedido.fuera_de_dia) && !pedido.impreso;
+    if (filtro === "antiguos") return pendienteAntiguo && !pedido.impreso;
+    return !pedido.impreso;
   });
 
   function claseTarjeta(activo: boolean, base: string) {
@@ -388,7 +388,7 @@ export default function AdminPedidosPage() {
             onClick={() => setFiltro("todos")}
             className={claseTarjeta(filtro === "todos", "bg-slate-900 text-white")}
           >
-            <p className="text-sm text-slate-200">Ver</p>
+            <p className="text-sm text-slate-200">Pendiente</p>
             <p className="text-3xl font-bold">Todos</p>
           </button>
 
@@ -539,8 +539,7 @@ export default function AdminPedidosPage() {
               </h2>
 
               <p className="text-sm text-slate-500">
-                Mostrando: <strong>{pedidosFiltrados.length}</strong> de{" "}
-                <strong>{pedidos.length}</strong>. Cada fila es
+                Mostrando: <strong>{pedidosFiltrados.length}</strong> pedidos. Los impresos solo aparecen en el filtro Impresos. Cada fila es
                 un pedido real de Supabase.
               </p>
             </div>

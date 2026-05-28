@@ -649,7 +649,7 @@ export default function AdminPedidosPage() {
                             <CheckCircle className="w-3 h-3" />
                             Impreso
                           </span>
-                        ) : pedido.fuera_de_dia ? (
+                        ) : pedido.fuera_de_dia && pedido.fecha !== hoyISO ? (
                           <span className="inline-flex items-center gap-1 rounded-full bg-orange-100 text-orange-700 px-3 py-1 text-xs font-semibold">
                             <AlertCircle className="w-3 h-3" />
                             Fuera de día

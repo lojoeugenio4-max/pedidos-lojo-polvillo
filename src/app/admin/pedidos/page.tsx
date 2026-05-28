@@ -42,6 +42,14 @@ type PedidoFila = {
   pendienteAntiguo: boolean;
 };
 
+type Filtro =
+  | "todos"
+  | "faltan"
+  | "sin_imprimir"
+  | "impresos"
+  | "fuera_dia"
+  | "antiguos";
+
 function normalizarDia(valor: string | null) {
   return (valor || "")
     .toLowerCase()
@@ -54,6 +62,7 @@ function fechaISODesdeDate(fecha: Date) {
   const year = fecha.getFullYear();
   const month = String(fecha.getMonth() + 1).padStart(2, "0");
   const day = String(fecha.getDate()).padStart(2, "0");
+
   return `${year}-${month}-${day}`;
 }
 
@@ -85,7 +94,7 @@ function obtenerSemanaOperativa() {
   inicio.setDate(hoy.getDate() - diasDesdeSabado);
 
   const fin = new Date(inicio);
-  fin.setDate(inicio.getDate() + 6);
+  fin.setDate(inicio.getDate() + 13);
 
   return {
     inicioISO: fechaISODesdeDate(inicio),
@@ -115,7 +124,9 @@ function horaEspana(fecha: string) {
 
 function formatearTelefono(telefono: string | null) {
   const limpio = (telefono || "").replace(/\D/g, "");
+
   if (!limpio) return "-";
+
   return limpio.replace(/(.{3})/g, "$1.").replace(/\.$/, "");
 }
 
@@ -131,9 +142,7 @@ export default function AdminPedidosPage() {
   const [pedidos, setPedidos] = useState<PedidoFila[]>([]);
   const [cargando, setCargando] = useState(true);
   const [mensaje, setMensaje] = useState("");
-  const [filtro, setFiltro] = useState<
-    "todos" | "faltan" | "sin_imprimir" | "impresos" | "fuera_dia" | "antiguos"
-  >("todos");
+  const [filtro, setFiltro] = useState<Filtro>("todos");
 
   const hoyDia = diaHoyEspana();
   const hoyISO = fechaHoyISO();
@@ -159,15 +168,22 @@ export default function AdminPedidosPage() {
     const clientesLista = (clientesData || []) as Cliente[];
     setClientes(clientesLista);
 
-    const { data: pedidosSemanaData, error: pedidosSemanaError } = await supabase
+    /*
+      IMPORTANTE:
+      Traemos pedidos desde el inicio de la semana operativa hasta 13 días después.
+      Así se ven pedidos enviados fuera de su día, guardados para su día habitual futuro.
+      Ejemplo: cliente de jueves que manda martes => se guarda con fecha jueves y aparece aquí.
+    */
+    const { data: pedidosData, error: pedidosError } = await supabase
       .from("pedidos")
       .select("id, cliente_id, fecha, estado, impreso, creado_en, fuera_de_dia")
       .gte("fecha", semana.inicioISO)
+      .lte("fecha", semana.finISO)
       .order("fecha", { ascending: true })
       .order("creado_en", { ascending: false });
 
-    if (pedidosSemanaError) {
-      setMensaje(JSON.stringify(pedidosSemanaError));
+    if (pedidosError) {
+      setMensaje(JSON.stringify(pedidosError));
       setCargando(false);
       return;
     }
@@ -187,7 +203,7 @@ export default function AdminPedidosPage() {
       return;
     }
 
-    const pedidosSemana = ((pedidosSemanaData || []) as Pedido[]).filter(
+    const pedidosRango = ((pedidosData || []) as Pedido[]).filter(
       (pedido) => pedido.estado !== "sustituido"
     );
 
@@ -196,7 +212,7 @@ export default function AdminPedidosPage() {
     );
 
     const filas: PedidoFila[] = [
-      ...pedidosSemana.map((pedido) => ({
+      ...pedidosRango.map((pedido) => ({
         pedido,
         cliente:
           clientesLista.find((c) => Number(c.id) === Number(pedido.cliente_id)) ||
@@ -213,15 +229,21 @@ export default function AdminPedidosPage() {
     ];
 
     filas.sort((a, b) => {
-      const nombreA = a.cliente?.nombre || "";
-      const nombreB = b.cliente?.nombre || "";
-
-      if (nombreA !== nombreB) return nombreA.localeCompare(nombreB, "es");
+      if (a.pedido.impreso !== b.pedido.impreso) {
+        return a.pedido.impreso ? 1 : -1;
+      }
 
       const fechaA = a.pedido.fecha || "";
       const fechaB = b.pedido.fecha || "";
+      if (fechaA !== fechaB) return fechaA.localeCompare(fechaB);
 
-      if (fechaA !== fechaB) return fechaB.localeCompare(fechaA);
+      const rutaA = a.cliente?.ruta || "";
+      const rutaB = b.cliente?.ruta || "";
+      if (rutaA !== rutaB) return rutaA.localeCompare(rutaB);
+
+      const nombreA = a.cliente?.nombre || "";
+      const nombreB = b.cliente?.nombre || "";
+      if (nombreA !== nombreB) return nombreA.localeCompare(nombreB, "es");
 
       return (b.pedido.creado_en || "").localeCompare(a.pedido.creado_en || "");
     });
@@ -307,22 +329,6 @@ export default function AdminPedidosPage() {
       !clientesConPedidoHoy.has(Number(cliente.id))
   );
 
-  const recibidosSinImprimir = pedidos.filter(
-    ({ pedido }) => !pedido.impreso
-  ).length;
-
-  const impresos = pedidos.filter(({ pedido }) => pedido.impreso).length;
-
-  const fueraDeDia = pedidos.filter(
-    ({ pedido }) => pedido.fuera_de_dia
-  ).length;
-
-  const pendientesAntiguos = pedidos.filter(
-    ({ pendienteAntiguo }) => pendienteAntiguo
-  ).length;
-
-  const mostrarFaltan = filtro === "todos" || filtro === "faltan";
-
   const pedidosFiltrados = pedidos.filter(({ pedido, pendienteAntiguo }) => {
     if (filtro === "todos") return !pedido.impreso;
     if (filtro === "faltan") return false;
@@ -332,6 +338,22 @@ export default function AdminPedidosPage() {
     if (filtro === "antiguos") return pendienteAntiguo && !pedido.impreso;
     return !pedido.impreso;
   });
+
+  const mostrarFaltan = filtro === "todos" || filtro === "faltan";
+
+  const recibidosSinImprimir = pedidos.filter(
+    ({ pedido }) => !pedido.impreso
+  ).length;
+
+  const impresos = pedidos.filter(({ pedido }) => pedido.impreso).length;
+
+  const fueraDeDia = pedidos.filter(
+    ({ pedido }) => pedido.fuera_de_dia && !pedido.impreso
+  ).length;
+
+  const pendientesAntiguos = pedidos.filter(
+    ({ pendienteAntiguo, pedido }) => pendienteAntiguo && !pedido.impreso
+  ).length;
 
   function claseTarjeta(activo: boolean, base: string) {
     return `${base} rounded-2xl p-4 shadow text-left transition ${
@@ -354,8 +376,8 @@ export default function AdminPedidosPage() {
             </p>
 
             <p className="text-slate-500 text-sm mt-1">
-              Pedidos desde: <strong>{fechaEspana(semana.inicioISO)}</strong>{" "}
-              · pendientes futuros incluidos
+              Pedidos desde <strong>{fechaEspana(semana.inicioISO)}</strong>{" "}
+              hasta <strong>{fechaEspana(semana.finISO)}</strong>
             </p>
           </div>
 
@@ -449,97 +471,93 @@ export default function AdminPedidosPage() {
         )}
 
         {mostrarFaltan && (
-<section className="bg-white rounded-2xl shadow overflow-hidden">
-          <div className="p-4 border-b">
-            <h2 className="text-xl font-bold">
-              Tiendas que faltan hoy
-            </h2>
-          </div>
+          <section className="bg-white rounded-2xl shadow overflow-hidden">
+            <div className="p-4 border-b">
+              <h2 className="text-xl font-bold">Tiendas que faltan hoy</h2>
+            </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-slate-50 text-slate-600">
-                <tr>
-                  <th className="text-left p-3">Tienda</th>
-                  <th className="text-left p-3">Teléfono</th>
-                  <th className="text-left p-3">Ruta</th>
-                  <th className="text-left p-3">Acción</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {!cargando && tiendasQueFaltan.length === 0 && (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-slate-50 text-slate-600">
                   <tr>
-                    <td colSpan={4} className="p-6 text-center text-slate-500">
-                      No faltan tiendas de hoy.
-                    </td>
+                    <th className="text-left p-3">Tienda</th>
+                    <th className="text-left p-3">Teléfono</th>
+                    <th className="text-left p-3">Ruta</th>
+                    <th className="text-left p-3">Acción</th>
                   </tr>
-                )}
+                </thead>
 
-                {tiendasQueFaltan.map((cliente) => {
-                  const telefonoFormateado = formatearTelefono(cliente.telefono);
-                  const telefonoLimpio = (cliente.telefono || "").replace(
-                    /\D/g,
-                    ""
-                  );
-
-                  return (
-                    <tr key={cliente.id} className="border-t bg-red-50">
-                      <td className="p-3">
-                        <p className="font-bold text-base">{cliente.nombre}</p>
-                        <p className="text-xs text-slate-500">
-                          Código {cliente.codigo || "-"}
-                        </p>
-                      </td>
-
-                      <td className="p-3">
-                        {telefonoLimpio ? (
-                          <a
-                            href={`tel:${telefonoLimpio}`}
-                            className="inline-flex items-center gap-2 font-bold text-base"
-                          >
-                            <Phone className="w-4 h-4" />
-                            {telefonoFormateado}
-                          </a>
-                        ) : (
-                          <span className="text-slate-400">Sin teléfono</span>
-                        )}
-                      </td>
-
-                      <td className="p-3">{cliente.ruta || "-"}</td>
-
-                      <td className="p-3">
-                        {telefonoLimpio ? (
-                          <a
-                            href={`tel:${telefonoLimpio}`}
-                            className="rounded-lg bg-red-600 text-white px-3 py-2 inline-flex items-center gap-1"
-                          >
-                            <Phone className="w-4 h-4" />
-                            Llamar
-                          </a>
-                        ) : (
-                          <span className="text-slate-400">Sin teléfono</span>
-                        )}
+                <tbody>
+                  {!cargando && tiendasQueFaltan.length === 0 && (
+                    <tr>
+                      <td colSpan={4} className="p-6 text-center text-slate-500">
+                        No faltan tiendas de hoy.
                       </td>
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </section>
+                  )}
+
+                  {tiendasQueFaltan.map((cliente) => {
+                    const telefonoFormateado = formatearTelefono(cliente.telefono);
+                    const telefonoLimpio = (cliente.telefono || "").replace(
+                      /\D/g,
+                      ""
+                    );
+
+                    return (
+                      <tr key={cliente.id} className="border-t bg-red-50">
+                        <td className="p-3">
+                          <p className="font-bold text-base">{cliente.nombre}</p>
+                          <p className="text-xs text-slate-500">
+                            Código {cliente.codigo || "-"}
+                          </p>
+                        </td>
+
+                        <td className="p-3">
+                          {telefonoLimpio ? (
+                            <a
+                              href={`tel:${telefonoLimpio}`}
+                              className="inline-flex items-center gap-2 font-bold text-base"
+                            >
+                              <Phone className="w-4 h-4" />
+                              {telefonoFormateado}
+                            </a>
+                          ) : (
+                            <span className="text-slate-400">Sin teléfono</span>
+                          )}
+                        </td>
+
+                        <td className="p-3">{cliente.ruta || "-"}</td>
+
+                        <td className="p-3">
+                          {telefonoLimpio ? (
+                            <a
+                              href={`tel:${telefonoLimpio}`}
+                              className="rounded-lg bg-red-600 text-white px-3 py-2 inline-flex items-center gap-1"
+                            >
+                              <Phone className="w-4 h-4" />
+                              Llamar
+                            </a>
+                          ) : (
+                            <span className="text-slate-400">Sin teléfono</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </section>
         )}
 
-<section className="bg-white rounded-2xl shadow overflow-hidden">
+        <section className="bg-white rounded-2xl shadow overflow-hidden">
           <div className="p-4 border-b flex flex-col md:flex-row md:items-center md:justify-between gap-2">
             <div>
-              <h2 className="text-xl font-bold">
-                Pedidos recibidos
-              </h2>
+              <h2 className="text-xl font-bold">Pedidos recibidos</h2>
 
               <p className="text-sm text-slate-500">
-                Mostrando: <strong>{pedidosFiltrados.length}</strong> pedidos. Los impresos solo aparecen en el filtro Impresos. Cada fila es
-                un pedido real de Supabase.
+                Mostrando <strong>{pedidosFiltrados.length}</strong> pedidos.
+                Los impresos solo aparecen en el filtro Impresos.
               </p>
             </div>
 
@@ -563,7 +581,7 @@ export default function AdminPedidosPage() {
                 {!cargando && pedidosFiltrados.length === 0 && (
                   <tr>
                     <td colSpan={6} className="p-6 text-center text-slate-500">
-                      No hay pedidos recibidos.
+                      No hay pedidos en este filtro.
                     </td>
                   </tr>
                 )}

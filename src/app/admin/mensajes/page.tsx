@@ -91,6 +91,14 @@ export default function AdminMensajesPage() {
   const [fechaInicio, setFechaInicio] = useState(fechaHoyISO());
   const [fechaFin, setFechaFin] = useState("");
   const [mostrarUnaSolaVez, setMostrarUnaSolaVez] = useState(false);
+  const [editandoId, setEditandoId] = useState<string | null>(null);
+  const [edicion, setEdicion] = useState({
+    mensaje: "",
+    fecha_inicio: "",
+    fecha_fin: "",
+    mostrar_una_sola_vez: false,
+    activo: true,
+  });
 
   async function cargarDatos() {
     setCargando(true);
@@ -223,6 +231,106 @@ export default function AdminMensajesPage() {
 
     await cargarDatos();
     setMensajeOk("Aviso desactivado.");
+  }
+
+  function empezarEdicion(m: MensajeCliente) {
+    setEditandoId(m.id);
+    setEdicion({
+      mensaje: m.mensaje || "",
+      fecha_inicio: m.fecha_inicio || fechaHoyISO(),
+      fecha_fin: m.fecha_fin || "",
+      mostrar_una_sola_vez: Boolean(m.mostrar_una_sola_vez),
+      activo: Boolean(m.activo),
+    });
+  }
+
+  function cancelarEdicion() {
+    setEditandoId(null);
+    setEdicion({
+      mensaje: "",
+      fecha_inicio: "",
+      fecha_fin: "",
+      mostrar_una_sola_vez: false,
+      activo: true,
+    });
+  }
+
+  async function guardarEdicion(id: string) {
+    setMensajeError("");
+    setMensajeOk("");
+
+    if (!edicion.mensaje.trim()) {
+      setMensajeError("El mensaje no puede estar vacío.");
+      return;
+    }
+
+    const { error } = await supabase
+      .from("mensajes_clientes")
+      .update({
+        mensaje: edicion.mensaje.trim(),
+        fecha_inicio: edicion.fecha_inicio || fechaHoyISO(),
+        fecha_fin: edicion.fecha_fin || null,
+        mostrar_una_sola_vez: edicion.mostrar_una_sola_vez,
+        activo: edicion.activo,
+      })
+      .eq("id", id);
+
+    if (error) {
+      setMensajeError(JSON.stringify(error));
+      return;
+    }
+
+    cancelarEdicion();
+    await cargarDatos();
+    setMensajeOk("Aviso modificado correctamente.");
+  }
+
+  async function cambiarActivoMensaje(m: MensajeCliente) {
+    const nuevoEstado = !m.activo;
+
+    const confirmar = window.confirm(
+      nuevoEstado
+        ? "¿Quieres reactivar este aviso?"
+        : "¿Quieres desactivar este aviso?"
+    );
+
+    if (!confirmar) return;
+
+    const { error } = await supabase
+      .from("mensajes_clientes")
+      .update({ activo: nuevoEstado })
+      .eq("id", m.id);
+
+    if (error) {
+      setMensajeError(JSON.stringify(error));
+      return;
+    }
+
+    await cargarDatos();
+    setMensajeOk(nuevoEstado ? "Aviso reactivado." : "Aviso desactivado.");
+  }
+
+  async function borrarMensaje(id: string) {
+    const confirmar = window.confirm(
+      "¿Seguro que quieres borrar definitivamente este aviso? Esta acción no se puede deshacer."
+    );
+
+    if (!confirmar) return;
+
+    const { error } = await supabase
+      .from("mensajes_clientes")
+      .delete()
+      .eq("id", id);
+
+    if (error) {
+      setMensajeError(JSON.stringify(error));
+      return;
+    }
+
+    if (editandoId === id) cancelarEdicion();
+
+    await cargarDatos();
+    setMensajeOk("Aviso borrado definitivamente.");
   }
 
   function destinoMensaje(m: MensajeCliente) {
@@ -467,54 +575,178 @@ export default function AdminMensajesPage() {
                   </tr>
                 )}
 
-                {mensajes.map((m) => (
-                  <tr key={m.id} className="border-t">
-                    <td className="p-3 font-semibold">{destinoMensaje(m)}</td>
+                {mensajes.map((m) => {
+                  const editando = editandoId === m.id;
 
-                    <td className="p-3 max-w-xl">
-                      <p className="line-clamp-3">{m.mensaje}</p>
-                    </td>
+                  return (
+                    <tr key={m.id} className="border-t align-top">
+                      <td className="p-3 font-semibold">
+                        {destinoMensaje(m)}
 
-                    <td className="p-3 text-sm">
-                      <p>
-                        Desde: <strong>{fechaEspana(m.fecha_inicio)}</strong>
-                      </p>
-                      <p>
-                        Hasta: <strong>{fechaEspana(m.fecha_fin)}</strong>
-                      </p>
-                      {m.mostrar_una_sola_vez && (
-                        <p className="text-blue-700 font-semibold">
-                          Una sola vez
+                        <p className="text-xs text-slate-500 mt-1">
+                          Ref. {m.id.slice(0, 8)}
                         </p>
-                      )}
-                    </td>
+                      </td>
 
-                    <td className="p-3">
-                      {m.activo ? (
-                        <span className="rounded-full bg-green-100 text-green-700 px-3 py-1 text-xs font-semibold">
-                          Activo
-                        </span>
-                      ) : (
-                        <span className="rounded-full bg-slate-100 text-slate-500 px-3 py-1 text-xs font-semibold">
-                          Desactivado
-                        </span>
-                      )}
-                    </td>
+                      <td className="p-3 max-w-xl">
+                        {editando ? (
+                          <textarea
+                            value={edicion.mensaje}
+                            onChange={(e) =>
+                              setEdicion({
+                                ...edicion,
+                                mensaje: e.target.value,
+                              })
+                            }
+                            rows={4}
+                            className="w-full border rounded-xl p-3"
+                          />
+                        ) : (
+                          <p className="line-clamp-4 whitespace-pre-wrap">
+                            {m.mensaje}
+                          </p>
+                        )}
+                      </td>
 
-                    <td className="p-3">
-                      {m.activo ? (
-                        <button
-                          onClick={() => desactivarMensaje(m.id)}
-                          className="rounded-lg border px-3 py-2 bg-white"
-                        >
-                          Desactivar
-                        </button>
-                      ) : (
-                        <span className="text-slate-400">Sin acciones</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
+                      <td className="p-3 text-sm min-w-52">
+                        {editando ? (
+                          <div className="space-y-2">
+                            <div>
+                              <label className="block text-xs text-slate-500 mb-1">
+                                Inicio
+                              </label>
+                              <input
+                                type="date"
+                                value={edicion.fecha_inicio}
+                                onChange={(e) =>
+                                  setEdicion({
+                                    ...edicion,
+                                    fecha_inicio: e.target.value,
+                                  })
+                                }
+                                className="w-full border rounded-lg px-3 py-2"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="block text-xs text-slate-500 mb-1">
+                                Fin
+                              </label>
+                              <input
+                                type="date"
+                                value={edicion.fecha_fin}
+                                onChange={(e) =>
+                                  setEdicion({
+                                    ...edicion,
+                                    fecha_fin: e.target.value,
+                                  })
+                                }
+                                className="w-full border rounded-lg px-3 py-2"
+                              />
+                            </div>
+
+                            <label className="flex items-center gap-2 text-xs font-semibold">
+                              <input
+                                type="checkbox"
+                                checked={edicion.mostrar_una_sola_vez}
+                                onChange={(e) =>
+                                  setEdicion({
+                                    ...edicion,
+                                    mostrar_una_sola_vez: e.target.checked,
+                                  })
+                                }
+                              />
+                              Una sola vez
+                            </label>
+                          </div>
+                        ) : (
+                          <>
+                            <p>
+                              Desde: <strong>{fechaEspana(m.fecha_inicio)}</strong>
+                            </p>
+                            <p>
+                              Hasta: <strong>{fechaEspana(m.fecha_fin)}</strong>
+                            </p>
+                            {m.mostrar_una_sola_vez && (
+                              <p className="text-blue-700 font-semibold">
+                                Una sola vez
+                              </p>
+                            )}
+                          </>
+                        )}
+                      </td>
+
+                      <td className="p-3">
+                        {editando ? (
+                          <label className="flex items-center gap-2 text-sm font-semibold">
+                            <input
+                              type="checkbox"
+                              checked={edicion.activo}
+                              onChange={(e) =>
+                                setEdicion({
+                                  ...edicion,
+                                  activo: e.target.checked,
+                                })
+                              }
+                            />
+                            Activo
+                          </label>
+                        ) : m.activo ? (
+                          <span className="rounded-full bg-green-100 text-green-700 px-3 py-1 text-xs font-semibold">
+                            Activo
+                          </span>
+                        ) : (
+                          <span className="rounded-full bg-slate-100 text-slate-500 px-3 py-1 text-xs font-semibold">
+                            Desactivado
+                          </span>
+                        )}
+                      </td>
+
+                      <td className="p-3">
+                        {editando ? (
+                          <div className="flex gap-2 flex-wrap">
+                            <button
+                              onClick={() => guardarEdicion(m.id)}
+                              className="rounded-lg bg-black text-white px-3 py-2"
+                            >
+                              Guardar
+                            </button>
+
+                            <button
+                              onClick={cancelarEdicion}
+                              className="rounded-lg border px-3 py-2 bg-white"
+                            >
+                              Cancelar
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex gap-2 flex-wrap">
+                            <button
+                              onClick={() => empezarEdicion(m)}
+                              className="rounded-lg border px-3 py-2 bg-white"
+                            >
+                              Editar
+                            </button>
+
+                            <button
+                              onClick={() => cambiarActivoMensaje(m)}
+                              className="rounded-lg border px-3 py-2 bg-white"
+                            >
+                              {m.activo ? "Desactivar" : "Reactivar"}
+                            </button>
+
+                            <button
+                              onClick={() => borrarMensaje(m.id)}
+                              className="rounded-lg border border-red-200 bg-red-50 text-red-700 px-3 py-2"
+                            >
+                              Borrar
+                            </button>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

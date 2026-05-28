@@ -8,7 +8,6 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Lojo · Pedido Online",
     description: "Realiza tu pedido de forma rápida y sencilla",
-    url: "https://app-pedidos-clientes-2.vercel.app",
     siteName: "Lojo · Pedido Online",
     images: [
       {

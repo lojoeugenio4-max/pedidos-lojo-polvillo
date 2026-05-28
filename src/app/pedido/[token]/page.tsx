@@ -661,7 +661,7 @@ export default function PedidoClientePage() {
 
   if (mostrarPreview) {
     return (
-      <main className="min-h-screen bg-slate-100 p-4 md:p-6 pb-80">
+      <main className="min-h-screen bg-slate-100 p-2 md:p-6 pb-32">
         <div className="max-w-4xl mx-auto space-y-6">
           <header className="bg-white rounded-2xl shadow p-3 md:p-6">
             <h1 className="text-3xl md:text-4xl font-bold">
@@ -769,32 +769,27 @@ export default function PedidoClientePage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-100 p-4 md:p-6 pb-80">
-      <div className="max-w-7xl mx-auto space-y-6">
-        <header className="bg-white rounded-2xl shadow p-3 md:p-6">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-              <h1 className="text-2xl md:text-4xl font-bold">
+    <main className="min-h-screen bg-slate-100 p-2 md:p-6 pb-32">
+      <div className="max-w-7xl mx-auto space-y-2 md:space-y-6">
+        <header className="bg-white rounded-xl shadow px-3 py-2 md:p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <h1 className="text-lg md:text-3xl font-bold leading-tight truncate">
                 Polvillo · Pedido
               </h1>
 
-              <p className="text-slate-600 mt-1">
-                Pedido de <strong>{cliente.nombre}</strong>
+              <p className="text-xs md:text-sm text-slate-600 truncate">
+                <strong>{cliente.nombre}</strong>
+                {cliente.dia_pedido ? ` · ${cliente.dia_pedido}` : ""}
               </p>
-
-              {cliente.dia_pedido && (
-                <p className="text-sm text-slate-500 mt-1">
-                  Día habitual de pedido: {cliente.dia_pedido}
-                </p>
-              )}
             </div>
 
-            <div className="bg-slate-100 rounded-2xl p-3 flex items-center gap-3">
-              <ShoppingCart className="w-6 h-6" />
+            <div className="bg-slate-100 rounded-xl px-3 py-2 flex items-center gap-2 shrink-0">
+              <ShoppingCart className="w-5 h-5" />
 
               <div>
-                <p className="text-sm text-slate-500">Pedido actual</p>
-                <p className="text-2xl font-bold">{totalLineas} líneas</p>
+                <p className="text-xs text-slate-500 leading-none">Líneas</p>
+                <p className="text-lg font-bold leading-tight">{totalLineas}</p>
               </div>
             </div>
           </div>
@@ -802,22 +797,22 @@ export default function PedidoClientePage() {
 
         <div
           id="cabecera-filtros"
-          className="sticky top-0 z-40 bg-slate-100 pt-1 pb-2"
+          className="sticky top-0 z-40 bg-slate-100 pt-1 pb-1"
         >
-          <div className="bg-white rounded-2xl p-3 shadow space-y-2">
-            <div className="flex flex-col md:flex-row gap-3">
+          <div className="bg-white rounded-xl p-2 shadow space-y-1.5">
+            <div className="flex flex-col md:flex-row gap-2">
               <div className="relative flex-1">
-                <Search className="absolute left-3 top-3 w-5 h-5 text-slate-400" />
+                <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
 
                 <input
                   value={busqueda}
                   onChange={(e) => setBusqueda(e.target.value)}
                   placeholder="Buscar..."
-                  className="w-full border rounded-xl py-2.5 pl-10 pr-4"
+                  className="w-full border rounded-lg py-2 pl-9 pr-3 text-sm"
                 />
               </div>
 
-              <div className="flex gap-2 flex-wrap">
+              <div className="flex gap-1.5 flex-wrap">
                 {departamentos.map((d) => (
                   <button
                     key={d}
@@ -825,7 +820,7 @@ export default function PedidoClientePage() {
                     setDepartamento(d);
                     setCategoria("Todas");
                   }}
-                    className={`px-3 py-2 rounded-xl border text-sm font-semibold ${
+                    className={`px-3 py-1.5 rounded-lg border text-xs font-bold ${
                       departamento === d ? "bg-black text-white" : "bg-white"
                     }`}
                   >
@@ -836,7 +831,7 @@ export default function PedidoClientePage() {
             </div>
 
             <div>
-              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-1.5">
+              <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-7 lg:grid-cols-10 gap-1">
                 {categoriasDisponibles.map((cat) => (
                   <button
                     key={cat}
@@ -845,7 +840,7 @@ export default function PedidoClientePage() {
                       setUltimoArticulo(null);
                       setScrollPendiente(true);
                     }}
-                    className={`h-9 rounded-lg border text-xs font-bold text-center px-2 transition ${
+                    className={`h-8 rounded-md border text-[11px] font-bold text-center px-1.5 transition ${
                       categoria === cat
                         ? "bg-slate-900 text-white border-slate-900 shadow"
                         : "bg-white hover:bg-slate-50"
@@ -861,9 +856,9 @@ export default function PedidoClientePage() {
 
 
 
-        <div id="inicio-articulos" className="scroll-mt-52" />
+        <div id="inicio-articulos" className="scroll-mt-40" />
 
-        <section className="space-y-2 pb-40 md:pb-32">
+        <section className="space-y-1.5 pb-24 md:pb-28">
           {productosFiltrados.map((p) => {
             const cajas = cantidadActual(p, "cajas");
             const unidades = cantidadActual(p, "unidades");
@@ -873,19 +868,19 @@ export default function PedidoClientePage() {
                 id={`producto-${p.codigo}`}
                 data-producto-visible="true"
                 key={`${p.codigo}-${p.nombre}`}
-                className={`rounded-xl p-3 shadow transition-all ${
+                className={`rounded-lg p-2 shadow transition-all ${
                   ultimoArticulo === p.codigo
                     ? "bg-blue-50 ring-2 ring-blue-400"
                     : "bg-white"
                 }`}
               >
-                <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-4 md:items-center">
-                  <div className="flex gap-3 items-start">
+                <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-2 md:items-center">
+                  <div className="flex gap-2 items-start">
                     {p.imagen_url && (
                       <button
                         type="button"
                         onClick={() => setImagenAmpliada(p.imagen_url)}
-                        className="w-16 h-16 md:w-20 md:h-20 rounded-xl border bg-white shrink-0 overflow-hidden flex items-center justify-center"
+                        className="w-12 h-12 md:w-16 md:h-16 rounded-lg border bg-white shrink-0 overflow-hidden flex items-center justify-center"
                         title="Ampliar imagen"
                       >
                         <img
@@ -898,22 +893,22 @@ export default function PedidoClientePage() {
                     )}
 
                     <div>
-                      <p className="text-xs text-slate-500">
+                      <p className="text-[11px] text-slate-500 leading-tight">
                         Código {p.codigo}
                       </p>
 
-                      <h2 className="font-bold text-sm md:text-base mt-0.5 leading-tight">
+                      <h2 className="font-bold text-sm md:text-base leading-tight">
                         {p.nombre}
                       </h2>
 
-                      <p className="text-xs text-slate-500 mt-0.5">
-                        {p.departamento} · {p.categoria}
+                      <p className="text-[11px] text-slate-500 leading-tight">
+                        {p.categoria}
                       </p>
                     </div>
                   </div>
 
                   {p.departamento === "Bebidas" ? (
-                    <div className="w-full md:w-36">
+                    <div className="w-full md:w-32">
                       <label className="block text-xs font-semibold text-slate-500 mb-1">
                         CAJAS
                       </label>
@@ -926,14 +921,14 @@ export default function PedidoClientePage() {
                         onChange={(e) =>
                           actualizarCantidad(p, "cajas", e.target.value)
                         }
-                        className="w-full border rounded-xl px-3 py-1.5 text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        className="w-full border rounded-lg px-3 py-1 text-center text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         placeholder="0"
                       />
                     </div>
                   ) : (
-                    <div className="grid grid-cols-2 gap-3 w-full md:w-72">
+                    <div className="grid grid-cols-2 gap-2 w-full md:w-64">
                       <div>
-                        <label className="block text-xs font-semibold text-slate-500 mb-0.5">
+                        <label className="block text-[11px] font-semibold text-slate-500 mb-0.5">
                           CAJAS
                         </label>
 
@@ -945,13 +940,13 @@ export default function PedidoClientePage() {
                           onChange={(e) =>
                             actualizarCantidad(p, "cajas", e.target.value)
                           }
-                          className="w-full border rounded-xl px-3 py-1.5 text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          className="w-full border rounded-lg px-3 py-1 text-center text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                           placeholder="0"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-xs font-semibold text-slate-500 mb-0.5">
+                        <label className="block text-[11px] font-semibold text-slate-500 mb-0.5">
                           UNIDADES
                         </label>
 
@@ -963,7 +958,7 @@ export default function PedidoClientePage() {
                           onChange={(e) =>
                             actualizarCantidad(p, "unidades", e.target.value)
                           }
-                          className="w-full border rounded-xl px-3 py-1.5 text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          className="w-full border rounded-lg px-3 py-1 text-center text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                           placeholder="0"
                         />
                       </div>
@@ -975,29 +970,27 @@ export default function PedidoClientePage() {
           })}
         </section>
 
-        <div className="h-40 md:h-32" aria-hidden="true" />
+        <div className="h-24 md:h-28" aria-hidden="true" />
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-2xl p-3 md:p-4 z-50">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row gap-3 md:items-center md:justify-between">
-          <div className="flex items-center justify-between md:justify-start gap-4">
-            <div>
-              <p className="text-sm text-slate-500">Pedido actual</p>
-              <p className="font-bold">{totalLineas} líneas</p>
-            </div>
-
-            <button
-              onClick={limpiarPedido}
-              className="text-red-500 flex items-center gap-1 text-sm"
-            >
-              <Trash2 className="w-4 h-4" />
-              Limpiar
-            </button>
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-2xl p-2 md:p-3 z-50">
+        <div className="max-w-7xl mx-auto flex items-center gap-2">
+          <div className="shrink-0 min-w-16">
+            <p className="text-[11px] text-slate-500 leading-none">Líneas</p>
+            <p className="text-lg font-bold leading-tight">{totalLineas}</p>
           </div>
 
-          <div className="flex-1">
+          <button
+            onClick={limpiarPedido}
+            className="shrink-0 text-red-500 flex items-center gap-1 text-xs px-2"
+          >
+            <Trash2 className="w-4 h-4" />
+            Limpiar
+          </button>
+
+          <div className="flex-1 min-w-0">
             {mensaje && (
-              <p className="mb-2 text-sm font-medium text-center md:text-right">
+              <p className="mb-1 text-xs font-medium text-center truncate">
                 {mensaje}
               </p>
             )}
@@ -1005,7 +998,7 @@ export default function PedidoClientePage() {
             <button
               onClick={abrirPreview}
               disabled={enviando}
-              className="w-full md:w-auto md:min-w-64 bg-black text-white rounded-xl py-3 px-6 font-bold flex items-center justify-center gap-2 disabled:bg-slate-400 md:ml-auto"
+              className="w-full bg-black text-white rounded-lg py-2.5 px-3 font-bold flex items-center justify-center gap-2 disabled:bg-slate-400"
             >
               <Send className="w-4 h-4" />
               Revisar pedido

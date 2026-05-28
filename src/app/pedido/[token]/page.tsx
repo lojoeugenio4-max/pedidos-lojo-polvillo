@@ -109,14 +109,12 @@ const indiceDiasSemana: Record<string, number> = {
 };
 
 function fechaPedidoObjetivoISO(diaPedido: string | null) {
-  const hoy = new Date();
-
   const partes = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Europe/Madrid",
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
-  }).formatToParts(hoy);
+  }).formatToParts(new Date());
 
   const year = Number(partes.find((p) => p.type === "year")?.value);
   const month = Number(partes.find((p) => p.type === "month")?.value);
@@ -126,16 +124,12 @@ function fechaPedidoObjetivoISO(diaPedido: string | null) {
   const diaNormalizado = normalizarTexto(diaPedido);
   const diaObjetivo = indiceDiasSemana[diaNormalizado];
 
-  if (diaObjetivo === undefined) {
-    return fechaHoyISO();
-  }
+  if (diaObjetivo === undefined) return fechaHoyISO();
 
   const diaActual = fechaMadrid.getDay();
   let diasHastaObjetivo = diaObjetivo - diaActual;
 
-  if (diasHastaObjetivo < 0) {
-    diasHastaObjetivo += 7;
-  }
+  if (diasHastaObjetivo < 0) diasHastaObjetivo += 7;
 
   const fechaObjetivo = new Date(fechaMadrid);
   fechaObjetivo.setDate(fechaMadrid.getDate() + diasHastaObjetivo);
@@ -709,7 +703,7 @@ export default function PedidoClientePage() {
 
   if (mostrarPreview) {
     return (
-      <main className="min-h-screen bg-slate-100 p-2 md:p-6 pb-32">
+      <main className="min-h-screen bg-slate-100 p-3 md:p-6 pb-44">
         <div className="max-w-4xl mx-auto space-y-6">
           <header className="bg-white rounded-2xl shadow p-3 md:p-6">
             <h1 className="text-3xl md:text-4xl font-bold">
@@ -817,8 +811,8 @@ export default function PedidoClientePage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-100 p-2 md:p-6 pb-32">
-      <div className="max-w-7xl mx-auto space-y-2 md:space-y-6">
+    <main className="min-h-screen bg-slate-100 p-3 md:p-6 pb-44">
+      <div className="max-w-7xl mx-auto space-y-3 md:space-y-6">
         <header className="bg-white rounded-xl shadow px-3 py-2 md:p-4">
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
@@ -906,7 +900,7 @@ export default function PedidoClientePage() {
 
         <div id="inicio-articulos" className="scroll-mt-40" />
 
-        <section className="space-y-1.5 pb-24 md:pb-28">
+        <section className="space-y-1.5 pb-36 md:pb-32">
           {productosFiltrados.map((p) => {
             const cajas = cantidadActual(p, "cajas");
             const unidades = cantidadActual(p, "unidades");
@@ -1018,35 +1012,35 @@ export default function PedidoClientePage() {
           })}
         </section>
 
-        <div className="h-24 md:h-28" aria-hidden="true" />
+        <div className="h-36 md:h-32" aria-hidden="true" />
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-2xl p-2 md:p-3 z-50">
-        <div className="max-w-7xl mx-auto flex items-center gap-2">
-          <div className="shrink-0 min-w-16">
-            <p className="text-[11px] text-slate-500 leading-none">Líneas</p>
-            <p className="text-lg font-bold leading-tight">{totalLineas}</p>
-          </div>
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-2xl p-3 md:p-4 z-50">
+        <div className="max-w-7xl mx-auto flex flex-col gap-2">
+          {mensaje && (
+            <p className="text-xs md:text-sm font-medium text-center">
+              {mensaje}
+            </p>
+          )}
 
-          <button
-            onClick={limpiarPedido}
-            className="shrink-0 text-red-500 flex items-center gap-1 text-xs px-2"
-          >
-            <Trash2 className="w-4 h-4" />
-            Limpiar
-          </button>
+          <div className="flex items-center gap-2">
+            <div className="shrink-0 min-w-16">
+              <p className="text-[11px] text-slate-500 leading-none">Líneas</p>
+              <p className="text-xl font-bold leading-tight">{totalLineas}</p>
+            </div>
 
-          <div className="flex-1 min-w-0">
-            {mensaje && (
-              <p className="mb-1 text-xs font-medium text-center truncate">
-                {mensaje}
-              </p>
-            )}
+            <button
+              onClick={limpiarPedido}
+              className="shrink-0 text-red-500 flex items-center gap-1 text-xs px-2"
+            >
+              <Trash2 className="w-4 h-4" />
+              Limpiar
+            </button>
 
             <button
               onClick={abrirPreview}
               disabled={enviando}
-              className="w-full bg-black text-white rounded-lg py-2.5 px-3 font-bold flex items-center justify-center gap-2 disabled:bg-slate-400"
+              className="flex-1 bg-black text-white rounded-xl py-3 px-4 font-bold flex items-center justify-center gap-2 disabled:bg-slate-400"
             >
               <Send className="w-4 h-4" />
               Revisar pedido

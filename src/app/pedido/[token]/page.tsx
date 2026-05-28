@@ -98,6 +98,55 @@ function fechaHoyISO() {
   return `${year}-${month}-${day}`;
 }
 
+const indiceDiasSemana: Record<string, number> = {
+  domingo: 0,
+  lunes: 1,
+  martes: 2,
+  miercoles: 3,
+  jueves: 4,
+  viernes: 5,
+  sabado: 6,
+};
+
+function fechaPedidoObjetivoISO(diaPedido: string | null) {
+  const hoy = new Date();
+
+  const partes = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Madrid",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(hoy);
+
+  const year = Number(partes.find((p) => p.type === "year")?.value);
+  const month = Number(partes.find((p) => p.type === "month")?.value);
+  const day = Number(partes.find((p) => p.type === "day")?.value);
+
+  const fechaMadrid = new Date(year, month - 1, day);
+  const diaNormalizado = normalizarTexto(diaPedido);
+  const diaObjetivo = indiceDiasSemana[diaNormalizado];
+
+  if (diaObjetivo === undefined) {
+    return fechaHoyISO();
+  }
+
+  const diaActual = fechaMadrid.getDay();
+  let diasHastaObjetivo = diaObjetivo - diaActual;
+
+  if (diasHastaObjetivo < 0) {
+    diasHastaObjetivo += 7;
+  }
+
+  const fechaObjetivo = new Date(fechaMadrid);
+  fechaObjetivo.setDate(fechaMadrid.getDate() + diasHastaObjetivo);
+
+  const objetivoYear = fechaObjetivo.getFullYear();
+  const objetivoMonth = String(fechaObjetivo.getMonth() + 1).padStart(2, "0");
+  const objetivoDay = String(fechaObjetivo.getDate()).padStart(2, "0");
+
+  return `${objetivoYear}-${objetivoMonth}-${objetivoDay}`;
+}
+
 function irAlPrimerArticulo() {
   window.setTimeout(() => {
     const primerArticulo = document.querySelector(
@@ -329,7 +378,7 @@ export default function PedidoClientePage() {
     clienteId: number,
     productosBase: Producto[]
   ) {
-    const fechaHoy = fechaHoyISO();
+    const fechaHoy = fechaPedidoObjetivoISO(cliente?.dia_pedido || null);
 
     const { data: pedidosNoImpresosData, error: noImpresosError } =
       await supabase
@@ -580,9 +629,8 @@ export default function PedidoClientePage() {
     try {
       setEnviando(true);
 
-      const diaHoy = diaHoyEspana();
-      const diaCliente = normalizarTexto(cliente.dia_pedido);
-      const fueraDeDia = Boolean(diaCliente) && diaCliente !== diaHoy;
+      const fechaObjetivoPedido = fechaPedidoObjetivoISO(cliente.dia_pedido);
+      const fueraDeDia = false;
 
       const lineas = lineasPedido.map((item) => ({
         codigo_articulo: item.codigo,
@@ -594,18 +642,18 @@ export default function PedidoClientePage() {
 
       const { error } = await supabase.rpc("guardar_pedido_cliente", {
         p_cliente_id: cliente.id,
-        p_fecha: fechaHoyISO(),
-        p_estado: fueraDeDia ? "fuera_de_dia" : "recibido",
-        p_fuera_de_dia: fueraDeDia,
+        p_fecha: fechaObjetivoPedido,
+        p_estado: "recibido",
+        p_fuera_de_dia: false,
         p_lineas: lineas,
       });
 
       if (error) throw error;
 
       setMensaje(
-        fueraDeDia
-          ? "Pedido enviado correctamente. Aviso: fuera del día habitual."
-          : "Pedido enviado correctamente."
+        fechaObjetivoPedido === fechaHoyISO()
+          ? "Pedido enviado correctamente."
+          : `Pedido enviado correctamente para el día ${fechaObjetivoPedido}.`
       );
 
       setPedido({});

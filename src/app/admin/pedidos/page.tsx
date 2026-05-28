@@ -163,8 +163,7 @@ export default function AdminPedidosPage() {
       .from("pedidos")
       .select("id, cliente_id, fecha, estado, impreso, creado_en, fuera_de_dia")
       .gte("fecha", semana.inicioISO)
-      .lte("fecha", semana.finISO)
-      .order("fecha", { ascending: false })
+      .order("fecha", { ascending: true })
       .order("creado_en", { ascending: false });
 
     if (pedidosSemanaError) {
@@ -355,8 +354,8 @@ export default function AdminPedidosPage() {
             </p>
 
             <p className="text-slate-500 text-sm mt-1">
-              Semana operativa: <strong>{fechaEspana(semana.inicioISO)}</strong>{" "}
-              a <strong>{fechaEspana(semana.finISO)}</strong>
+              Pedidos desde: <strong>{fechaEspana(semana.inicioISO)}</strong>{" "}
+              · pendientes futuros incluidos
             </p>
           </div>
 

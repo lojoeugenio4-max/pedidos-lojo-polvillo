@@ -517,14 +517,12 @@ export default function PedidoClientePage() {
 
         return coincideCategoria && coincideBusqueda;
       })
-      .sort((a, b) => {
-        const ordenA = a.orden_preparacion ?? 9999;
-        const ordenB = b.orden_preparacion ?? 9999;
-
-        if (ordenA !== ordenB) return ordenA - ordenB;
-
-        return a.nombre.localeCompare(b.nombre, "es");
-      });
+      .sort((a, b) =>
+        a.nombre.localeCompare(b.nombre, "es", {
+          sensitivity: "base",
+          numeric: true,
+        })
+      );
   }, [busqueda, categoria, productosDelDepartamento]);
 
   useEffect(() => {

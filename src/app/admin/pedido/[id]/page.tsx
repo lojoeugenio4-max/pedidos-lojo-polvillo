@@ -156,7 +156,7 @@ export default function PedidoDetallePage() {
         @media print {
           @page {
             size: A4;
-            margin: 0;
+            margin: 10mm;
           }
 
           html,
@@ -179,7 +179,7 @@ export default function PedidoDetallePage() {
           .hoja-impresion {
             box-shadow: none !important;
             border-radius: 0 !important;
-            padding: 10mm 10mm 8mm 10mm !important;
+            padding: 0 !important;
             margin: 0 !important;
             width: 100% !important;
             background: white !important;
@@ -190,7 +190,9 @@ export default function PedidoDetallePage() {
           }
 
           .salto-pagina {
+            break-before: page;
             page-break-before: always;
+            padding-top: 0;
           }
 
           .cabecera-impresion {
@@ -435,7 +437,7 @@ export default function PedidoDetallePage() {
               )}
             </section>
 
-            <section className="seccion-impresion salto-pagina mt-16 print:mt-0">
+            <section className="seccion-impresion salto-pagina mt-16 print:mt-0 print:pt-0">
               <CabeceraSeccion titulo="CHARCUTERÍA" />
 
               <table className="tabla-charcuteria">

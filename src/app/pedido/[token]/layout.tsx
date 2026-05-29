@@ -9,7 +9,9 @@ type ClienteMetadata = {
   nombre: string;
 };
 
-async function obtenerClientePorToken(token: string): Promise<ClienteMetadata | null> {
+async function obtenerClientePorToken(
+  token: string
+): Promise<ClienteMetadata | null> {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
@@ -58,17 +60,15 @@ export async function generateMetadata({
   const { token } = await params;
   const cliente = await obtenerClientePorToken(token);
 
-  const title = cliente?.nombre
-    ? `Pedido de ${cliente.nombre}`
-    : "Lojo · Pedido Online";
+  const title = cliente?.nombre || "Lojo · Pedido Online";
 
   return {
     metadataBase: new URL(SITE_URL),
     title,
-    description: "Realiza tu pedido de forma rápida y sencilla",
+    description: "Lojo · Pedido Online",
     openGraph: {
       title,
-      description: "Realiza tu pedido de forma rápida y sencilla",
+      description: "Lojo · Pedido Online",
       url: `${SITE_URL}/pedido/${token}`,
       siteName: "Lojo · Pedido Online",
       images: [
@@ -84,7 +84,7 @@ export async function generateMetadata({
     twitter: {
       card: "summary_large_image",
       title,
-      description: "Realiza tu pedido de forma rápida y sencilla",
+      description: "Lojo · Pedido Online",
       images: [`${SITE_URL}/og-image.png`],
     },
   };

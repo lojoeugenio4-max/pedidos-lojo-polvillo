@@ -108,6 +108,20 @@ export default function PedidoDetallePage() {
     cargarPedido();
   }, []);
 
+  useEffect(() => {
+    if (!cliente || !pedido) return;
+
+    const fecha = pedido.fecha
+      ? new Date(pedido.fecha).toLocaleDateString("es-ES")
+      : "";
+
+    document.title = `Pedido ${cliente.nombre}${fecha ? ` · ${fecha}` : ""}`;
+
+    return () => {
+      document.title = "Lojo · Pedido Online";
+    };
+  }, [cliente, pedido]);
+
   const bebidas = lineas.filter((l) => l.departamento === "Bebidas");
 
   const charcuteria = lineas.filter(
@@ -120,6 +134,18 @@ export default function PedidoDetallePage() {
 
   return (
     <main className="min-h-screen bg-slate-100 p-4 md:p-6 print:bg-white print:p-0">
+      <style jsx global>{`
+        @media print {
+          @page {
+            margin: 10mm;
+          }
+
+          body {
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+        }
+      `}</style>
       <div className="max-w-5xl mx-auto space-y-6 print:max-w-none print:space-y-4">
         <div className="flex justify-between items-center print:hidden">
           <Link
@@ -152,25 +178,23 @@ export default function PedidoDetallePage() {
         ) : (
           <section className="bg-white rounded-2xl p-6 shadow print:shadow-none print:rounded-none print:p-0">
             <section>
-              <div className="mb-6 border-b pb-4">
-                <h1 className="text-3xl font-bold">BEBIDAS</h1>
+              <div className="mb-4 border-b pb-3">
+                <div className="flex flex-col md:flex-row md:items-baseline md:justify-between gap-1">
+                  <h1 className="text-3xl font-bold leading-tight">
+                    BEBIDAS · {cliente?.nombre || "Sin tienda"}
+                  </h1>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-4 text-sm">
-                  <p>
-                    <strong>Tienda:</strong> {cliente?.nombre || "Sin tienda"}
-                  </p>
-
-                  <p>
-                    <strong>Fecha:</strong> {fechaEspana}
+                  <p className="text-sm font-semibold">
+                    Fecha: {fechaEspana}
                   </p>
                 </div>
               </div>
 
-              <table className="w-full border-collapse text-sm">
+              <table className="border-collapse text-sm print:w-auto">
                 <thead>
                   <tr className="border-b-2 border-black">
-                    <th className="text-left py-2 pr-2 w-24">Código</th>
-                    <th className="text-left py-2 pr-2">Nombre</th>
+                    <th className="text-left py-2 pr-3 w-24">Código</th>
+                    <th className="text-left py-2 pr-8 w-[420px]">Nombre</th>
                     <th className="text-center py-2 px-2 w-20">Cajas</th>
                   </tr>
                 </thead>
@@ -178,13 +202,13 @@ export default function PedidoDetallePage() {
                 <tbody>
                   {bebidas.map((linea) => (
                     <tr key={linea.id} className="border-b">
-                      <td className="py-2 pr-2 font-semibold">
+                      <td className="py-2 pr-3 font-semibold">
                         {linea.codigo_articulo}
                       </td>
 
-                      <td className="py-2 pr-2">{linea.nombre_articulo}</td>
+                      <td className="py-2 pr-8">{linea.nombre_articulo}</td>
 
-                      <td className="py-2 px-2 text-center">
+                      <td className="py-2 px-2 text-center font-bold">
                         {linea.cajas > 0 ? linea.cajas : ""}
                       </td>
                     </tr>
@@ -200,16 +224,14 @@ export default function PedidoDetallePage() {
             </section>
 
             <section className="mt-16 print:break-before-page">
-              <div className="mb-6 border-b pb-4">
-                <h1 className="text-3xl font-bold">CHARCUTERÍA</h1>
+              <div className="mb-4 border-b pb-3">
+                <div className="flex flex-col md:flex-row md:items-baseline md:justify-between gap-1">
+                  <h1 className="text-3xl font-bold leading-tight">
+                    CHARCUTERÍA · {cliente?.nombre || "Sin tienda"}
+                  </h1>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-4 text-sm">
-                  <p>
-                    <strong>Tienda:</strong> {cliente?.nombre || "Sin tienda"}
-                  </p>
-
-                  <p>
-                    <strong>Fecha:</strong> {fechaEspana}
+                  <p className="text-sm font-semibold">
+                    Fecha: {fechaEspana}
                   </p>
                 </div>
               </div>
@@ -234,11 +256,11 @@ export default function PedidoDetallePage() {
 
                       <td className="py-2 pr-2">{linea.nombre_articulo}</td>
 
-                      <td className="py-2 px-2 text-center">
+                      <td className="py-2 px-2 text-center font-bold">
                         {linea.cajas > 0 ? linea.cajas : ""}
                       </td>
 
-                      <td className="py-2 px-2 text-center">
+                      <td className="py-2 px-2 text-center font-bold">
                         {linea.unidades > 0 ? linea.unidades : ""}
                       </td>
 

@@ -334,7 +334,9 @@ export default function AdminPedidosPage() {
     if (filtro === "faltan") return false;
     if (filtro === "sin_imprimir") return !pedido.impreso;
     if (filtro === "impresos") return Boolean(pedido.impreso);
-    if (filtro === "fuera_dia") return Boolean(pedido.fuera_de_dia) && !pedido.impreso;
+    if (filtro === "fuera_dia") {
+      return Boolean(pedido.fuera_de_dia) && pedido.fecha !== hoyISO && !pedido.impreso;
+    }
     if (filtro === "antiguos") return pendienteAntiguo && !pedido.impreso;
     return !pedido.impreso;
   });
@@ -348,7 +350,8 @@ export default function AdminPedidosPage() {
   const impresos = pedidos.filter(({ pedido }) => pedido.impreso).length;
 
   const fueraDeDia = pedidos.filter(
-    ({ pedido }) => pedido.fuera_de_dia && !pedido.impreso
+    ({ pedido }) =>
+      pedido.fuera_de_dia && pedido.fecha !== hoyISO && !pedido.impreso
   ).length;
 
   const pendientesAntiguos = pedidos.filter(

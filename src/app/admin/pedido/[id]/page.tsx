@@ -101,6 +101,10 @@ export default function PedidoDetallePage() {
       })
       .eq("id", id);
 
+    document.title = cliente?.nombre
+      ? `Pedido ${cliente.nombre}`
+      : "Pedido";
+
     window.print();
   }
 
@@ -132,22 +136,240 @@ export default function PedidoDetallePage() {
     ? new Date(pedido.fecha).toLocaleDateString("es-ES")
     : "";
 
+  function CabeceraSeccion({ titulo }: { titulo: string }) {
+    return (
+      <div className="cabecera-impresion">
+        <div className="titulo-linea">
+          <h1>
+            {titulo} <span>{cliente?.nombre || "Sin tienda"}</span>
+          </h1>
+
+          <p>Fecha: {fechaEspana}</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <main className="min-h-screen bg-slate-100 p-4 md:p-6 print:bg-white print:p-0">
       <style jsx global>{`
         @media print {
           @page {
-            margin: 10mm;
+            size: A4;
+            margin: 0;
           }
 
+          html,
           body {
+            margin: 0 !important;
+            padding: 0 !important;
+            background: white !important;
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
           }
+
+          body {
+            font-family: Arial, Helvetica, sans-serif;
+          }
+
+          .no-print {
+            display: none !important;
+          }
+
+          .hoja-impresion {
+            box-shadow: none !important;
+            border-radius: 0 !important;
+            padding: 10mm 10mm 8mm 10mm !important;
+            margin: 0 !important;
+            width: 100% !important;
+            background: white !important;
+          }
+
+          .seccion-impresion {
+            page-break-inside: avoid;
+          }
+
+          .salto-pagina {
+            page-break-before: always;
+          }
+
+          .cabecera-impresion {
+            border-bottom: 2px solid #000;
+            padding-bottom: 6px;
+            margin-bottom: 10px;
+          }
+
+          .titulo-linea {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 16px;
+          }
+
+          .titulo-linea h1 {
+            font-size: 28px;
+            line-height: 1;
+            font-weight: 800;
+            margin: 0;
+            padding: 0;
+            color: #000;
+          }
+
+          .titulo-linea h1 span {
+            font-size: 28px;
+            font-weight: 800;
+            color: #000;
+          }
+
+          .titulo-linea p {
+            font-size: 13px;
+            font-weight: 700;
+            margin: 0;
+            white-space: nowrap;
+            color: #000;
+          }
+
+          table {
+            border-collapse: collapse;
+          }
+
+          th {
+            font-size: 13px;
+            font-weight: 800;
+            color: #000;
+            border-bottom: 2px solid #000;
+            padding: 5px 6px;
+          }
+
+          td {
+            font-size: 13px;
+            color: #000;
+            border-bottom: 1px solid #bbb;
+            padding: 5px 6px;
+            vertical-align: top;
+          }
+
+          .tabla-bebidas {
+            width: auto !important;
+            table-layout: fixed;
+          }
+
+          .tabla-bebidas .col-codigo {
+            width: 75px;
+          }
+
+          .tabla-bebidas .col-nombre {
+            width: 330px;
+          }
+
+          .tabla-bebidas .col-cajas {
+            width: 55px;
+            text-align: center;
+          }
+
+          .tabla-charcuteria {
+            width: 100% !important;
+            table-layout: fixed;
+          }
+
+          .tabla-charcuteria .col-codigo {
+            width: 75px;
+          }
+
+          .tabla-charcuteria .col-nombre {
+            width: auto;
+          }
+
+          .tabla-charcuteria .col-cajas {
+            width: 55px;
+            text-align: center;
+          }
+
+          .tabla-charcuteria .col-unidades {
+            width: 70px;
+            text-align: center;
+          }
+
+          .tabla-charcuteria .col-kilos {
+            width: 100px;
+          }
+
+          .numero {
+            font-weight: 800;
+            text-align: center;
+          }
+
+          .codigo {
+            font-weight: 800;
+          }
+        }
+
+        @media screen {
+          .hoja-impresion {
+            background: white;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            box-shadow:
+              0 10px 15px -3px rgb(0 0 0 / 0.1),
+              0 4px 6px -4px rgb(0 0 0 / 0.1);
+          }
+
+          .cabecera-impresion {
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 1rem;
+            margin-bottom: 1.5rem;
+          }
+
+          .titulo-linea {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+          }
+
+          .titulo-linea h1 {
+            font-size: 1.875rem;
+            line-height: 2.25rem;
+            font-weight: 800;
+            margin: 0;
+          }
+
+          .titulo-linea h1 span {
+            font-size: 1.875rem;
+            font-weight: 800;
+          }
+
+          .titulo-linea p {
+            font-size: 0.875rem;
+            font-weight: 700;
+            margin: 0;
+          }
+
+          .tabla-bebidas,
+          .tabla-charcuteria {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.875rem;
+          }
+
+          th,
+          td {
+            border-bottom: 1px solid #e2e8f0;
+            padding: 0.5rem;
+          }
+
+          .numero {
+            font-weight: 800;
+            text-align: center;
+          }
+
+          .codigo {
+            font-weight: 800;
+          }
         }
       `}</style>
-      <div className="max-w-5xl mx-auto space-y-6 print:max-w-none print:space-y-4">
-        <div className="flex justify-between items-center print:hidden">
+
+      <div className="max-w-5xl mx-auto space-y-6 print:max-w-none print:space-y-0">
+        <div className="no-print flex justify-between items-center">
           <Link
             href="/admin/pedidos"
             className="inline-flex items-center gap-2 rounded-xl border bg-white px-4 py-2"
@@ -166,7 +388,7 @@ export default function PedidoDetallePage() {
         </div>
 
         {mensaje && (
-          <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl p-4 text-sm print:hidden">
+          <div className="no-print bg-red-50 border border-red-200 text-red-700 rounded-xl p-4 text-sm">
             {mensaje}
           </div>
         )}
@@ -176,39 +398,29 @@ export default function PedidoDetallePage() {
             Cargando pedido...
           </div>
         ) : (
-          <section className="bg-white rounded-2xl p-6 shadow print:shadow-none print:rounded-none print:p-0">
-            <section>
-              <div className="mb-4 border-b pb-3">
-                <div className="flex flex-col md:flex-row md:items-baseline md:justify-between gap-1">
-                  <h1 className="text-3xl font-bold leading-tight">
-                    BEBIDAS · {cliente?.nombre || "Sin tienda"}
-                  </h1>
+          <section className="hoja-impresion">
+            <section className="seccion-impresion">
+              <CabeceraSeccion titulo="BEBIDAS" />
 
-                  <p className="text-sm font-semibold">
-                    Fecha: {fechaEspana}
-                  </p>
-                </div>
-              </div>
-
-              <table className="border-collapse text-sm print:w-auto">
+              <table className="tabla-bebidas">
                 <thead>
-                  <tr className="border-b-2 border-black">
-                    <th className="text-left py-2 pr-3 w-24">Código</th>
-                    <th className="text-left py-2 pr-8 w-[420px]">Nombre</th>
-                    <th className="text-center py-2 px-2 w-20">Cajas</th>
+                  <tr>
+                    <th className="col-codigo text-left">Código</th>
+                    <th className="col-nombre text-left">Nombre</th>
+                    <th className="col-cajas">Cajas</th>
                   </tr>
                 </thead>
 
                 <tbody>
                   {bebidas.map((linea) => (
-                    <tr key={linea.id} className="border-b">
-                      <td className="py-2 pr-3 font-semibold">
+                    <tr key={linea.id}>
+                      <td className="col-codigo codigo">
                         {linea.codigo_articulo}
                       </td>
 
-                      <td className="py-2 pr-8">{linea.nombre_articulo}</td>
+                      <td className="col-nombre">{linea.nombre_articulo}</td>
 
-                      <td className="py-2 px-2 text-center font-bold">
+                      <td className="col-cajas numero">
                         {linea.cajas > 0 ? linea.cajas : ""}
                       </td>
                     </tr>
@@ -223,48 +435,38 @@ export default function PedidoDetallePage() {
               )}
             </section>
 
-            <section className="mt-16 print:break-before-page">
-              <div className="mb-4 border-b pb-3">
-                <div className="flex flex-col md:flex-row md:items-baseline md:justify-between gap-1">
-                  <h1 className="text-3xl font-bold leading-tight">
-                    CHARCUTERÍA · {cliente?.nombre || "Sin tienda"}
-                  </h1>
+            <section className="seccion-impresion salto-pagina mt-16 print:mt-0">
+              <CabeceraSeccion titulo="CHARCUTERÍA" />
 
-                  <p className="text-sm font-semibold">
-                    Fecha: {fechaEspana}
-                  </p>
-                </div>
-              </div>
-
-              <table className="w-full border-collapse text-sm">
+              <table className="tabla-charcuteria">
                 <thead>
-                  <tr className="border-b-2 border-black">
-                    <th className="text-left py-2 pr-2 w-24">Código</th>
-                    <th className="text-left py-2 pr-2">Nombre</th>
-                    <th className="text-center py-2 px-2 w-20">Cajas</th>
-                    <th className="text-center py-2 px-2 w-24">Unidades</th>
-                    <th className="text-left py-2 pl-2 w-40">Kilos</th>
+                  <tr>
+                    <th className="col-codigo text-left">Código</th>
+                    <th className="col-nombre text-left">Nombre</th>
+                    <th className="col-cajas">Cajas</th>
+                    <th className="col-unidades">Unidades</th>
+                    <th className="col-kilos text-left">Kilos</th>
                   </tr>
                 </thead>
 
                 <tbody>
                   {charcuteria.map((linea) => (
-                    <tr key={linea.id} className="border-b">
-                      <td className="py-2 pr-2 font-semibold">
+                    <tr key={linea.id}>
+                      <td className="col-codigo codigo">
                         {linea.codigo_articulo}
                       </td>
 
-                      <td className="py-2 pr-2">{linea.nombre_articulo}</td>
+                      <td className="col-nombre">{linea.nombre_articulo}</td>
 
-                      <td className="py-2 px-2 text-center font-bold">
+                      <td className="col-cajas numero">
                         {linea.cajas > 0 ? linea.cajas : ""}
                       </td>
 
-                      <td className="py-2 px-2 text-center font-bold">
+                      <td className="col-unidades numero">
                         {linea.unidades > 0 ? linea.unidades : ""}
                       </td>
 
-                      <td className="py-2 pl-2"></td>
+                      <td className="col-kilos"></td>
                     </tr>
                   ))}
                 </tbody>

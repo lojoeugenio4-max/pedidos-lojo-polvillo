@@ -491,19 +491,22 @@ export default function PedidoClientePage() {
   const productosFiltrados = useMemo(() => {
     const q = normalizarTexto(busqueda);
 
-    return productosDelDepartamento
+    const baseProductos = q ? productos : productosDelDepartamento;
+
+    return baseProductos
       .filter((p) => {
+        if (q) {
+          return (
+            normalizarTexto(p.nombre).includes(q) ||
+            normalizarTexto(p.codigo).includes(q)
+          );
+        }
+
         const coincideCategoria =
           categoria === "Todas" ||
           normalizarTexto(p.categoria) === normalizarTexto(categoria);
 
-        const coincideBusqueda =
-          !q ||
-          normalizarTexto(p.nombre).includes(q) ||
-          normalizarTexto(p.codigo).includes(q) ||
-          normalizarTexto(p.categoria).includes(q);
-
-        return coincideCategoria && coincideBusqueda;
+        return coincideCategoria;
       })
       .sort((a, b) =>
         a.nombre.localeCompare(b.nombre, "es", {
@@ -511,7 +514,7 @@ export default function PedidoClientePage() {
           numeric: true,
         })
       );
-  }, [busqueda, categoria, productosDelDepartamento]);
+  }, [busqueda, categoria, productos, productosDelDepartamento]);
 
   useEffect(() => {
     if (!scrollPendiente) return;
@@ -844,7 +847,7 @@ export default function PedidoClientePage() {
                     setBusqueda(e.target.value);
                     setUltimoArticulo(null);
                   }}
-                  placeholder="Buscar..."
+                  placeholder="Buscar artículo..."
                   className="w-full border rounded-lg py-2 pl-9 pr-10 text-base md:text-sm"
                 />
 
@@ -917,7 +920,7 @@ export default function PedidoClientePage() {
           {productosFiltrados.length === 0 && (
             <div className="bg-white rounded-xl p-4 shadow text-center space-y-3">
               <p className="font-semibold text-slate-700">
-                No hay artículos con ese filtro.
+                No hay artículos con esa búsqueda o filtro.
               </p>
 
               {busqueda && (

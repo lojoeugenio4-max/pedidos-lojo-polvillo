@@ -130,11 +130,17 @@ function formatearTelefono(telefono: string | null) {
   return limpio.replace(/(.{3})/g, "$1.").replace(/\.$/, "");
 }
 
-function clasePedido(pedido: Pedido, pendienteAntiguo: boolean) {
-  if (pendienteAntiguo) return "bg-yellow-50 border-l-4 border-yellow-500";
-  if (pedido.impreso) return "bg-green-50 border-l-4 border-green-500";
-  if (pedido.fuera_de_dia) return "bg-orange-50 border-l-4 border-orange-500";
-  return "bg-white";
+function clasePedido(
+  pedido: Pedido,
+  pendienteAntiguo: boolean,
+  hoyISO: string
+) {
+  if (pendienteAntiguo) return "bg-yellow-50 border-l-8 border-yellow-500";
+  if (pedido.impreso) return "bg-green-50 border-l-8 border-green-500";
+  if (pedido.fuera_de_dia && pedido.fecha !== hoyISO) {
+    return "bg-orange-100 border-l-8 border-orange-600";
+  }
+  return "bg-white border-l-8 border-red-500";
 }
 
 export default function AdminPedidosPage() {
@@ -366,6 +372,20 @@ export default function AdminPedidosPage() {
 
   return (
     <main className="min-h-screen bg-slate-100 p-4 md:p-6">
+      <style jsx global>{`
+        @keyframes parpadeo-pendiente {
+          0%, 100% {
+            opacity: 1;
+          }
+          50% {
+            opacity: 0.25;
+          }
+        }
+
+        .estado-pendiente-parpadeo {
+          animation: parpadeo-pendiente 1s infinite;
+        }
+      `}</style>
       <div className="max-w-7xl mx-auto space-y-6">
         <header className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
@@ -429,10 +449,13 @@ export default function AdminPedidosPage() {
 
           <button
             onClick={() => setFiltro("sin_imprimir")}
-            className={claseTarjeta(filtro === "sin_imprimir", "bg-white")}
+            className={claseTarjeta(
+              filtro === "sin_imprimir",
+              "bg-red-50 border border-red-300 text-red-700"
+            )}
           >
-            <p className="text-sm text-slate-500">Recibidos sin imprimir</p>
-            <p className="text-4xl font-bold">{recibidosSinImprimir}</p>
+            <p className="text-sm font-bold">Pendientes de imprimir</p>
+            <p className="text-4xl font-black">{recibidosSinImprimir}</p>
           </button>
 
           <button
@@ -450,11 +473,11 @@ export default function AdminPedidosPage() {
             onClick={() => setFiltro("fuera_dia")}
             className={claseTarjeta(
               filtro === "fuera_dia",
-              "bg-orange-50 border border-orange-200 text-orange-700"
+              "bg-orange-600 border border-orange-700 text-white"
             )}
           >
-            <p className="text-sm">Fuera de día</p>
-            <p className="text-4xl font-bold">{fueraDeDia}</p>
+            <p className="text-sm font-bold">Fuera de día</p>
+            <p className="text-4xl font-black">{fueraDeDia}</p>
           </button>
 
           <button
@@ -603,7 +626,8 @@ export default function AdminPedidosPage() {
                       key={pedido.id}
                       className={`border-t ${clasePedido(
                         pedido,
-                        pendienteAntiguo
+                        pendienteAntiguo,
+                        hoyISO
                       )}`}
                     >
                       <td className="p-3">
@@ -653,14 +677,19 @@ export default function AdminPedidosPage() {
                             Impreso
                           </span>
                         ) : pedido.fuera_de_dia && pedido.fecha !== hoyISO ? (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-orange-100 text-orange-700 px-3 py-1 text-xs font-semibold">
-                            <AlertCircle className="w-3 h-3" />
-                            Fuera de día
-                          </span>
+                          <div className="inline-flex flex-col gap-1 rounded-xl bg-orange-600 text-white px-4 py-2 text-xs font-black shadow">
+                            <span className="inline-flex items-center gap-1 uppercase">
+                              <AlertCircle className="w-4 h-4" />
+                              Fuera de día
+                            </span>
+                            <span className="text-[11px] font-semibold">
+                              Preparar el {fechaEspana(pedido.fecha)}
+                            </span>
+                          </div>
                         ) : (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 text-slate-700 px-3 py-1 text-xs font-semibold">
-                            <CheckCircle className="w-3 h-3" />
-                            Recibido sin imprimir
+                          <span className="estado-pendiente-parpadeo inline-flex items-center gap-1 rounded-full bg-red-600 text-white px-4 py-2 text-sm font-black uppercase shadow">
+                            <AlertCircle className="w-4 h-4" />
+                            Pendiente de imprimir
                           </span>
                         )}
                       </td>

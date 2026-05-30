@@ -736,13 +736,16 @@ export default function AdminPedidosPage() {
 
                       <td className="p-3">
                         <div className="flex gap-2 flex-wrap">
-                          <Link
-                            href={`/admin/pedido/${pedido.id}`}
-                            className="rounded-lg border px-3 py-2 flex items-center gap-1 bg-white"
-                          >
-                            <Eye className="w-4 h-4" />
-                            Ver
-                          </Link>
+                          {!pedido.impreso &&
+                            !(pedido.fuera_de_dia && pedido.fecha !== hoyISO) && (
+                              <Link
+                                href={`/admin/pedido/${pedido.id}`}
+                                className="estado-pendiente-parpadeo rounded-lg bg-red-600 text-white px-3 py-2 flex items-center gap-1 font-black uppercase shadow"
+                              >
+                                <AlertCircle className="w-4 h-4" />
+                                Pendiente de imprimir
+                              </Link>
+                            )}
 
                           <Link
                             href={`/admin/pedido/${pedido.id}`}
@@ -750,6 +753,14 @@ export default function AdminPedidosPage() {
                           >
                             <Printer className="w-4 h-4" />
                             Preparar
+                          </Link>
+
+                          <Link
+                            href={`/admin/pedido/${pedido.id}`}
+                            className="rounded-lg border px-3 py-2 flex items-center gap-1 bg-white"
+                          >
+                            <Eye className="w-4 h-4" />
+                            Ver
                           </Link>
 
                           <div

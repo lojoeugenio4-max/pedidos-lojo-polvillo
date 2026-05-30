@@ -401,85 +401,89 @@ export default function PedidoDetallePage() {
           </div>
         ) : (
           <section className="hoja-impresion">
-            <section className="seccion-impresion">
-              <CabeceraSeccion titulo="BEBIDAS" />
+            {bebidas.length > 0 && (
+              <section className="seccion-impresion">
+                <CabeceraSeccion titulo="BEBIDAS" />
 
-              <table className="tabla-bebidas">
-                <thead>
-                  <tr>
-                    <th className="col-codigo text-left">Código</th>
-                    <th className="col-nombre text-left">Nombre</th>
-                    <th className="col-cajas">Cajas</th>
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {bebidas.map((linea) => (
-                    <tr key={linea.id}>
-                      <td className="col-codigo codigo">
-                        {linea.codigo_articulo}
-                      </td>
-
-                      <td className="col-nombre">{linea.nombre_articulo}</td>
-
-                      <td className="col-cajas numero">
-                        {linea.cajas > 0 ? linea.cajas : ""}
-                      </td>
+                <table className="tabla-bebidas">
+                  <thead>
+                    <tr>
+                      <th className="col-codigo text-left">Código</th>
+                      <th className="col-nombre text-left">Nombre</th>
+                      <th className="col-cajas">Cajas</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
 
-              {bebidas.length === 0 && (
-                <p className="text-sm text-slate-500 mt-4">
-                  No hay bebidas en este pedido.
-                </p>
-              )}
-            </section>
+                  <tbody>
+                    {bebidas.map((linea) => (
+                      <tr key={linea.id}>
+                        <td className="col-codigo codigo">
+                          {linea.codigo_articulo}
+                        </td>
 
-            <section className="seccion-impresion salto-pagina mt-16 print:mt-0 print:pt-0">
-              <CabeceraSeccion titulo="CHARCUTERÍA" />
+                        <td className="col-nombre">{linea.nombre_articulo}</td>
 
-              <table className="tabla-charcuteria">
-                <thead>
-                  <tr>
-                    <th className="col-codigo text-left">Código</th>
-                    <th className="col-nombre text-left">Nombre</th>
-                    <th className="col-cajas">Cajas</th>
-                    <th className="col-unidades">Unidades</th>
-                    <th className="col-kilos text-left">Kilos</th>
-                  </tr>
-                </thead>
+                        <td className="col-cajas numero">
+                          {linea.cajas > 0 ? linea.cajas : ""}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </section>
+            )}
 
-                <tbody>
-                  {charcuteria.map((linea) => (
-                    <tr key={linea.id}>
-                      <td className="col-codigo codigo">
-                        {linea.codigo_articulo}
-                      </td>
+            {charcuteria.length > 0 && (
+              <section
+                className={`seccion-impresion ${
+                  bebidas.length > 0
+                    ? "salto-pagina mt-16 print:mt-0 print:pt-0"
+                    : ""
+                }`}
+              >
+                <CabeceraSeccion titulo="CHARCUTERÍA" />
 
-                      <td className="col-nombre">{linea.nombre_articulo}</td>
-
-                      <td className="col-cajas numero">
-                        {linea.cajas > 0 ? linea.cajas : ""}
-                      </td>
-
-                      <td className="col-unidades numero">
-                        {linea.unidades > 0 ? linea.unidades : ""}
-                      </td>
-
-                      <td className="col-kilos"></td>
+                <table className="tabla-charcuteria">
+                  <thead>
+                    <tr>
+                      <th className="col-codigo text-left">Código</th>
+                      <th className="col-nombre text-left">Nombre</th>
+                      <th className="col-cajas">Cajas</th>
+                      <th className="col-unidades">Unidades</th>
+                      <th className="col-kilos text-left">Kilos</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
 
-              {charcuteria.length === 0 && (
-                <p className="text-sm text-slate-500 mt-4">
-                  No hay charcutería en este pedido.
-                </p>
-              )}
-            </section>
+                  <tbody>
+                    {charcuteria.map((linea) => (
+                      <tr key={linea.id}>
+                        <td className="col-codigo codigo">
+                          {linea.codigo_articulo}
+                        </td>
+
+                        <td className="col-nombre">{linea.nombre_articulo}</td>
+
+                        <td className="col-cajas numero">
+                          {linea.cajas > 0 ? linea.cajas : ""}
+                        </td>
+
+                        <td className="col-unidades numero">
+                          {linea.unidades > 0 ? linea.unidades : ""}
+                        </td>
+
+                        <td className="col-kilos"></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </section>
+            )}
+
+            {bebidas.length === 0 && charcuteria.length === 0 && (
+              <div className="text-center text-slate-500 p-6">
+                Este pedido no tiene líneas para imprimir.
+              </div>
+            )}
           </section>
         )}
       </div>

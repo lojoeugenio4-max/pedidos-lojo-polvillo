@@ -843,11 +843,24 @@ export default function PedidoClientePage() {
                   onChange={(e) => {
                     setBusqueda(e.target.value);
                     setUltimoArticulo(null);
-                    setScrollPendiente(true);
                   }}
                   placeholder="Buscar..."
-                  className="w-full border rounded-lg py-2 pl-9 pr-3 text-sm"
+                  className="w-full border rounded-lg py-2 pl-9 pr-10 text-base md:text-sm"
                 />
+
+                {busqueda && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setBusqueda("");
+                      setUltimoArticulo(null);
+                    }}
+                    className="absolute right-2 top-1.5 h-7 w-7 rounded-full bg-slate-100 text-slate-600 font-bold"
+                    aria-label="Borrar búsqueda"
+                  >
+                    ×
+                  </button>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-1.5 md:flex md:flex-wrap">

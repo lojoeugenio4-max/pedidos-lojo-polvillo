@@ -833,7 +833,7 @@ export default function PedidoClientePage() {
           id="cabecera-filtros"
           className="sticky top-0 z-40 bg-slate-100 pt-1 pb-1"
         >
-          <div className="bg-white rounded-xl p-2 shadow space-y-1.5 max-h-[42vh] overflow-y-auto md:max-h-none md:overflow-visible">
+          <div className="bg-white rounded-xl p-2 shadow space-y-1.5">
             <div className="flex flex-col md:flex-row gap-2">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
@@ -872,7 +872,7 @@ export default function PedidoClientePage() {
             </div>
 
             <div>
-              <div className="flex gap-1 overflow-x-auto pb-1 md:grid md:grid-cols-7 lg:grid-cols-10 md:overflow-visible">
+              <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-7 lg:grid-cols-10 gap-1">
                 {categoriasDisponibles.map((cat) => (
                   <button
                     key={cat}
@@ -882,7 +882,7 @@ export default function PedidoClientePage() {
                       setUltimoArticulo(null);
                       setScrollPendiente(true);
                     }}
-                    className={`h-8 min-w-24 md:min-w-0 rounded-md border text-[11px] font-bold text-center px-1.5 transition ${
+                    className={`h-8 rounded-md border text-[11px] font-bold text-center px-1.5 transition ${
                       categoria === cat
                         ? "bg-slate-900 text-white border-slate-900 shadow"
                         : "bg-white hover:bg-slate-50"

@@ -149,6 +149,7 @@ export default function AdminPedidosPage() {
   const [cargando, setCargando] = useState(true);
   const [mensaje, setMensaje] = useState("");
   const [filtro, setFiltro] = useState<Filtro>("todos");
+  const [checksImpresos, setChecksImpresos] = useState<Record<string, boolean>>({});
 
   const hoyDia = diaHoyEspana();
   const hoyISO = fechaHoyISO();
@@ -268,6 +269,12 @@ export default function AdminPedidosPage() {
       setMensaje(JSON.stringify(error));
       return;
     }
+
+    setChecksImpresos((prev) => {
+      const copia = { ...prev };
+      delete copia[id];
+      return copia;
+    });
 
     await cargarDatos();
   }
@@ -616,7 +623,7 @@ export default function AdminPedidosPage() {
 
               <p className="text-sm text-slate-500">
                 Mostrando <strong>{pedidosFiltrados.length}</strong> pedidos.
-                Los impresos solo aparecen en el filtro Impresos. La pantalla se actualiza automáticamente.
+                Los impresos solo aparecen en el filtro Impresos. La pantalla se actualiza automáticamente. Para marcar impreso hay que marcar el check y confirmar.
               </p>
             </div>
 
@@ -745,26 +752,45 @@ export default function AdminPedidosPage() {
                             Preparar
                           </Link>
 
-                          <label
-                            className={`rounded-lg border px-3 py-2 flex items-center gap-2 bg-white ${
+                          <div
+                            className={`rounded-lg border px-3 py-2 bg-white ${
                               pedido.impreso
                                 ? "text-green-700 border-green-300 bg-green-50"
-                                : "text-slate-700"
+                                : checksImpresos[pedido.id]
+                                  ? "text-red-700 border-red-300 bg-red-50"
+                                  : "text-slate-700"
                             }`}
                           >
-                            <input
-                              type="checkbox"
-                              checked={Boolean(pedido.impreso)}
-                              disabled={Boolean(pedido.impreso)}
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  marcarImpreso(pedido.id);
-                                }
-                              }}
-                              className="w-5 h-5"
-                            />
-                            Impreso
-                          </label>
+                            <label className="flex items-center gap-2 font-semibold cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={Boolean(pedido.impreso) || Boolean(checksImpresos[pedido.id])}
+                                disabled={Boolean(pedido.impreso)}
+                                onChange={(e) => {
+                                  setChecksImpresos((prev) => ({
+                                    ...prev,
+                                    [pedido.id]: e.target.checked,
+                                  }));
+                                }}
+                                className="w-5 h-5"
+                              />
+                              Impreso
+                            </label>
+
+                            {!pedido.impreso && (
+                              <button
+                                onClick={() => marcarImpreso(pedido.id)}
+                                disabled={!checksImpresos[pedido.id]}
+                                className={`mt-2 w-full rounded-lg px-3 py-2 font-bold ${
+                                  checksImpresos[pedido.id]
+                                    ? "bg-black text-white"
+                                    : "bg-slate-200 text-slate-400 cursor-not-allowed"
+                                }`}
+                              >
+                                Confirmar impreso
+                              </button>
+                            )}
+                          </div>
 
                           <button
                             onClick={() => borrarPedido(pedido.id)}

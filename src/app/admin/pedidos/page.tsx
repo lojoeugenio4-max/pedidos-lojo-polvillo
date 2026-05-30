@@ -319,6 +319,36 @@ export default function AdminPedidosPage() {
 
   useEffect(() => {
     cargarDatos();
+
+    const canalPedidos = supabase
+      .channel("admin-pedidos-tiempo-real")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "pedidos",
+        },
+        () => {
+          cargarDatos();
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "lineas_pedido",
+        },
+        () => {
+          cargarDatos();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(canalPedidos);
+    };
   }, []);
 
   const clientesConPedidoHoy = useMemo(() => {
@@ -586,7 +616,7 @@ export default function AdminPedidosPage() {
 
               <p className="text-sm text-slate-500">
                 Mostrando <strong>{pedidosFiltrados.length}</strong> pedidos.
-                Los impresos solo aparecen en el filtro Impresos.
+                Los impresos solo aparecen en el filtro Impresos. La pantalla se actualiza automáticamente.
               </p>
             </div>
 
@@ -715,14 +745,26 @@ export default function AdminPedidosPage() {
                             Preparar
                           </Link>
 
-                          {!pedido.impreso && (
-                            <button
-                              onClick={() => marcarImpreso(pedido.id)}
-                              className="rounded-lg border px-3 py-2 bg-white"
-                            >
-                              Marcar impreso
-                            </button>
-                          )}
+                          <label
+                            className={`rounded-lg border px-3 py-2 flex items-center gap-2 bg-white ${
+                              pedido.impreso
+                                ? "text-green-700 border-green-300 bg-green-50"
+                                : "text-slate-700"
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={Boolean(pedido.impreso)}
+                              disabled={Boolean(pedido.impreso)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  marcarImpreso(pedido.id);
+                                }
+                              }}
+                              className="w-5 h-5"
+                            />
+                            Impreso
+                          </label>
 
                           <button
                             onClick={() => borrarPedido(pedido.id)}

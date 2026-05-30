@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { ArrowLeft, Printer } from "lucide-react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
 type Cliente = {
@@ -33,6 +33,7 @@ type LineaPedido = {
 
 export default function PedidoDetallePage() {
   const params = useParams();
+  const router = useRouter();
   const id = String(params.id);
 
   const [pedido, setPedido] = useState<Pedido | null>(null);
@@ -106,6 +107,10 @@ export default function PedidoDetallePage() {
       : "Pedido";
 
     window.print();
+
+    window.setTimeout(() => {
+      router.push("/admin/pedidos");
+    }, 500);
   }
 
   useEffect(() => {

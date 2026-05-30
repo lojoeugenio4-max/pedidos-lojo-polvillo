@@ -493,9 +493,15 @@ export default function AdminProductosPage() {
 
         <section className="bg-white rounded-2xl shadow overflow-hidden">
           <div className="p-4 border-b flex items-center justify-between">
-            <h2 className="text-xl font-bold">
-              Listado de productos
-            </h2>
+            <div>
+              <h2 className="text-xl font-bold">
+                Listado de productos
+              </h2>
+
+              <p className="text-sm text-slate-500 mt-1">
+                La columna Acciones queda fija a la derecha para que siempre veas Guardar.
+              </p>
+            </div>
 
             {cargando && (
               <p className="text-sm text-slate-500">Cargando...</p>
@@ -514,7 +520,7 @@ export default function AdminProductosPage() {
                   <th className="text-left p-3">Unidad</th>
                   <th className="text-left p-3">Imagen</th>
                   <th className="text-left p-3">Activo</th>
-                  <th className="text-left p-3">Acciones</th>
+                  <th className="text-left p-3 sticky right-0 bg-slate-50 z-20 shadow-l">Acciones</th>
                 </tr>
               </thead>
 
@@ -736,12 +742,16 @@ export default function AdminProductosPage() {
                         )}
                       </td>
 
-                      <td className="p-3">
+                      <td
+                        className={`p-3 sticky right-0 z-10 shadow-l ${
+                          !activo ? "bg-slate-100" : "bg-white"
+                        }`}
+                      >
                         {editando ? (
-                          <div className="flex gap-2 flex-wrap">
+                          <div className="flex flex-col gap-2 min-w-36">
                             <button
                               onClick={() => guardarEdicion(producto)}
-                              className="rounded-lg bg-black text-white px-3 py-2 flex items-center gap-1"
+                              className="rounded-lg bg-black text-white px-3 py-2 flex items-center justify-center gap-1 font-bold"
                             >
                               <Save className="w-4 h-4" />
                               Guardar
@@ -749,17 +759,17 @@ export default function AdminProductosPage() {
 
                             <button
                               onClick={cancelarEdicion}
-                              className="rounded-lg border px-3 py-2 flex items-center gap-1 bg-white"
+                              className="rounded-lg border px-3 py-2 flex items-center justify-center gap-1 bg-white"
                             >
                               <X className="w-4 h-4" />
                               Cancelar
                             </button>
                           </div>
                         ) : (
-                          <div className="flex gap-2 flex-wrap">
+                          <div className="flex flex-col gap-2 min-w-36">
                             <button
                               onClick={() => empezarEdicion(producto)}
-                              className="rounded-lg border px-3 py-2 flex items-center gap-1 bg-white"
+                              className="rounded-lg border px-3 py-2 flex items-center justify-center gap-1 bg-white font-bold"
                             >
                               <Pencil className="w-4 h-4" />
                               Editar
@@ -767,7 +777,7 @@ export default function AdminProductosPage() {
 
                             <button
                               onClick={() => cambiarActivo(producto)}
-                              className={`rounded-lg px-3 py-2 flex items-center gap-1 ${
+                              className={`rounded-lg px-3 py-2 flex items-center justify-center gap-1 ${
                                 activo
                                   ? "border border-red-200 text-red-700 bg-red-50"
                                   : "border border-green-200 text-green-700 bg-green-50"

@@ -9,7 +9,6 @@ import {
   Eraser,
   Eye,
   Phone,
-  Printer,
   RefreshCw,
   Trash2,
 } from "lucide-react";
@@ -620,8 +619,6 @@ export default function AdminPedidosPage() {
           <div className="p-4 border-b flex flex-col md:flex-row md:items-center md:justify-between gap-2">
             <div>
               <h2 className="text-xl font-bold">Pedidos recibidos</h2>
-
-
             </div>
 
             {cargando && <p className="text-sm text-slate-500">Cargando...</p>}
@@ -724,10 +721,7 @@ export default function AdminPedidosPage() {
                             </span>
                           </div>
                         ) : (
-                          <span className="estado-pendiente-parpadeo inline-flex items-center gap-1 rounded-full bg-red-600 text-white px-4 py-2 text-sm font-black uppercase shadow">
-                            <AlertCircle className="w-4 h-4" />
-                            Pendiente de imprimir
-                          </span>
+                          <span className="text-slate-400 text-xs">—</span>
                         )}
                       </td>
 
@@ -737,20 +731,12 @@ export default function AdminPedidosPage() {
                             !(pedido.fuera_de_dia && pedido.fecha !== hoyISO) && (
                               <Link
                                 href={`/admin/pedido/${pedido.id}`}
-                                className="estado-pendiente-parpadeo rounded-lg bg-red-600 text-white px-3 py-2 flex items-center gap-1 font-black uppercase shadow"
+                                className="estado-pendiente-parpadeo rounded-lg bg-red-600 text-white px-4 py-3 flex items-center gap-1 font-black uppercase shadow"
                               >
                                 <AlertCircle className="w-4 h-4" />
                                 Pendiente de imprimir
                               </Link>
                             )}
-
-                          <Link
-                            href={`/admin/pedido/${pedido.id}`}
-                            className="rounded-lg bg-black text-white px-3 py-2 flex items-center gap-1"
-                          >
-                            <Printer className="w-4 h-4" />
-                            Preparar
-                          </Link>
 
                           <Link
                             href={`/admin/pedido/${pedido.id}`}

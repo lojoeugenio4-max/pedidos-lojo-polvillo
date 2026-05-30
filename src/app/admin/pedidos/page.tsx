@@ -9,7 +9,6 @@ import {
   Eraser,
   Eye,
   Phone,
-  Printer,
   RefreshCw,
   Trash2,
 } from "lucide-react";
@@ -623,7 +622,7 @@ export default function AdminPedidosPage() {
 
               <p className="text-sm text-slate-500">
                 Mostrando <strong>{pedidosFiltrados.length}</strong> pedidos.
-                Los impresos solo aparecen en el filtro Impresos. La pantalla se actualiza automáticamente. Para marcar impreso hay que marcar el check y confirmar.
+                Los impresos solo aparecen en el filtro Impresos. La pantalla se actualiza automáticamente. Pulsa el botón rojo para preparar pedidos pendientes. Para marcar impreso hay que marcar el check y confirmar.
               </p>
             </div>
 
@@ -727,9 +726,8 @@ export default function AdminPedidosPage() {
                             </span>
                           </div>
                         ) : (
-                          <span className="estado-pendiente-parpadeo inline-flex items-center gap-1 rounded-full bg-red-600 text-white px-4 py-2 text-sm font-black uppercase shadow">
-                            <AlertCircle className="w-4 h-4" />
-                            Pendiente de imprimir
+                          <span className="text-slate-400 text-xs">
+                            —
                           </span>
                         )}
                       </td>
@@ -740,20 +738,12 @@ export default function AdminPedidosPage() {
                             !(pedido.fuera_de_dia && pedido.fecha !== hoyISO) && (
                               <Link
                                 href={`/admin/pedido/${pedido.id}`}
-                                className="estado-pendiente-parpadeo rounded-lg bg-red-600 text-white px-3 py-2 flex items-center gap-1 font-black uppercase shadow"
+                                className="estado-pendiente-parpadeo rounded-lg bg-red-600 text-white px-4 py-3 flex items-center gap-1 font-black uppercase shadow"
                               >
                                 <AlertCircle className="w-4 h-4" />
                                 Pendiente de imprimir
                               </Link>
                             )}
-
-                          <Link
-                            href={`/admin/pedido/${pedido.id}`}
-                            className="rounded-lg bg-black text-white px-3 py-2 flex items-center gap-1"
-                          >
-                            <Printer className="w-4 h-4" />
-                            Preparar
-                          </Link>
 
                           <Link
                             href={`/admin/pedido/${pedido.id}`}

@@ -138,7 +138,7 @@ function clasePedido(
   if (pendienteAntiguo) return "bg-yellow-50 border-l-8 border-yellow-500";
   if (pedido.impreso) return "bg-green-50 border-l-8 border-green-500";
   if (pedido.fuera_de_dia && pedido.fecha !== hoyISO) {
-    return "bg-orange-100 border-l-8 border-orange-600";
+    return "bg-blue-50 border-l-8 border-blue-400";
   }
   return "bg-white border-l-8 border-red-500";
 }
@@ -336,7 +336,9 @@ export default function AdminPedidosPage() {
   );
 
   const pedidosFiltrados = pedidos.filter(({ pedido, pendienteAntiguo }) => {
-    if (filtro === "todos") return !pedido.impreso;
+    if (filtro === "todos") {
+      return !pedido.impreso && !(pedido.fuera_de_dia && pedido.fecha !== hoyISO);
+    }
     if (filtro === "faltan") return false;
     if (filtro === "sin_imprimir") return !pedido.impreso;
     if (filtro === "impresos") return Boolean(pedido.impreso);
@@ -350,7 +352,8 @@ export default function AdminPedidosPage() {
   const mostrarFaltan = filtro === "todos" || filtro === "faltan";
 
   const recibidosSinImprimir = pedidos.filter(
-    ({ pedido }) => !pedido.impreso
+    ({ pedido }) =>
+      !pedido.impreso && !(pedido.fuera_de_dia && pedido.fecha !== hoyISO)
   ).length;
 
   const impresos = pedidos.filter(({ pedido }) => pedido.impreso).length;
@@ -473,7 +476,7 @@ export default function AdminPedidosPage() {
             onClick={() => setFiltro("fuera_dia")}
             className={claseTarjeta(
               filtro === "fuera_dia",
-              "bg-orange-600 border border-orange-700 text-white"
+              "bg-blue-50 border border-blue-300 text-blue-700"
             )}
           >
             <p className="text-sm font-bold">Fuera de día</p>
@@ -677,7 +680,7 @@ export default function AdminPedidosPage() {
                             Impreso
                           </span>
                         ) : pedido.fuera_de_dia && pedido.fecha !== hoyISO ? (
-                          <div className="inline-flex flex-col gap-1 rounded-xl bg-orange-600 text-white px-4 py-2 text-xs font-black shadow">
+                          <div className="inline-flex flex-col gap-1 rounded-xl bg-blue-100 text-blue-800 border border-blue-300 px-4 py-2 text-xs font-black shadow">
                             <span className="inline-flex items-center gap-1 uppercase">
                               <AlertCircle className="w-4 h-4" />
                               Fuera de día

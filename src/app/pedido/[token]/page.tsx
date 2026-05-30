@@ -501,7 +501,7 @@ export default function PedidoClientePage() {
   }, [categoriasDisponibles, categoria]);
 
   const productosFiltrados = useMemo(() => {
-    const q = busqueda.toLowerCase().trim();
+    const q = normalizarTexto(busqueda);
 
     return productosDelDepartamento
       .filter((p) => {
@@ -511,9 +511,9 @@ export default function PedidoClientePage() {
 
         const coincideBusqueda =
           !q ||
-          p.nombre.toLowerCase().includes(q) ||
-          p.codigo.includes(q) ||
-          (p.categoria || "").toLowerCase().includes(q);
+          normalizarTexto(p.nombre).includes(q) ||
+          normalizarTexto(p.codigo).includes(q) ||
+          normalizarTexto(p.categoria).includes(q);
 
         return coincideCategoria && coincideBusqueda;
       })
@@ -863,9 +863,12 @@ export default function PedidoClientePage() {
                   <button
                     key={d}
                     onClick={() => {
-                    setDepartamento(d);
-                    setCategoria("Todas");
-                  }}
+                      setDepartamento(d);
+                      setCategoria("Todas");
+                      setBusqueda("");
+                      setUltimoArticulo(null);
+                      setScrollPendiente(true);
+                    }}
                     className={`px-3 py-1.5 rounded-lg border text-xs font-bold ${
                       departamento === d ? "bg-black text-white" : "bg-white"
                     }`}
@@ -883,6 +886,7 @@ export default function PedidoClientePage() {
                     key={cat}
                     onClick={() => {
                       setCategoria(cat);
+                      setBusqueda("");
                       setUltimoArticulo(null);
                       setScrollPendiente(true);
                     }}

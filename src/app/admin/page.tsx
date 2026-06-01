@@ -6,6 +6,7 @@ import {
   Users,
   ShoppingCart,
   MessageCircle,
+  FileSpreadsheet,
 } from "lucide-react";
 
 export default function AdminPage() {
@@ -22,7 +23,7 @@ export default function AdminPage() {
           </p>
         </header>
 
-        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
           <Link
             href="/admin/clientes"
             className="bg-white rounded-2xl shadow p-6 hover:shadow-lg transition border"
@@ -88,6 +89,23 @@ export default function AdminPage() {
 
             <p className="text-slate-500 mt-2">
               Enviar mensajes WhatsApp a clientes
+            </p>
+          </Link>
+
+          <Link
+            href="/admin/listado-articulos"
+            className="bg-white rounded-2xl shadow p-6 hover:shadow-lg transition border"
+          >
+            <div className="flex items-center gap-3">
+              <FileSpreadsheet className="w-7 h-7" />
+
+              <h2 className="text-xl font-bold">
+                Plantillas
+              </h2>
+            </div>
+
+            <p className="text-slate-500 mt-2">
+              Imprimir listados para pedidos telefónicos
             </p>
           </Link>
         </section>

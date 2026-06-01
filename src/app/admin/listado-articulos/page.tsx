@@ -31,7 +31,7 @@ export default function ListadoArticulosPage() {
   const [productos, setProductos] = useState<Producto[]>([]);
   const [cargando, setCargando] = useState(true);
   const [mensaje, setMensaje] = useState("");
-  const [filtro, setFiltro] = useState<Filtro>("activos");
+  const [filtroImpresion, setFiltroImpresion] = useState<Filtro>("activos");
 
   async function cargarProductos() {
     setCargando(true);
@@ -65,8 +65,8 @@ export default function ListadoArticulosPage() {
       .filter((producto) => {
         const activo = producto.activo ?? true;
 
-        if (filtro === "activos") return activo;
-        if (filtro === "ocultos") return !activo;
+        if (filtroImpresion === "activos") return activo;
+        if (filtroImpresion === "ocultos") return !activo;
 
         return true;
       })
@@ -86,56 +86,76 @@ export default function ListadoArticulosPage() {
           numeric: true,
         });
       });
-  }, [productos, filtro]);
+  }, [productos, filtroImpresion]);
 
-  const { izquierda, derecha } = dividirEnDosColumnas(productosFiltrados);
+  const bebidas = productosFiltrados.filter(
+    (producto) => producto.departamento === "Bebidas"
+  );
+
+  const charcuteria = productosFiltrados.filter(
+    (producto) => producto.departamento === "Charcutería"
+  );
 
   const tituloFiltro =
-    filtro === "activos"
+    filtroImpresion === "activos"
       ? "Artículos activos"
-      : filtro === "ocultos"
+      : filtroImpresion === "ocultos"
         ? "Artículos ocultos"
         : "Artículos activos y ocultos";
 
-  function imprimir() {
-    window.print();
+  function imprimir(tipo: Filtro) {
+    setFiltroImpresion(tipo);
+
+    window.setTimeout(() => {
+      window.print();
+    }, 150);
   }
 
   function TablaListado({ items }: { items: Producto[] }) {
-    return (
-      <table className="tabla-listado">
-        <thead>
-          <tr>
-            <th className="col-articulo">Artículo</th>
-            <th className="col-numero">Cajas</th>
-            <th className="col-numero">Unid.</th>
-            <th className="col-numero">Kilos</th>
-          </tr>
-        </thead>
+    const { izquierda, derecha } = dividirEnDosColumnas(items);
 
-        <tbody>
-          {items.map((producto) => (
-            <tr key={producto.id}>
-              <td className="col-articulo">
-                <div className="articulo-linea">
-                  <strong>{producto.codigo}</strong>
-                  <span>{producto.nombre}</span>
-                </div>
-
-                <div className="articulo-meta">
-                  {producto.departamento}
-                  {producto.categoria ? ` · ${producto.categoria}` : ""}
-                  {producto.activo === false ? " · OCULTO" : ""}
-                </div>
-              </td>
-
-              <td className="col-numero"></td>
-              <td className="col-numero"></td>
-              <td className="col-numero"></td>
+    function TablaColumna({ productosColumna }: { productosColumna: Producto[] }) {
+      return (
+        <table className="tabla-listado">
+          <thead>
+            <tr>
+              <th className="col-articulo">Código / Artículo</th>
+              <th className="col-numero">Cajas</th>
+              <th className="col-numero">Unid.</th>
+              <th className="col-numero">Kilos</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+
+          <tbody>
+            {productosColumna.map((producto) => (
+              <tr key={producto.id}>
+                <td className="col-articulo">
+                  <div className="articulo-linea">
+                    <strong>{producto.codigo}</strong>
+                    <span>{producto.nombre}</span>
+                  </div>
+
+                  <div className="articulo-meta">
+                    {producto.categoria || "Sin categoría"}
+                    {producto.activo === false ? " · OCULTO" : ""}
+                  </div>
+                </td>
+
+                <td className="col-numero"></td>
+                <td className="col-numero"></td>
+                <td className="col-numero"></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      );
+    }
+
+    return (
+      <div className="columnas-listado">
+        <TablaColumna productosColumna={izquierda} />
+        <TablaColumna productosColumna={derecha} />
+      </div>
     );
   }
 
@@ -150,6 +170,35 @@ export default function ListadoArticulosPage() {
               0 10px 15px -3px rgb(0 0 0 / 0.1),
               0 4px 6px -4px rgb(0 0 0 / 0.1);
             padding: 1.5rem;
+          }
+
+          .cabecera-print {
+            border-bottom: 2px solid #111827;
+            padding-bottom: 0.75rem;
+            margin-bottom: 1rem;
+          }
+
+          .cabecera-print h1 {
+            font-size: 1.5rem;
+            font-weight: 900;
+          }
+
+          .cabecera-print p {
+            color: #64748b;
+            font-size: 0.875rem;
+          }
+
+          .departamento-print {
+            margin-top: 1.25rem;
+          }
+
+          .departamento-print h2 {
+            font-size: 1.25rem;
+            font-weight: 900;
+            background: #111827;
+            color: white;
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.5rem 0.5rem 0 0;
           }
 
           .tabla-listado {
@@ -168,10 +217,6 @@ export default function ListadoArticulosPage() {
           .tabla-listado th {
             background: #f1f5f9;
             font-weight: 800;
-          }
-
-          .col-articulo {
-            width: auto;
           }
 
           .col-numero {
@@ -201,7 +246,7 @@ export default function ListadoArticulosPage() {
         @media print {
           @page {
             size: A4;
-            margin: 8mm;
+            margin: 7mm;
           }
 
           html,
@@ -235,26 +280,45 @@ export default function ListadoArticulosPage() {
             align-items: baseline;
             border-bottom: 2px solid #000;
             padding-bottom: 4px;
-            margin-bottom: 6px;
+            margin-bottom: 5px;
           }
 
           .cabecera-print h1 {
-            font-size: 18px;
+            font-size: 17px;
             line-height: 1;
             margin: 0;
             font-weight: 900;
           }
 
           .cabecera-print p {
-            font-size: 10px;
+            font-size: 9px;
             margin: 0;
             font-weight: 700;
+          }
+
+          .departamento-print {
+            margin-top: 5px;
+            page-break-inside: avoid;
+          }
+
+          .departamento-print + .departamento-print {
+            page-break-before: always;
+          }
+
+          .departamento-print h2 {
+            background: #000;
+            color: #fff;
+            font-size: 12px;
+            line-height: 1;
+            font-weight: 900;
+            padding: 4px 6px;
+            margin: 0 0 3px 0;
           }
 
           .columnas-listado {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 5mm;
+            gap: 4mm;
             align-items: start;
           }
 
@@ -262,13 +326,13 @@ export default function ListadoArticulosPage() {
             width: 100%;
             border-collapse: collapse;
             table-layout: fixed;
-            font-size: 8.5px;
+            font-size: 8px;
           }
 
           .tabla-listado th,
           .tabla-listado td {
             border: 1px solid #000;
-            padding: 2.5px 3px;
+            padding: 2px 2.5px;
             vertical-align: top;
           }
 
@@ -284,8 +348,8 @@ export default function ListadoArticulosPage() {
           }
 
           .col-numero {
-            width: 13mm;
-            height: 7mm;
+            width: 12mm;
+            height: 6.5mm;
             text-align: center;
           }
 
@@ -302,7 +366,7 @@ export default function ListadoArticulosPage() {
           }
 
           .articulo-meta {
-            font-size: 7px;
+            font-size: 6.5px;
             line-height: 1.05;
             color: #000;
             margin-top: 1px;
@@ -338,65 +402,48 @@ export default function ListadoArticulosPage() {
               <RefreshCw className="w-4 h-4" />
               Actualizar
             </button>
-
-            <button
-              onClick={imprimir}
-              className="rounded-xl bg-black text-white px-4 py-3 flex items-center gap-2"
-            >
-              <Printer className="w-4 h-4" />
-              Imprimir plantilla
-            </button>
           </div>
         </header>
 
         <section className="no-print grid grid-cols-1 md:grid-cols-3 gap-3">
           <button
-            onClick={() => setFiltro("activos")}
-            className={`rounded-2xl p-4 shadow text-left border ${
-              filtro === "activos"
-                ? "bg-black text-white"
-                : "bg-white text-slate-700"
-            }`}
+            onClick={() => imprimir("activos")}
+            className="rounded-2xl p-5 shadow text-left border bg-black text-white hover:scale-[1.01] transition"
           >
             <div className="flex items-center gap-2">
               <Eye className="w-5 h-5" />
-              <p className="font-bold">Activos</p>
+              <p className="font-bold">Imprimir activos</p>
             </div>
 
-            <p className="text-3xl font-black mt-2">
+            <p className="text-4xl font-black mt-3">
               {productos.filter((p) => p.activo ?? true).length}
             </p>
           </button>
 
           <button
-            onClick={() => setFiltro("ocultos")}
-            className={`rounded-2xl p-4 shadow text-left border ${
-              filtro === "ocultos"
-                ? "bg-black text-white"
-                : "bg-white text-slate-700"
-            }`}
+            onClick={() => imprimir("ocultos")}
+            className="rounded-2xl p-5 shadow text-left border bg-white text-slate-700 hover:scale-[1.01] transition"
           >
             <div className="flex items-center gap-2">
               <EyeOff className="w-5 h-5" />
-              <p className="font-bold">Ocultos</p>
+              <p className="font-bold">Imprimir ocultos</p>
             </div>
 
-            <p className="text-3xl font-black mt-2">
+            <p className="text-4xl font-black mt-3">
               {productos.filter((p) => !(p.activo ?? true)).length}
             </p>
           </button>
 
           <button
-            onClick={() => setFiltro("ambos")}
-            className={`rounded-2xl p-4 shadow text-left border ${
-              filtro === "ambos"
-                ? "bg-black text-white"
-                : "bg-white text-slate-700"
-            }`}
+            onClick={() => imprimir("ambos")}
+            className="rounded-2xl p-5 shadow text-left border bg-white text-slate-700 hover:scale-[1.01] transition"
           >
-            <p className="font-bold">Ambos</p>
+            <div className="flex items-center gap-2">
+              <Printer className="w-5 h-5" />
+              <p className="font-bold">Imprimir ambos</p>
+            </div>
 
-            <p className="text-3xl font-black mt-2">{productos.length}</p>
+            <p className="text-4xl font-black mt-3">{productos.length}</p>
           </button>
         </section>
 
@@ -424,10 +471,21 @@ export default function ListadoArticulosPage() {
               No hay artículos para este filtro.
             </div>
           ) : (
-            <div className="columnas-listado">
-              <TablaListado items={izquierda} />
-              <TablaListado items={derecha} />
-            </div>
+            <>
+              {bebidas.length > 0 && (
+                <section className="departamento-print">
+                  <h2>BEBIDAS</h2>
+                  <TablaListado items={bebidas} />
+                </section>
+              )}
+
+              {charcuteria.length > 0 && (
+                <section className="departamento-print">
+                  <h2>CHARCUTERÍA</h2>
+                  <TablaListado items={charcuteria} />
+                </section>
+              )}
+            </>
           )}
         </section>
       </div>

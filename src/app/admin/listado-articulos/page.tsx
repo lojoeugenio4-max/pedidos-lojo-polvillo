@@ -20,9 +20,16 @@ type Filtro = "activos" | "ocultos" | "ambos";
 
 function partirEnColumnas<T>(items: T[], columnas: number) {
   const porColumna = Math.ceil(items.length / columnas);
+
   return Array.from({ length: columnas }, (_, index) =>
     items.slice(index * porColumna, index * porColumna + porColumna)
   );
+}
+
+function tituloFiltro(tipo: Filtro) {
+  if (tipo === "activos") return "Activos";
+  if (tipo === "ocultos") return "Ocultos";
+  return "Activos y ocultos";
 }
 
 export default function ListadoArticulosPage() {
@@ -94,19 +101,39 @@ export default function ListadoArticulosPage() {
     (producto) => producto.departamento === "Charcutería"
   );
 
-  const tituloFiltro =
-    filtroImpresion === "activos"
-      ? "ARTÍCULOS ACTIVOS"
-      : filtroImpresion === "ocultos"
-        ? "ARTÍCULOS OCULTOS"
-        : "ARTÍCULOS ACTIVOS Y OCULTOS";
-
   function imprimir(tipo: Filtro) {
     setFiltroImpresion(tipo);
 
     window.setTimeout(() => {
       window.print();
     }, 150);
+  }
+
+  function CabeceraHoja({
+    departamento,
+    total,
+  }: {
+    departamento: string;
+    total: number;
+  }) {
+    return (
+      <div className="cabecera-hoja">
+        <div className="campo-cabecera">
+          <span>DESPACHO</span>
+        </div>
+
+        <div className="titulo-hoja">
+          <h1>{departamento}</h1>
+          <p>
+            {tituloFiltro(filtroImpresion)} · {total} artículos
+          </p>
+        </div>
+
+        <div className="campo-cabecera">
+          <span>FECHA</span>
+        </div>
+      </div>
+    );
   }
 
   function TablaBebidas({ items }: { items: Producto[] }) {
@@ -116,22 +143,17 @@ export default function ListadoArticulosPage() {
     return (
       <table className="tabla-excel tabla-bebidas">
         <thead>
-          <tr>
-            {[0, 1].map((col) => (
-              <React.Fragment key={col}>
-                <th className="cod">Cod.</th>
-                <th className="articulo">Artículos</th>
-                <th className="cantidad">CAJAS</th>
-              </React.Fragment>
-            ))}
+          <tr className="fila-cabecera-principal">
+            <th colSpan={3}>BEBIDAS</th>
+            <th colSpan={3}>BEBIDAS</th>
           </tr>
 
           <tr>
             {[0, 1].map((col) => (
               <React.Fragment key={col}>
-                <th className="seccion" colSpan={3}>
-                  BEBIDAS
-                </th>
+                <th className="cod">Cod.</th>
+                <th className="articulo">Artículo</th>
+                <th className="cantidad">Cajas</th>
               </React.Fragment>
             ))}
           </tr>
@@ -140,7 +162,7 @@ export default function ListadoArticulosPage() {
         <tbody>
           {Array.from({ length: maxFilas }).map((_, fila) => (
             <tr key={fila}>
-              {[0, 1, 2].map((col) => {
+              {[0, 1].map((col) => {
                 const producto = columnas[col]?.[fila];
 
                 return (
@@ -165,24 +187,19 @@ export default function ListadoArticulosPage() {
     return (
       <table className="tabla-excel tabla-charcuteria">
         <thead>
-          <tr>
-            {[0, 1].map((col) => (
-              <React.Fragment key={col}>
-                <th className="cod">Cod.</th>
-                <th className="articulo">Artículos</th>
-                <th className="cantidad">CAJAS</th>
-                <th className="cantidad">UNID.</th>
-                <th className="cantidad">KILOS</th>
-              </React.Fragment>
-            ))}
+          <tr className="fila-cabecera-principal">
+            <th colSpan={5}>CHARCUTERÍA</th>
+            <th colSpan={5}>CHARCUTERÍA</th>
           </tr>
 
           <tr>
             {[0, 1].map((col) => (
               <React.Fragment key={col}>
-                <th className="seccion" colSpan={5}>
-                  CHARCUTERÍA
-                </th>
+                <th className="cod">Cod.</th>
+                <th className="articulo">Artículo</th>
+                <th className="cantidad">Cajas</th>
+                <th className="cantidad">Unid.</th>
+                <th className="cantidad">Kilos</th>
               </React.Fragment>
             ))}
           </tr>
@@ -214,53 +231,6 @@ export default function ListadoArticulosPage() {
   return (
     <main className="min-h-screen bg-slate-100 p-4 md:p-6 print:bg-white print:p-0">
       <style jsx global>{`
-        .tabla-excel {
-          width: 100%;
-          border-collapse: collapse;
-          table-layout: fixed;
-          font-family: Arial, Helvetica, sans-serif;
-        }
-
-        .tabla-excel th,
-        .tabla-excel td {
-          border: 1px solid #000;
-          color: #000;
-          vertical-align: middle;
-        }
-
-        .tabla-excel th {
-          font-weight: 900;
-          text-align: center;
-          background: #ffffff;
-        }
-
-        .tabla-excel .seccion {
-          background: #d9d9d9;
-          font-weight: 900;
-          text-align: center;
-        }
-
-        .tabla-excel .cod {
-          width: 38px;
-          text-align: center;
-          font-weight: 900;
-        }
-
-        .tabla-excel .articulo {
-          width: auto;
-          font-weight: 900;
-        }
-
-        .tabla-excel .cantidad {
-          width: 46px;
-          text-align: center;
-          font-weight: 900;
-        }
-
-        .tabla-excel .dato {
-          font-weight: 900;
-        }
-
         @media screen {
           .hoja-listado {
             background: white;
@@ -271,44 +241,107 @@ export default function ListadoArticulosPage() {
             padding: 1.5rem;
           }
 
-          .cabecera-excel {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 1rem;
-            margin-bottom: 1rem;
-            font-weight: 900;
-          }
-
-          .cabecera-excel div {
-            border-bottom: 2px solid #000;
-            padding-bottom: 0.25rem;
-          }
-
-          .titulo-print {
-            font-size: 1.5rem;
-            font-weight: 900;
-            margin-bottom: 1rem;
-          }
-
           .bloque-print {
             margin-top: 1.5rem;
           }
 
+          .cabecera-hoja {
+            display: grid;
+            grid-template-columns: 1fr 1.4fr 1fr;
+            gap: 0.75rem;
+            align-items: stretch;
+            margin-bottom: 0.75rem;
+          }
+
+          .campo-cabecera,
+          .titulo-hoja {
+            border: 2px solid #000;
+            min-height: 52px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f8fafc;
+          }
+
+          .campo-cabecera span {
+            font-weight: 900;
+            font-size: 1rem;
+          }
+
+          .titulo-hoja {
+            flex-direction: column;
+            background: #111827;
+            color: white;
+          }
+
+          .titulo-hoja h1 {
+            font-size: 1.45rem;
+            line-height: 1;
+            font-weight: 900;
+            margin: 0;
+          }
+
+          .titulo-hoja p {
+            font-size: 0.75rem;
+            margin-top: 0.25rem;
+          }
+
           .tabla-excel {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+            font-family: Arial, Helvetica, sans-serif;
             font-size: 12px;
           }
 
           .tabla-excel th,
           .tabla-excel td {
+            border: 1px solid #000;
+            color: #000;
+            vertical-align: middle;
             padding: 4px;
             height: 24px;
+          }
+
+          .tabla-excel th {
+            font-weight: 900;
+            text-align: center;
+            background: #e5e7eb;
+          }
+
+          .fila-cabecera-principal th {
+            background: #111827;
+            color: white;
+            font-size: 13px;
+            letter-spacing: 0.04em;
+          }
+
+          .tabla-excel .cod {
+            width: 42px;
+            text-align: center;
+            font-weight: 900;
+          }
+
+          .tabla-excel .articulo {
+            width: auto;
+            font-weight: 900;
+          }
+
+          .tabla-excel .cantidad {
+            width: 46px;
+            text-align: center;
+            font-weight: 900;
+          }
+
+          .tabla-excel .dato {
+            font-weight: 800;
           }
         }
 
         @media print {
           @page {
             size: A4;
-            margin: 7mm;
+            margin: 8mm;
           }
 
           html,
@@ -336,51 +369,112 @@ export default function ListadoArticulosPage() {
             background: white !important;
           }
 
-          .cabecera-excel {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 10mm;
-            margin-bottom: 4px;
-            font-size: 12px;
-            font-weight: 900;
-          }
-
-          .cabecera-excel div {
-            border-bottom: 1px solid #000;
-            padding-bottom: 2px;
-          }
-
-          .titulo-print {
-            font-size: 14px;
-            font-weight: 900;
-            margin: 0 0 4px 0;
-          }
-
           .bloque-print {
-            margin-top: 5px;
+            margin-top: 0;
+            break-after: page;
+            page-break-after: always;
           }
 
-          .bloque-print + .bloque-print {
-            page-break-before: always;
+          .bloque-print:last-child {
+            break-after: auto;
+            page-break-after: auto;
+          }
+
+          .cabecera-hoja {
+            display: grid;
+            grid-template-columns: 1fr 1.3fr 1fr;
+            gap: 4mm;
+            align-items: stretch;
+            margin-bottom: 4px;
+          }
+
+          .campo-cabecera,
+          .titulo-hoja {
+            border: 1.5px solid #000;
+            min-height: 10mm;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+
+          .campo-cabecera {
+            background: #fff;
+          }
+
+          .campo-cabecera span {
+            font-weight: 900;
+            font-size: 10px;
+          }
+
+          .titulo-hoja {
+            flex-direction: column;
+            background: #000;
+            color: #fff;
+          }
+
+          .titulo-hoja h1 {
+            font-size: 13px;
+            line-height: 1;
+            font-weight: 900;
+            margin: 0;
+          }
+
+          .titulo-hoja p {
+            font-size: 7px;
+            margin: 1px 0 0 0;
+            font-weight: 700;
           }
 
           .tabla-excel {
-            font-size: 7.8px;
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 7.5px;
           }
 
           .tabla-excel th,
           .tabla-excel td {
-            padding: 2px 3px;
-            height: 17px;
+            border: 1px solid #000;
+            color: #000;
+            vertical-align: middle;
+            padding: 1.5px 2px;
+            height: 16px;
             line-height: 1.05;
           }
 
+          .tabla-excel th {
+            font-weight: 900;
+            text-align: center;
+            background: #e5e7eb;
+          }
+
+          .fila-cabecera-principal th {
+            background: #000;
+            color: white;
+            font-size: 8.5px;
+            letter-spacing: 0.03em;
+          }
+
           .tabla-excel .cod {
-            width: 10mm;
+            width: 9mm;
+            text-align: center;
+            font-weight: 900;
+          }
+
+          .tabla-excel .articulo {
+            width: auto;
+            font-weight: 900;
           }
 
           .tabla-excel .cantidad {
-            width: 11mm;
+            width: 10mm;
+            text-align: center;
+            font-weight: 900;
+          }
+
+          .tabla-excel .dato {
+            font-weight: 800;
           }
         }
       `}</style>
@@ -477,26 +571,17 @@ export default function ListadoArticulosPage() {
             <>
               {bebidas.length > 0 && (
                 <section className="bloque-print">
-                  <div className="cabecera-excel">
-                    <div>DESPACHO:</div>
-                    <div>FECHA:</div>
-                    <div></div>
-                  </div>
-
-                  <div className="titulo-print">BEBIDAS</div>
+                  <CabeceraHoja departamento="BEBIDAS" total={bebidas.length} />
                   <TablaBebidas items={bebidas} />
                 </section>
               )}
 
               {charcuteria.length > 0 && (
                 <section className="bloque-print">
-                  <div className="cabecera-excel">
-                    <div>DESPACHO:</div>
-                    <div>FECHA:</div>
-                    <div></div>
-                  </div>
-
-                  <div className="titulo-print">CHARCUTERÍA</div>
+                  <CabeceraHoja
+                    departamento="CHARCUTERÍA"
+                    total={charcuteria.length}
+                  />
                   <TablaCharcuteria items={charcuteria} />
                 </section>
               )}

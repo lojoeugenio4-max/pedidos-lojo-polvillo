@@ -683,7 +683,7 @@ export default function PedidoClientePage() {
     return (
       <main className="min-h-screen bg-slate-100 p-4 md:p-6">
         <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow p-6 space-y-3">
-          <div className="flex items-center gap-2 text-red-600 font-bold">
+          <div className="flex items-center gap-2 text-black font-bold">
             <AlertCircle className="w-5 h-5" />
             Enlace no válido
           </div>
@@ -714,7 +714,7 @@ export default function PedidoClientePage() {
 
             {bebidasPedido.length > 0 && (
               <div>
-                <h2 className="text-xl font-bold mb-3 text-red-600">Bebidas</h2>
+                <h2 className="text-xl font-bold mb-3 text-black">Bebidas</h2>
 
                 <div className="space-y-2">
                   {bebidasPedido.map((item) => (
@@ -723,13 +723,13 @@ export default function PedidoClientePage() {
                       className="border rounded-xl p-3 flex justify-between gap-3"
                     >
                       <div>
-                        <p className="font-semibold text-red-600">{item.nombre}</p>
+                        <p className="font-semibold text-black">{item.nombre}</p>
                         <p className="text-xs text-slate-500">
                           Código {item.codigo}
                         </p>
                       </div>
 
-                      <p className="font-bold whitespace-nowrap text-red-600">
+                      <p className="font-bold whitespace-nowrap text-black">
                         {item.cajas} caja{item.cajas === 1 ? "" : "s"}
                       </p>
                     </div>
@@ -740,7 +740,7 @@ export default function PedidoClientePage() {
 
             {charcuteriaPedido.length > 0 && (
               <div>
-                <h2 className="text-xl font-bold mb-3 text-red-600">Charcutería</h2>
+                <h2 className="text-xl font-bold mb-3 text-black">Charcutería</h2>
 
                 <div className="space-y-2">
                   {charcuteriaPedido.map((item) => (
@@ -749,13 +749,13 @@ export default function PedidoClientePage() {
                       className="border rounded-xl p-3 flex justify-between gap-3"
                     >
                       <div>
-                        <p className="font-semibold text-red-600">{item.nombre}</p>
+                        <p className="font-semibold text-black">{item.nombre}</p>
                         <p className="text-xs text-slate-500">
                           Código {item.codigo}
                         </p>
                       </div>
 
-                      <p className="font-bold whitespace-nowrap text-red-600">
+                      <p className="font-bold whitespace-nowrap text-black">
                         {item.cajas > 0
                           ? `${item.cajas} caja${item.cajas === 1 ? "" : "s"}`
                           : `${item.unidades} unidad${
@@ -788,7 +788,7 @@ export default function PedidoClientePage() {
             <button
               onClick={enviarPedido}
               disabled={enviando}
-              className="w-full md:w-auto bg-red-600 text-white rounded-xl py-3 px-6 font-bold flex items-center justify-center gap-2 disabled:bg-red-300"
+              className="w-full md:w-auto bg-black text-white rounded-xl py-3 px-6 font-bold flex items-center justify-center gap-2 disabled:bg-slate-400"
             >
               <CheckCircle className="w-4 h-4" />
               {enviando
@@ -811,7 +811,7 @@ export default function PedidoClientePage() {
         <header className="bg-white rounded-xl shadow px-3 py-2 md:p-4">
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
-              <h1 className="text-lg md:text-3xl font-bold leading-tight truncate text-red-600">
+              <h1 className="text-lg md:text-3xl font-bold leading-tight truncate text-black">
                 Polvillo · Pedido
               </h1>
 
@@ -821,12 +821,12 @@ export default function PedidoClientePage() {
               </p>
             </div>
 
-            <div className="bg-red-50 rounded-xl px-3 py-2 flex items-center gap-2 shrink-0 text-red-600">
+            <div className="bg-slate-100 rounded-xl px-3 py-2 flex items-center gap-2 shrink-0 text-black">
               <ShoppingCart className="w-5 h-5" />
 
               <div>
                 <p className="text-xs text-slate-500 leading-none">Líneas</p>
-                <p className="text-lg font-bold leading-tight text-red-600">{totalLineas}</p>
+                <p className="text-lg font-bold leading-tight text-black">{totalLineas}</p>
               </div>
             </div>
           </div>
@@ -839,7 +839,7 @@ export default function PedidoClientePage() {
           <div className="bg-white rounded-xl p-2 shadow space-y-1.5">
             <div className="flex flex-col md:flex-row gap-2">
               <div className="relative flex-1">
-                <Search className="absolute left-3 top-2.5 w-4 h-4 text-red-400" />
+                <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
 
                 <input
                   value={busqueda}
@@ -858,7 +858,7 @@ export default function PedidoClientePage() {
                       setBusqueda("");
                       setUltimoArticulo(null);
                     }}
-                    className="absolute right-2 top-1.5 h-7 w-7 rounded-full bg-red-50 text-red-600 font-bold"
+                    className="absolute right-2 top-1.5 h-7 w-7 rounded-full bg-slate-100 text-black font-bold"
                     aria-label="Borrar búsqueda"
                   >
                     ×
@@ -878,7 +878,7 @@ export default function PedidoClientePage() {
                       setScrollPendiente(true);
                     }}
                     className={`px-3 py-1.5 rounded-lg border text-xs font-bold ${
-                      departamento === d ? "bg-red-600 text-white" : "bg-white"
+                      departamento === d ? "bg-black text-white" : "bg-white"
                     }`}
                   >
                     {d}
@@ -900,8 +900,8 @@ export default function PedidoClientePage() {
                     }}
                     className={`h-8 rounded-md border text-[11px] font-bold text-center px-1.5 transition ${
                       categoria === cat
-                        ? "bg-red-600 text-white border-red-600 shadow"
-                        : "bg-white hover:bg-red-50"
+                        ? "bg-black text-white border-black shadow"
+                        : "bg-white hover:bg-slate-100"
                     }`}
                   >
                     <span className="block truncate">{cat}</span>
@@ -929,7 +929,7 @@ export default function PedidoClientePage() {
                     setBusqueda("");
                     setScrollPendiente(true);
                   }}
-                  className="rounded-lg bg-red-600 text-white px-4 py-2 font-bold"
+                  className="rounded-lg bg-black text-white px-4 py-2 font-bold"
                 >
                   Borrar búsqueda
                 </button>
@@ -948,7 +948,7 @@ export default function PedidoClientePage() {
                 key={`${p.codigo}-${p.nombre}`}
                 className={`rounded-lg p-2 shadow transition-all ${
                   ultimoArticulo === p.codigo
-                    ? "bg-red-50 ring-2 ring-red-400"
+                    ? "bg-slate-100 ring-2 ring-slate-400"
                     : "bg-white"
                 }`}
               >
@@ -975,7 +975,7 @@ export default function PedidoClientePage() {
                         Código {p.codigo}
                       </p>
 
-                      <h2 className="font-bold text-sm md:text-base leading-tight break-words text-red-600">
+                      <h2 className="font-bold text-sm md:text-base leading-tight break-words text-black">
                         {p.nombre}
                       </h2>
 
@@ -1062,12 +1062,12 @@ export default function PedidoClientePage() {
           <div className="grid grid-cols-[auto_auto_1fr] items-center gap-2">
             <div className="min-w-14">
               <p className="text-[11px] text-slate-500 leading-none">Líneas</p>
-              <p className="text-xl font-bold leading-tight text-red-600">{totalLineas}</p>
+              <p className="text-xl font-bold leading-tight text-black">{totalLineas}</p>
             </div>
 
             <button
               onClick={limpiarPedido}
-              className="text-red-500 flex items-center gap-1 text-xs px-2 py-2"
+              className="text-slate-700 flex items-center gap-1 text-xs px-2 py-2"
             >
               <Trash2 className="w-4 h-4" />
               Limpiar
@@ -1076,7 +1076,7 @@ export default function PedidoClientePage() {
             <button
               onClick={abrirPreview}
               disabled={enviando}
-              className="bg-red-600 text-white rounded-xl py-3 px-3 font-bold flex items-center justify-center gap-2 disabled:bg-red-300"
+              className="bg-black text-white rounded-xl py-3 px-3 font-bold flex items-center justify-center gap-2 disabled:bg-slate-400"
             >
               <Send className="w-4 h-4" />
               Revisar pedido
@@ -1086,10 +1086,10 @@ export default function PedidoClientePage() {
       </div>
 
       {avisoPedido && (
-        <div className="fixed inset-0 z-[1000] bg-red-950/60 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[1000] bg-black/60 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 space-y-5">
             <div className="flex items-center gap-3">
-              <AlertCircle className="w-7 h-7 text-red-600" />
+              <AlertCircle className="w-7 h-7 text-black" />
 
               <h2 className="text-2xl font-bold">
                 {avisoPedido.titulo}
@@ -1102,7 +1102,7 @@ export default function PedidoClientePage() {
 
             <button
               onClick={() => setAvisoPedido(null)}
-              className="w-full bg-red-600 text-white rounded-xl py-3 font-bold"
+              className="w-full bg-black text-white rounded-xl py-3 font-bold"
             >
               Aceptar y continuar
             </button>
@@ -1111,10 +1111,10 @@ export default function PedidoClientePage() {
       )}
 
       {mostrarAviso && mensajeAviso && (
-        <div className="fixed inset-0 z-[1000] bg-red-950/60 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[1000] bg-black/60 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 space-y-5">
             <div className="flex items-center gap-3">
-              <AlertCircle className="w-7 h-7 text-red-600" />
+              <AlertCircle className="w-7 h-7 text-black" />
 
               <h2 className="text-2xl font-bold">
                 Aviso importante
@@ -1127,7 +1127,7 @@ export default function PedidoClientePage() {
 
             <button
               onClick={aceptarAviso}
-              className="w-full bg-red-600 text-white rounded-xl py-3 font-bold"
+              className="w-full bg-black text-white rounded-xl py-3 font-bold"
             >
               Aceptar y hacer pedido
             </button>
@@ -1137,7 +1137,7 @@ export default function PedidoClientePage() {
 
       {imagenAmpliada && (
         <div
-          className="fixed inset-0 z-[999] bg-red-950/70 p-4 flex items-center justify-center"
+          className="fixed inset-0 z-[999] bg-black/70 p-4 flex items-center justify-center"
           onClick={() => setImagenAmpliada(null)}
         >
           <div

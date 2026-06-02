@@ -179,7 +179,7 @@ export default function ListadoArticulosPage() {
           <col className="col-articulo-char" />
           <col className="col-cantidad-char" />
           <col className="col-cantidad-char" />
-          <col className="col-cantidad-char" />
+          <col className="col-kilos-char" />
 
           <col className="col-separador" />
 
@@ -187,7 +187,7 @@ export default function ListadoArticulosPage() {
           <col className="col-articulo-char" />
           <col className="col-cantidad-char" />
           <col className="col-cantidad-char" />
-          <col className="col-cantidad-char" />
+          <col className="col-kilos-char" />
         </colgroup>
 
         <thead>
@@ -196,7 +196,7 @@ export default function ListadoArticulosPage() {
             <th>Artículo</th>
             <th>Cajas</th>
             <th>Unid.</th>
-            <th>Kilos</th>
+            <th className="kilos">Kilos</th>
 
             <th className="separador"></th>
 
@@ -204,7 +204,7 @@ export default function ListadoArticulosPage() {
             <th>Artículo</th>
             <th>Cajas</th>
             <th>Unid.</th>
-            <th>Kilos</th>
+            <th className="kilos">Kilos</th>
           </tr>
         </thead>
 
@@ -219,7 +219,7 @@ export default function ListadoArticulosPage() {
                 <td className="articulo">{izquierda?.nombre || ""}</td>
                 <td className="cantidad"></td>
                 <td className="cantidad"></td>
-                <td className="cantidad"></td>
+                <td className="kilos"></td>
 
                 <td className="separador"></td>
 
@@ -227,7 +227,7 @@ export default function ListadoArticulosPage() {
                 <td className="articulo">{derecha?.nombre || ""}</td>
                 <td className="cantidad"></td>
                 <td className="cantidad"></td>
-                <td className="cantidad"></td>
+                <td className="kilos"></td>
               </tr>
             );
           })}
@@ -341,19 +341,25 @@ export default function ListadoArticulosPage() {
           }
 
           .col-codigo-char {
-            width: 5%;
+            width: 4%;
           }
 
           .col-articulo-char {
-            width: 27%;
+            width: 30%;
           }
 
           .col-cantidad-char {
-            width: 5%;
+            width: 4%;
           }
 
           .col-kilos-char {
-            width: 7.5%;
+            width: 7%;
+          }
+
+          .kilos {
+            text-align: center;
+            font-weight: 900;
+            background: #fff;
           }
 
           .col-separador {
@@ -492,19 +498,25 @@ export default function ListadoArticulosPage() {
           }
 
           .col-codigo-char {
-            width: 5%;
+            width: 4%;
           }
 
           .col-articulo-char {
-            width: 27%;
+            width: 30%;
           }
 
           .col-cantidad-char {
-            width: 5%;
+            width: 4%;
           }
 
           .col-kilos-char {
-            width: 7.5%;
+            width: 7%;
+          }
+
+          .kilos {
+            text-align: center;
+            font-weight: 900;
+            background: #fff;
           }
 
           .col-separador {

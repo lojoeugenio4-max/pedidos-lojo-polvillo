@@ -138,7 +138,7 @@ export default function ListadoArticulosPage() {
               <React.Fragment key={col}>
                 <th className="cod">Cod.</th>
                 <th className="articulo">Artículo</th>
-                <th className="cantidad">Cajas</th>
+                <th className="cantidad">CJ</th>
               </React.Fragment>
             ))}
           </tr>
@@ -182,9 +182,9 @@ export default function ListadoArticulosPage() {
               <React.Fragment key={col}>
                 <th className="cod">Cod.</th>
                 <th className="articulo">Artículo</th>
-                <th className="cantidad">Cajas</th>
-                <th className="cantidad">Unid.</th>
-                <th className="cantidad">Kilos</th>
+                <th className="cantidad">CJ</th>
+                <th className="cantidad">UN</th>
+                <th className="cantidad">KG</th>
               </React.Fragment>
             ))}
           </tr>
@@ -303,24 +303,27 @@ export default function ListadoArticulosPage() {
           }
 
           .tabla-excel .cod {
-            width: 42px;
+            width: 34px;
             text-align: center;
             font-weight: 900;
+            font-size: 13px;
           }
 
           .tabla-excel .articulo {
             width: auto;
             font-weight: 900;
+            font-size: 14px;
           }
 
           .tabla-excel .cantidad {
-            width: 46px;
+            width: 34px;
             text-align: center;
             font-weight: 900;
+            font-size: 12px;
           }
 
           .tabla-excel .dato {
-            font-weight: 800;
+            font-weight: 900;
           }
         }
 
@@ -413,7 +416,7 @@ export default function ListadoArticulosPage() {
             border-collapse: collapse;
             table-layout: fixed;
             font-family: Arial, Helvetica, sans-serif;
-            font-size: 7.5px;
+            font-size: 9px;
           }
 
           .tabla-excel th,
@@ -422,7 +425,7 @@ export default function ListadoArticulosPage() {
             color: #000;
             vertical-align: middle;
             padding: 1.5px 2px;
-            height: 16px;
+            height: 17px;
             line-height: 1.05;
           }
 
@@ -440,24 +443,27 @@ export default function ListadoArticulosPage() {
           }
 
           .tabla-excel .cod {
-            width: 9mm;
+            width: 7mm;
             text-align: center;
             font-weight: 900;
+            font-size: 8.8px;
           }
 
           .tabla-excel .articulo {
             width: auto;
             font-weight: 900;
+            font-size: 9.4px;
           }
 
           .tabla-excel .cantidad {
-            width: 10mm;
+            width: 7mm;
             text-align: center;
             font-weight: 900;
+            font-size: 8px;
           }
 
           .tabla-excel .dato {
-            font-weight: 800;
+            font-weight: 900;
           }
         }
       `}</style>

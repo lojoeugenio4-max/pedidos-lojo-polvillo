@@ -26,12 +26,6 @@ function partirEnColumnas<T>(items: T[], columnas: number) {
   );
 }
 
-function tituloFiltro(tipo: Filtro) {
-  if (tipo === "activos") return "Activos";
-  if (tipo === "ocultos") return "Ocultos";
-  return "Activos y ocultos";
-}
-
 export default function ListadoArticulosPage() {
   const [productos, setProductos] = useState<Producto[]>([]);
   const [cargando, setCargando] = useState(true);
@@ -109,28 +103,19 @@ export default function ListadoArticulosPage() {
     }, 150);
   }
 
-  function CabeceraHoja({
-    departamento,
-    total,
-  }: {
-    departamento: string;
-    total: number;
-  }) {
+  function CabeceraHoja({ departamento }: { departamento: string }) {
     return (
       <div className="cabecera-hoja">
         <div className="campo-cabecera">
-          <span>DESPACHO</span>
-        </div>
-
-        <div className="titulo-hoja">
-          <h1>{departamento}</h1>
-          <p>
-            {tituloFiltro(filtroImpresion)} · {total} artículos
-          </p>
+          <span>DESPACHO:</span>
         </div>
 
         <div className="campo-cabecera">
-          <span>FECHA</span>
+          <span>FECHA:</span>
+        </div>
+
+        <div className="titulo-departamento">
+          <h1>{departamento}</h1>
         </div>
       </div>
     );
@@ -247,20 +232,20 @@ export default function ListadoArticulosPage() {
 
           .cabecera-hoja {
             display: grid;
-            grid-template-columns: 1fr 1.4fr 1fr;
+            grid-template-columns: 1fr 1fr;
             gap: 0.75rem;
             align-items: stretch;
             margin-bottom: 0.75rem;
           }
 
-          .campo-cabecera,
-          .titulo-hoja {
+          .campo-cabecera {
             border: 2px solid #000;
             min-height: 52px;
             display: flex;
-            align-items: center;
-            justify-content: center;
-            background: #f8fafc;
+            align-items: flex-start;
+            justify-content: flex-start;
+            background: #ffffff;
+            padding: 0.5rem 0.75rem;
           }
 
           .campo-cabecera span {
@@ -268,22 +253,23 @@ export default function ListadoArticulosPage() {
             font-size: 1rem;
           }
 
-          .titulo-hoja {
-            flex-direction: column;
-            background: #111827;
-            color: white;
+          .titulo-departamento {
+            grid-column: 1 / -1;
+            border: 2px solid #000;
+            background: #d9d9d9;
+            color: #000;
+            min-height: 42px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
           }
 
-          .titulo-hoja h1 {
+          .titulo-departamento h1 {
             font-size: 1.45rem;
             line-height: 1;
             font-weight: 900;
             margin: 0;
-          }
-
-          .titulo-hoja p {
-            font-size: 0.75rem;
-            margin-top: 0.25rem;
+            letter-spacing: 0.04em;
           }
 
           .tabla-excel {
@@ -382,23 +368,20 @@ export default function ListadoArticulosPage() {
 
           .cabecera-hoja {
             display: grid;
-            grid-template-columns: 1fr 1.3fr 1fr;
+            grid-template-columns: 1fr 1fr;
             gap: 4mm;
             align-items: stretch;
             margin-bottom: 4px;
           }
 
-          .campo-cabecera,
-          .titulo-hoja {
-            border: 1.5px solid #000;
-            min-height: 10mm;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-          }
-
           .campo-cabecera {
+            border: 1.5px solid #000;
+            min-height: 11mm;
+            display: flex;
+            align-items: flex-start;
+            justify-content: flex-start;
             background: #fff;
+            padding: 2mm;
           }
 
           .campo-cabecera span {
@@ -406,23 +389,23 @@ export default function ListadoArticulosPage() {
             font-size: 10px;
           }
 
-          .titulo-hoja {
-            flex-direction: column;
-            background: #000;
-            color: #fff;
+          .titulo-departamento {
+            grid-column: 1 / -1;
+            border: 1.5px solid #000;
+            background: #d9d9d9;
+            color: #000;
+            min-height: 8mm;
+            display: flex;
+            align-items: center;
+            justify-content: center;
           }
 
-          .titulo-hoja h1 {
+          .titulo-departamento h1 {
             font-size: 13px;
             line-height: 1;
             font-weight: 900;
             margin: 0;
-          }
-
-          .titulo-hoja p {
-            font-size: 7px;
-            margin: 1px 0 0 0;
-            font-weight: 700;
+            letter-spacing: 0.04em;
           }
 
           .tabla-excel {
@@ -571,17 +554,14 @@ export default function ListadoArticulosPage() {
             <>
               {bebidas.length > 0 && (
                 <section className="bloque-print">
-                  <CabeceraHoja departamento="BEBIDAS" total={bebidas.length} />
+                  <CabeceraHoja departamento="BEBIDAS" />
                   <TablaBebidas items={bebidas} />
                 </section>
               )}
 
               {charcuteria.length > 0 && (
                 <section className="bloque-print">
-                  <CabeceraHoja
-                    departamento="CHARCUTERÍA"
-                    total={charcuteria.length}
-                  />
+                  <CabeceraHoja departamento="CHARCUTERÍA" />
                   <TablaCharcuteria items={charcuteria} />
                 </section>
               )}

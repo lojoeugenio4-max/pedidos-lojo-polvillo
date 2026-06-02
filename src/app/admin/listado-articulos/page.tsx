@@ -110,14 +110,14 @@ export default function ListadoArticulosPage() {
   }
 
   function TablaBebidas({ items }: { items: Producto[] }) {
-    const columnas = partirEnColumnas(items, 3);
+    const columnas = partirEnColumnas(items, 2);
     const maxFilas = Math.max(...columnas.map((col) => col.length), 0);
 
     return (
       <table className="tabla-excel tabla-bebidas">
         <thead>
           <tr>
-            {[0, 1, 2].map((col) => (
+            {[0, 1].map((col) => (
               <React.Fragment key={col}>
                 <th className="cod">Cod.</th>
                 <th className="articulo">Artículos</th>
@@ -127,7 +127,7 @@ export default function ListadoArticulosPage() {
           </tr>
 
           <tr>
-            {[0, 1, 2].map((col) => (
+            {[0, 1].map((col) => (
               <React.Fragment key={col}>
                 <th className="seccion" colSpan={3}>
                   BEBIDAS
@@ -241,7 +241,7 @@ export default function ListadoArticulosPage() {
         }
 
         .tabla-excel .cod {
-          width: 44px;
+          width: 38px;
           text-align: center;
           font-weight: 900;
         }
@@ -252,7 +252,7 @@ export default function ListadoArticulosPage() {
         }
 
         .tabla-excel .cantidad {
-          width: 58px;
+          width: 46px;
           text-align: center;
           font-weight: 900;
         }
@@ -307,7 +307,7 @@ export default function ListadoArticulosPage() {
 
         @media print {
           @page {
-            size: A4 landscape;
+            size: A4;
             margin: 7mm;
           }
 
@@ -365,22 +365,22 @@ export default function ListadoArticulosPage() {
           }
 
           .tabla-excel {
-            font-size: 8.5px;
+            font-size: 7.8px;
           }
 
           .tabla-excel th,
           .tabla-excel td {
             padding: 2px 3px;
-            height: 18px;
+            height: 17px;
             line-height: 1.05;
           }
 
           .tabla-excel .cod {
-            width: 12mm;
+            width: 10mm;
           }
 
           .tabla-excel .cantidad {
-            width: 15mm;
+            width: 11mm;
           }
         }
       `}</style>
@@ -465,12 +465,6 @@ export default function ListadoArticulosPage() {
         )}
 
         <section className="hoja-listado">
-          <div className="cabecera-excel">
-            <div>DESPACHO:</div>
-            <div>FECHA:</div>
-            <div>{tituloFiltro}</div>
-          </div>
-
           {cargando ? (
             <div className="p-6 text-center text-slate-500">
               Cargando artículos...
@@ -483,6 +477,12 @@ export default function ListadoArticulosPage() {
             <>
               {bebidas.length > 0 && (
                 <section className="bloque-print">
+                  <div className="cabecera-excel">
+                    <div>DESPACHO:</div>
+                    <div>FECHA:</div>
+                    <div></div>
+                  </div>
+
                   <div className="titulo-print">BEBIDAS</div>
                   <TablaBebidas items={bebidas} />
                 </section>
@@ -490,6 +490,12 @@ export default function ListadoArticulosPage() {
 
               {charcuteria.length > 0 && (
                 <section className="bloque-print">
+                  <div className="cabecera-excel">
+                    <div>DESPACHO:</div>
+                    <div>FECHA:</div>
+                    <div></div>
+                  </div>
+
                   <div className="titulo-print">CHARCUTERÍA</div>
                   <TablaCharcuteria items={charcuteria} />
                 </section>

@@ -352,6 +352,10 @@ export default function ListadoArticulosPage() {
             width: 5%;
           }
 
+          .col-kilos-char {
+            width: 7.5%;
+          }
+
           .col-separador {
             width: 2%;
           }
@@ -497,6 +501,10 @@ export default function ListadoArticulosPage() {
 
           .col-cantidad-char {
             width: 5%;
+          }
+
+          .col-kilos-char {
+            width: 7.5%;
           }
 
           .col-separador {

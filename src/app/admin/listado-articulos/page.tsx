@@ -42,7 +42,6 @@ export default function ListadoArticulosPage() {
         "id, codigo, nombre, departamento, categoria, unidad, orden_preparacion, activo"
       )
       .order("departamento", { ascending: true })
-      .order("categoria", { ascending: true })
       .order("nombre", { ascending: true });
 
     if (error) {
@@ -73,14 +72,15 @@ export default function ListadoArticulosPage() {
         const depA = a.departamento || "";
         const depB = b.departamento || "";
 
-        if (depA !== depB) return depA.localeCompare(depB, "es");
+        const comparacionDepartamento = depA.localeCompare(depB, "es", {
+          sensitivity: "base",
+        });
 
-        const catA = a.categoria || "";
-        const catB = b.categoria || "";
+        if (comparacionDepartamento !== 0) {
+          return comparacionDepartamento;
+        }
 
-        if (catA !== catB) return catA.localeCompare(catB, "es");
-
-        return a.nombre.localeCompare(b.nombre, "es", {
+        return (a.nombre || "").localeCompare(b.nombre || "", "es", {
           sensitivity: "base",
           numeric: true,
         });

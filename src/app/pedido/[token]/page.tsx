@@ -632,7 +632,27 @@ export default function PedidoClientePage() {
     cargarCliente();
     cargarProductos();
   }, []);
+useEffect(() => {
+  const recargar = async () => {
+    if (document.visibilityState !== "visible") return;
 
+    await cargarCliente();
+    await cargarProductos();
+
+    if (cliente && productos.length > 0) {
+      await cargarPedidoExistente(cliente.id, productos);
+      await cargarHistoricoPedidos(cliente.id);
+    }
+  };
+
+  document.addEventListener("visibilitychange", recargar);
+  window.addEventListener("focus", recargar);
+
+  return () => {
+    document.removeEventListener("visibilitychange", recargar);
+    window.removeEventListener("focus", recargar);
+  };
+}, [cliente, productos]);
   useEffect(() => {
     if (!cliente || productos.length === 0) return;
 

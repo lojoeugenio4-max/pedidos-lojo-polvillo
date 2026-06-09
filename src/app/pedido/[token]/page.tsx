@@ -1060,35 +1060,41 @@ useEffect(() => {
           </section>
         )}
 
-        {historicoPedidos.length > 0 && (
-          <section className="bg-white rounded-xl shadow p-3 md:p-4">
-            <button
-              type="button"
-              onClick={() => setMostrarHistorico((prev) => !prev)}
-              className="w-full flex items-center justify-between gap-3 text-left"
-            >
-              <div className="flex items-center gap-2">
-                <History className="w-5 h-5 text-black" />
+        <section className="bg-white rounded-xl shadow p-3 md:p-4">
+          <button
+            type="button"
+            onClick={() => setMostrarHistorico((prev) => !prev)}
+            className="w-full flex items-center justify-between gap-3 text-left"
+          >
+            <div className="flex items-center gap-2">
+              <History className="w-5 h-5 text-black" />
 
-                <div>
-                  <h2 className="font-bold text-black">
-                    Mis 2 últimos pedidos
-                  </h2>
+              <div>
+                <h2 className="font-bold text-black">
+                  Mis 2 últimos pedidos
+                </h2>
 
-                  <p className="text-xs text-slate-500">
-                    Consulta tus pedidos anteriores
-                  </p>
-                </div>
+                <p className="text-xs text-slate-500">
+                  Consulta tus pedidos anteriores
+                </p>
               </div>
+            </div>
 
-              {mostrarHistorico ? (
-                <ChevronUp className="w-5 h-5" />
-              ) : (
-                <ChevronDown className="w-5 h-5" />
-              )}
-            </button>
+            {mostrarHistorico ? (
+              <ChevronUp className="w-5 h-5" />
+            ) : (
+              <ChevronDown className="w-5 h-5" />
+            )}
+          </button>
 
-            {mostrarHistorico && (
+          {mostrarHistorico && (
+            historicoPedidos.length === 0 ? (
+              <div className="mt-4 rounded-xl border bg-slate-50 p-4 text-center">
+                <p className="text-sm text-slate-500">
+                  Todavía no tienes pedidos anteriores.
+                </p>
+              </div>
+            ) : (
               <div className="mt-4 space-y-4">
                 {historicoPedidos.map((pedidoHistorico) => {
                   const lineas = lineasHistorico.filter(
@@ -1103,7 +1109,9 @@ useEffect(() => {
                       <div className="flex items-center justify-between gap-3 mb-2">
                         <h3 className="font-bold text-black">
                           Pedido del{" "}
-                          {new Date(pedidoHistorico.fecha).toLocaleDateString("es-ES")}
+                          {new Date(
+                            `${pedidoHistorico.fecha}T00:00:00`
+                          ).toLocaleDateString("es-ES")}
                         </h3>
 
                         <span className="text-xs rounded-full bg-white border px-2 py-1 text-slate-600">
@@ -1147,9 +1155,9 @@ useEffect(() => {
                   );
                 })}
               </div>
-            )}
-          </section>
-        )}
+            )
+          )}
+        </section>
 
         <div
           id="cabecera-filtros"

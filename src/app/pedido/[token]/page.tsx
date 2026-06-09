@@ -317,15 +317,25 @@ export default function PedidoClientePage() {
       .select("id, fecha, estado, creado_en")
       .eq("cliente_id", clienteId)
       .neq("estado", "sustituido")
+      .order("fecha", { ascending: false })
       .order("creado_en", { ascending: false })
-      .limit(2);
+      .limit(20);
 
     if (pedidosError) {
       console.error(pedidosError);
       return;
     }
 
-    const pedidos = (pedidosData || []) as PedidoHistorico[];
+    const pedidosSinAgrupar = (pedidosData || []) as PedidoHistorico[];
+    const pedidosPorFecha: Record<string, PedidoHistorico> = {};
+
+    pedidosSinAgrupar.forEach((pedido) => {
+      if (!pedidosPorFecha[pedido.fecha]) {
+        pedidosPorFecha[pedido.fecha] = pedido;
+      }
+    });
+
+    const pedidos = Object.values(pedidosPorFecha).slice(0, 2);
     setHistoricoPedidos(pedidos);
 
     const idsPedidos = pedidos.map((p) => p.id);

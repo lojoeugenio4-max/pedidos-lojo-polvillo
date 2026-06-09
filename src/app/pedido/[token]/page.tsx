@@ -601,6 +601,19 @@ export default function PedidoClientePage() {
       });
     }
 
+    /*
+      Si ya hay un pedido abierto en Supabase sin imprimir, SIEMPRE manda ese pedido.
+      Esto evita que un borrador local antiguo machaque el pedido real ya enviado.
+      Así, cuando el cliente vuelve a entrar, ve las cantidades ya pedidas y puede añadir o modificar.
+    */
+    if (pedidoNoImpreso) {
+      setPedido(pedidoBase);
+      borrarBorradorLocal();
+      setMensajeBorrador(null);
+      setBorradorPreparado(true);
+      return;
+    }
+
     const borradorLocal = cargarBorradorLocal(productosBase);
 
     if (borradorLocal) {

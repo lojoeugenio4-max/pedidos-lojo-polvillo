@@ -9,6 +9,9 @@ import {
   AlertCircle,
   ArrowLeft,
   CheckCircle,
+  History,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { useParams } from "next/navigation";
 
@@ -59,6 +62,22 @@ type PedidoExistente = {
 };
 
 type LineaPedidoExistente = {
+  codigo_articulo: string;
+  nombre_articulo: string;
+  departamento: string;
+  cajas: number;
+  unidades: number;
+};
+
+type PedidoHistorico = {
+  id: string;
+  fecha: string;
+  estado: string | null;
+  creado_en: string;
+};
+
+type LineaHistorico = {
+  pedido_id: string;
   codigo_articulo: string;
   nombre_articulo: string;
   departamento: string;
@@ -149,10 +168,13 @@ function irAlPrimerArticulo() {
       ) as HTMLElement | null;
 
       const cabecera = document.getElementById("cabecera-filtros");
-      const alturaCabecera = cabecera ? cabecera.getBoundingClientRect().height : 0;
+      const alturaCabecera = cabecera
+        ? cabecera.getBoundingClientRect().height
+        : 0;
       const margenExtra = 16;
 
-      const destino = primerArticulo || document.getElementById("inicio-articulos");
+      const destino =
+        primerArticulo || document.getElementById("inicio-articulos");
 
       if (!destino) return;
 
@@ -198,6 +220,51 @@ export default function PedidoClientePage() {
   } | null>(null);
   const [mensajeAviso, setMensajeAviso] = useState<string | null>(null);
   const [mostrarAviso, setMostrarAviso] = useState(false);
+
+  const [historicoPedidos, setHistoricoPedidos] = useState<PedidoHistorico[]>(
+    []
+  );
+  const [lineasHistorico, setLineasHistorico] = useState<LineaHistorico[]>([]);
+  const [mostrarHistorico, setMostrarHistorico] = useState(false);
+
+  async function cargarHistoricoPedidos(clienteId: number) {
+    const { data: pedidosData, error: pedidosError } = await supabase
+      .from("pedidos")
+      .select("id, fecha, estado, creado_en")
+      .eq("cliente_id", clienteId)
+      .neq("estado", "sustituido")
+      .order("creado_en", { ascending: false })
+      .limit(2);
+
+    if (pedidosError) {
+      console.error(pedidosError);
+      return;
+    }
+
+    const pedidos = (pedidosData || []) as PedidoHistorico[];
+    setHistoricoPedidos(pedidos);
+
+    const idsPedidos = pedidos.map((p) => p.id);
+
+    if (idsPedidos.length === 0) {
+      setLineasHistorico([]);
+      return;
+    }
+
+    const { data: lineasData, error: lineasError } = await supabase
+      .from("lineas_pedido")
+      .select(
+        "pedido_id, codigo_articulo, nombre_articulo, departamento, cajas, unidades"
+      )
+      .in("pedido_id", idsPedidos);
+
+    if (lineasError) {
+      console.error(lineasError);
+      return;
+    }
+
+    setLineasHistorico((lineasData || []) as LineaHistorico[]);
+  }
 
   async function cargarAvisos(clienteActual: Cliente) {
     const diaCliente = normalizarTexto(clienteActual.dia_pedido);
@@ -329,6 +396,7 @@ export default function PedidoClientePage() {
 
     setCliente(clienteEncontrado);
     await cargarAvisos(clienteEncontrado);
+    await cargarHistoricoPedidos(clienteEncontrado.id);
     setCargandoCliente(false);
   }
 
@@ -652,6 +720,8 @@ export default function PedidoClientePage() {
       setCategoria("Todas");
       setUltimoArticulo(null);
 
+      await cargarHistoricoPedidos(cliente.id);
+
       window.scrollTo({
         top: 0,
         behavior: "smooth",
@@ -711,7 +781,6 @@ export default function PedidoClientePage() {
           </header>
 
           <section className="bg-white rounded-2xl shadow p-4 md:p-6 space-y-6">
-
             {bebidasPedido.length > 0 && (
               <div>
                 <h2 className="text-xl font-bold mb-3 text-black">Bebidas</h2>
@@ -740,7 +809,9 @@ export default function PedidoClientePage() {
 
             {charcuteriaPedido.length > 0 && (
               <div>
-                <h2 className="text-xl font-bold mb-3 text-black">Charcutería</h2>
+                <h2 className="text-xl font-bold mb-3 text-black">
+                  Charcutería
+                </h2>
 
                 <div className="space-y-2">
                   {charcuteriaPedido.map((item) => (
@@ -826,11 +897,108 @@ export default function PedidoClientePage() {
 
               <div>
                 <p className="text-xs text-slate-500 leading-none">Líneas</p>
-                <p className="text-lg font-bold leading-tight text-black">{totalLineas}</p>
+                <p className="text-lg font-bold leading-tight text-black">
+                  {totalLineas}
+                </p>
               </div>
             </div>
           </div>
         </header>
+
+        {historicoPedidos.length > 0 && (
+          <section className="bg-white rounded-xl shadow p-3 md:p-4">
+            <button
+              type="button"
+              onClick={() => setMostrarHistorico((prev) => !prev)}
+              className="w-full flex items-center justify-between gap-3 text-left"
+            >
+              <div className="flex items-center gap-2">
+                <History className="w-5 h-5 text-black" />
+
+                <div>
+                  <h2 className="font-bold text-black">
+                    Mis 2 últimos pedidos
+                  </h2>
+
+                  <p className="text-xs text-slate-500">
+                    Consulta tus pedidos anteriores
+                  </p>
+                </div>
+              </div>
+
+              {mostrarHistorico ? (
+                <ChevronUp className="w-5 h-5" />
+              ) : (
+                <ChevronDown className="w-5 h-5" />
+              )}
+            </button>
+
+            {mostrarHistorico && (
+              <div className="mt-4 space-y-4">
+                {historicoPedidos.map((pedidoHistorico) => {
+                  const lineas = lineasHistorico.filter(
+                    (linea) => linea.pedido_id === pedidoHistorico.id
+                  );
+
+                  return (
+                    <div
+                      key={pedidoHistorico.id}
+                      className="border rounded-xl p-3 bg-slate-50"
+                    >
+                      <div className="flex items-center justify-between gap-3 mb-2">
+                        <h3 className="font-bold text-black">
+                          Pedido del{" "}
+                          {new Date(
+                            pedidoHistorico.fecha
+                          ).toLocaleDateString("es-ES")}
+                        </h3>
+
+                        <span className="text-xs rounded-full bg-white border px-2 py-1 text-slate-600">
+                          {pedidoHistorico.estado || "recibido"}
+                        </span>
+                      </div>
+
+                      {lineas.length === 0 ? (
+                        <p className="text-sm text-slate-500">
+                          Este pedido no tiene líneas guardadas.
+                        </p>
+                      ) : (
+                        <div className="space-y-1.5">
+                          {lineas.map((linea, index) => (
+                            <div
+                              key={`${linea.pedido_id}-${linea.codigo_articulo}-${index}`}
+                              className="flex justify-between gap-3 text-sm border-b last:border-b-0 pb-1"
+                            >
+                              <div>
+                                <p className="font-semibold text-black">
+                                  {linea.nombre_articulo}
+                                </p>
+
+                                <p className="text-xs text-slate-500">
+                                  Código {linea.codigo_articulo}
+                                </p>
+                              </div>
+
+                              <p className="font-bold whitespace-nowrap text-black">
+                                {linea.cajas > 0
+                                  ? `${linea.cajas} caja${
+                                      linea.cajas === 1 ? "" : "s"
+                                    }`
+                                  : `${linea.unidades} unidad${
+                                      linea.unidades === 1 ? "" : "es"
+                                    }`}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+        )}
 
         <div
           id="cabecera-filtros"
@@ -911,8 +1079,6 @@ export default function PedidoClientePage() {
             </div>
           </div>
         </div>
-
-
 
         <div id="inicio-articulos" className="scroll-mt-40" />
 
@@ -1062,7 +1228,9 @@ export default function PedidoClientePage() {
           <div className="grid grid-cols-[auto_auto_1fr] items-center gap-2">
             <div className="min-w-14">
               <p className="text-[11px] text-slate-500 leading-none">Líneas</p>
-              <p className="text-xl font-bold leading-tight text-black">{totalLineas}</p>
+              <p className="text-xl font-bold leading-tight text-black">
+                {totalLineas}
+              </p>
             </div>
 
             <button

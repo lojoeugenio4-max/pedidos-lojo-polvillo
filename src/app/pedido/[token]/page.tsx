@@ -85,6 +85,15 @@ type LineaHistorico = {
   unidades: number;
 };
 
+type BorradorLocal = {
+  creado_en: string;
+  lineas: {
+    codigo: string;
+    cajas: number;
+    unidades: number;
+  }[];
+};
+
 function normalizarTexto(valor: string | null) {
   return (valor || "")
     .toLowerCase()
@@ -160,6 +169,10 @@ function fechaPedidoObjetivoISO(diaPedido: string | null) {
   return `${objetivoYear}-${objetivoMonth}-${objetivoDay}`;
 }
 
+function claveBorradorPedido(token: string) {
+  return `borrador-pedido-${token}`;
+}
+
 function irAlPrimerArticulo() {
   window.setTimeout(() => {
     window.requestAnimationFrame(() => {
@@ -168,13 +181,10 @@ function irAlPrimerArticulo() {
       ) as HTMLElement | null;
 
       const cabecera = document.getElementById("cabecera-filtros");
-      const alturaCabecera = cabecera
-        ? cabecera.getBoundingClientRect().height
-        : 0;
+      const alturaCabecera = cabecera ? cabecera.getBoundingClientRect().height : 0;
       const margenExtra = 16;
 
-      const destino =
-        primerArticulo || document.getElementById("inicio-articulos");
+      const destino = primerArticulo || document.getElementById("inicio-articulos");
 
       if (!destino) return;
 
@@ -221,11 +231,85 @@ export default function PedidoClientePage() {
   const [mensajeAviso, setMensajeAviso] = useState<string | null>(null);
   const [mostrarAviso, setMostrarAviso] = useState(false);
 
-  const [historicoPedidos, setHistoricoPedidos] = useState<PedidoHistorico[]>(
-    []
-  );
+  const [historicoPedidos, setHistoricoPedidos] = useState<PedidoHistorico[]>([]);
   const [lineasHistorico, setLineasHistorico] = useState<LineaHistorico[]>([]);
   const [mostrarHistorico, setMostrarHistorico] = useState(false);
+
+  const [borradorPreparado, setBorradorPreparado] = useState(false);
+  const [mensajeBorrador, setMensajeBorrador] = useState<string | null>(null);
+
+  function cargarBorradorLocal(productosBase: Producto[]) {
+    try {
+      const guardado = window.localStorage.getItem(claveBorradorPedido(token));
+
+      if (!guardado) return null;
+
+      const borrador = JSON.parse(guardado) as BorradorLocal;
+      const pedidoBorrador: Pedido = {};
+
+      borrador.lineas.forEach((linea) => {
+        const producto =
+          productosBase.find((p) => p.codigo === linea.codigo) || null;
+
+        if (!producto) return;
+
+        const cajas = Number(linea.cajas) || 0;
+        const unidades = Number(linea.unidades) || 0;
+
+        if (cajas === 0 && unidades === 0) return;
+
+        pedidoBorrador[producto.codigo] = {
+          ...producto,
+          cajas,
+          unidades,
+        };
+      });
+
+      if (Object.keys(pedidoBorrador).length === 0) return null;
+
+      return pedidoBorrador;
+    } catch (error) {
+      console.error(error);
+      return null;
+    }
+  }
+
+  function guardarBorradorLocal(pedidoActual: Pedido) {
+    try {
+      const lineas = Object.values(pedidoActual)
+        .filter((item) => item.cajas > 0 || item.unidades > 0)
+        .map((item) => ({
+          codigo: item.codigo,
+          cajas: item.cajas,
+          unidades: item.unidades,
+        }));
+
+      if (lineas.length === 0) {
+        window.localStorage.removeItem(claveBorradorPedido(token));
+        return;
+      }
+
+      const borrador: BorradorLocal = {
+        creado_en: new Date().toISOString(),
+        lineas,
+      };
+
+      window.localStorage.setItem(
+        claveBorradorPedido(token),
+        JSON.stringify(borrador)
+      );
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  function borrarBorradorLocal() {
+    try {
+      window.localStorage.removeItem(claveBorradorPedido(token));
+    } catch (error) {
+      console.error(error);
+    }
+  }
 
   async function cargarHistoricoPedidos(clienteId: number) {
     const { data: pedidosData, error: pedidosError } = await supabase
@@ -447,6 +531,7 @@ export default function PedidoClientePage() {
 
     if (noImpresosError) {
       setMensaje(JSON.stringify(noImpresosError));
+      setBorradorPreparado(true);
       return;
     }
 
@@ -466,6 +551,7 @@ export default function PedidoClientePage() {
 
     if (impresosError) {
       setMensaje(JSON.stringify(impresosError));
+      setBorradorPreparado(true);
       return;
     }
 
@@ -489,38 +575,48 @@ export default function PedidoClientePage() {
       });
     }
 
-    if (!pedidoNoImpreso) {
-      setPedido({});
-      return;
+    let pedidoBase: Pedido = {};
+
+    if (pedidoNoImpreso) {
+      const { data: lineasData, error: lineasError } = await supabase
+        .from("lineas_pedido")
+        .select("codigo_articulo, nombre_articulo, departamento, cajas, unidades")
+        .eq("pedido_id", pedidoNoImpreso.id);
+
+      if (lineasError) {
+        setMensaje(JSON.stringify(lineasError));
+        setBorradorPreparado(true);
+        return;
+      }
+
+      const lineas = (lineasData || []) as LineaPedidoExistente[];
+
+      lineas.forEach((linea) => {
+        const producto =
+          productosBase.find((p) => p.codigo === linea.codigo_articulo) || null;
+
+        if (!producto) return;
+
+        pedidoBase[producto.codigo] = {
+          ...producto,
+          cajas: Number(linea.cajas) || 0,
+          unidades: Number(linea.unidades) || 0,
+        };
+      });
     }
 
-    const { data: lineasData, error: lineasError } = await supabase
-      .from("lineas_pedido")
-      .select("codigo_articulo, nombre_articulo, departamento, cajas, unidades")
-      .eq("pedido_id", pedidoNoImpreso.id);
+    const borradorLocal = cargarBorradorLocal(productosBase);
 
-    if (lineasError) {
-      setMensaje(JSON.stringify(lineasError));
-      return;
+    if (borradorLocal) {
+      setPedido(borradorLocal);
+      setMensajeBorrador(
+        "Hemos recuperado un pedido que se quedó sin enviar en este dispositivo."
+      );
+    } else {
+      setPedido(pedidoBase);
     }
 
-    const lineas = (lineasData || []) as LineaPedidoExistente[];
-    const pedidoCargado: Pedido = {};
-
-    lineas.forEach((linea) => {
-      const producto =
-        productosBase.find((p) => p.codigo === linea.codigo_articulo) || null;
-
-      if (!producto) return;
-
-      pedidoCargado[producto.codigo] = {
-        ...producto,
-        cajas: Number(linea.cajas) || 0,
-        unidades: Number(linea.unidades) || 0,
-      };
-    });
-
-    setPedido(pedidoCargado);
+    setBorradorPreparado(true);
   }
 
   useEffect(() => {
@@ -533,6 +629,12 @@ export default function PedidoClientePage() {
 
     cargarPedidoExistente(cliente.id, productos);
   }, [cliente, productos]);
+
+  useEffect(() => {
+    if (!cliente || !borradorPreparado) return;
+
+    guardarBorradorLocal(pedido);
+  }, [pedido, cliente, borradorPreparado]);
 
   const productosDelDepartamento = useMemo(() => {
     return productos.filter(
@@ -652,7 +754,9 @@ export default function PedidoClientePage() {
   function limpiarPedido() {
     setPedido({});
     setMensaje("");
+    setMensajeBorrador(null);
     setMostrarPreview(false);
+    borrarBorradorLocal();
   }
 
   function cantidadActual(producto: Producto, tipo: "cajas" | "unidades") {
@@ -706,6 +810,9 @@ export default function PedidoClientePage() {
       });
 
       if (error) throw error;
+
+      borrarBorradorLocal();
+      setMensajeBorrador(null);
 
       setMensaje(
         fueraDeDia
@@ -781,6 +888,7 @@ export default function PedidoClientePage() {
           </header>
 
           <section className="bg-white rounded-2xl shadow p-4 md:p-6 space-y-6">
+
             {bebidasPedido.length > 0 && (
               <div>
                 <h2 className="text-xl font-bold mb-3 text-black">Bebidas</h2>
@@ -809,9 +917,7 @@ export default function PedidoClientePage() {
 
             {charcuteriaPedido.length > 0 && (
               <div>
-                <h2 className="text-xl font-bold mb-3 text-black">
-                  Charcutería
-                </h2>
+                <h2 className="text-xl font-bold mb-3 text-black">Charcutería</h2>
 
                 <div className="space-y-2">
                   {charcuteriaPedido.map((item) => (
@@ -897,13 +1003,33 @@ export default function PedidoClientePage() {
 
               <div>
                 <p className="text-xs text-slate-500 leading-none">Líneas</p>
-                <p className="text-lg font-bold leading-tight text-black">
-                  {totalLineas}
-                </p>
+                <p className="text-lg font-bold leading-tight text-black">{totalLineas}</p>
               </div>
             </div>
           </div>
         </header>
+
+        {mensajeBorrador && (
+          <section className="bg-amber-50 border border-amber-200 rounded-xl shadow p-3 md:p-4">
+            <div className="flex items-start gap-2">
+              <AlertCircle className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" />
+
+              <div className="space-y-2">
+                <p className="text-sm font-semibold text-amber-900">
+                  {mensajeBorrador}
+                </p>
+
+                <button
+                  type="button"
+                  onClick={() => setMensajeBorrador(null)}
+                  className="text-xs font-bold underline text-amber-900"
+                >
+                  Entendido
+                </button>
+              </div>
+            </div>
+          </section>
+        )}
 
         {historicoPedidos.length > 0 && (
           <section className="bg-white rounded-xl shadow p-3 md:p-4">
@@ -948,9 +1074,7 @@ export default function PedidoClientePage() {
                       <div className="flex items-center justify-between gap-3 mb-2">
                         <h3 className="font-bold text-black">
                           Pedido del{" "}
-                          {new Date(
-                            pedidoHistorico.fecha
-                          ).toLocaleDateString("es-ES")}
+                          {new Date(pedidoHistorico.fecha).toLocaleDateString("es-ES")}
                         </h3>
 
                         <span className="text-xs rounded-full bg-white border px-2 py-1 text-slate-600">
@@ -981,9 +1105,7 @@ export default function PedidoClientePage() {
 
                               <p className="font-bold whitespace-nowrap text-black">
                                 {linea.cajas > 0
-                                  ? `${linea.cajas} caja${
-                                      linea.cajas === 1 ? "" : "s"
-                                    }`
+                                  ? `${linea.cajas} caja${linea.cajas === 1 ? "" : "s"}`
                                   : `${linea.unidades} unidad${
                                       linea.unidades === 1 ? "" : "es"
                                     }`}
@@ -1228,9 +1350,7 @@ export default function PedidoClientePage() {
           <div className="grid grid-cols-[auto_auto_1fr] items-center gap-2">
             <div className="min-w-14">
               <p className="text-[11px] text-slate-500 leading-none">Líneas</p>
-              <p className="text-xl font-bold leading-tight text-black">
-                {totalLineas}
-              </p>
+              <p className="text-xl font-bold leading-tight text-black">{totalLineas}</p>
             </div>
 
             <button

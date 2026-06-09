@@ -312,52 +312,38 @@ export default function PedidoClientePage() {
   }
 
   async function cargarHistoricoPedidos(clienteId: number) {
-    const { data: pedidosData, error: pedidosError } = await supabase
-      .from("pedidos")
-      .select("id, fecha, estado, creado_en")
-      .eq("cliente_id", clienteId)
-      .neq("estado", "sustituido")
-      .order("fecha", { ascending: false })
-      .order("creado_en", { ascending: false })
-      .limit(20);
-
-    if (pedidosError) {
-      console.error(pedidosError);
-      return;
-    }
-
-    const pedidosSinAgrupar = (pedidosData || []) as PedidoHistorico[];
-    const pedidosPorFecha: Record<string, PedidoHistorico> = {};
-
-    pedidosSinAgrupar.forEach((pedido) => {
-      if (!pedidosPorFecha[pedido.fecha]) {
-        pedidosPorFecha[pedido.fecha] = pedido;
+    const { data, error } = await supabase.rpc(
+      "obtener_historico_servicio_completo",
+      {
+        p_cliente_id: clienteId,
       }
-    });
+    );
 
-    const pedidos = Object.values(pedidosPorFecha).slice(0, 2);
+    if (error) {
+      console.error(error);
+      return;
+    }
+
+    const pedidos = (data || []).map((item: any) => ({
+      id: item.id,
+      fecha: item.fecha,
+      estado: item.estado,
+      creado_en: item.creado_en,
+    })) as PedidoHistorico[];
+
+    const lineas = (data || []).flatMap((item: any) =>
+      (item.lineas || []).map((linea: any) => ({
+        pedido_id: item.id,
+        codigo_articulo: linea.codigo_articulo,
+        nombre_articulo: linea.nombre_articulo,
+        departamento: linea.departamento,
+        cajas: Number(linea.cajas) || 0,
+        unidades: Number(linea.unidades) || 0,
+      }))
+    ) as LineaHistorico[];
+
     setHistoricoPedidos(pedidos);
-
-    const idsPedidos = pedidos.map((p) => p.id);
-
-    if (idsPedidos.length === 0) {
-      setLineasHistorico([]);
-      return;
-    }
-
-    const { data: lineasData, error: lineasError } = await supabase
-      .from("lineas_pedido")
-      .select(
-        "pedido_id, codigo_articulo, nombre_articulo, departamento, cajas, unidades"
-      )
-      .in("pedido_id", idsPedidos);
-
-    if (lineasError) {
-      console.error(lineasError);
-      return;
-    }
-
-    setLineasHistorico((lineasData || []) as LineaHistorico[]);
+    setLineasHistorico(lineas);
   }
 
   async function cargarAvisos(clienteActual: Cliente) {

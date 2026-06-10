@@ -11,20 +11,22 @@ type Cliente = {
 };
 
 type Linea = {
+  pedido_id: string;
   nombre_articulo: string;
   codigo_articulo: string;
   cajas: number;
   unidades: number;
 };
 
-type Pedido = {
+type PedidoBase = {
   id: string;
   fecha: string;
   estado: string | null;
   cliente_id: number;
-  Clientes?: {
-    nombre: string;
-  }[] | null;
+};
+
+type Pedido = PedidoBase & {
+  cliente_nombre: string;
   lineas_pedido: Linea[];
 };
 
@@ -59,23 +61,10 @@ export default function HistoricoPedidosPage() {
 
     let consulta = supabase
       .from("pedidos")
-      .select(`
-        id,
-        fecha,
-        estado,
-        cliente_id,
-        Clientes (
-          nombre
-        ),
-        lineas_pedido (
-          nombre_articulo,
-          codigo_articulo,
-          cajas,
-          unidades
-        )
-      `)
+      .select("id, fecha, estado, cliente_id")
       .neq("estado", "sustituido")
-      .order("fecha", { ascending: false });
+      .order("fecha", { ascending: false })
+      .order("creado_en", { ascending: false });
 
     if (clienteId) {
       consulta = consulta.eq("cliente_id", Number(clienteId));
@@ -89,21 +78,49 @@ export default function HistoricoPedidosPage() {
       consulta = consulta.lte("fecha", fechaHasta);
     }
 
-    const { data, error } = await consulta;
+    const { data: pedidosData, error: pedidosError } = await consulta;
 
-    setCargando(false);
-
-    if (error) {
-      setMensaje(error.message);
+    if (pedidosError) {
+      setCargando(false);
+      setMensaje(pedidosError.message);
       return;
     }
 
-    if (!data?.length) {
+    const pedidosBase = (pedidosData || []) as PedidoBase[];
+
+    if (pedidosBase.length === 0) {
+      setCargando(false);
       setMensaje("No hay pedidos con esos filtros.");
       return;
     }
 
-    setPedidos((data || []) as unknown as Pedido[]);
+    const idsPedidos = pedidosBase.map((pedido) => pedido.id);
+
+    const { data: lineasData, error: lineasError } = await supabase
+      .from("lineas_pedido")
+      .select("pedido_id, nombre_articulo, codigo_articulo, cajas, unidades")
+      .in("pedido_id", idsPedidos);
+
+    if (lineasError) {
+      setCargando(false);
+      setMensaje(lineasError.message);
+      return;
+    }
+
+    const lineas = (lineasData || []) as Linea[];
+
+    const pedidosCompletos: Pedido[] = pedidosBase.map((pedido) => {
+      const cliente = clientes.find((c) => Number(c.id) === Number(pedido.cliente_id));
+
+      return {
+        ...pedido,
+        cliente_nombre: cliente?.nombre || "Cliente sin nombre",
+        lineas_pedido: lineas.filter((linea) => linea.pedido_id === pedido.id),
+      };
+    });
+
+    setPedidos(pedidosCompletos);
+    setCargando(false);
   }
 
   useEffect(() => {
@@ -223,7 +240,7 @@ export default function HistoricoPedidosPage() {
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-4">
                 <div>
                   <h2 className="font-bold text-xl text-black">
-                    {pedido.Clientes?.[0]?.nombre || "Cliente sin nombre"}
+                    {pedido.cliente_nombre}
                   </h2>
 
                   <p className="text-sm text-slate-500">

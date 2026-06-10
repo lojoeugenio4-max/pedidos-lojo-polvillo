@@ -237,8 +237,6 @@ export default function PedidoClientePage() {
 
   const [borradorPreparado, setBorradorPreparado] = useState(false);
   const [mensajeBorrador, setMensajeBorrador] = useState<string | null>(null);
-  const [pedidoFinalizado, setPedidoFinalizado] = useState(false);
-  const [mensajeFinalizado, setMensajeFinalizado] = useState("Pedido enviado correctamente.");
 
   function cargarBorradorLocal(productosBase: Producto[]) {
     try {
@@ -845,20 +843,15 @@ useEffect(() => {
       borrarBorradorLocal();
       setMensajeBorrador(null);
 
-      const textoFinal = fueraDeDia
-        ? `Pedido recibido correctamente para tu próximo día de pedido: ${fechaObjetivoPedido}.`
-        : "Pedido enviado correctamente.";
+      setMensaje(
+        fueraDeDia
+          ? `Pedido recibido correctamente para tu próximo día de pedido: ${fechaObjetivoPedido}.`
+          : "Pedido enviado correctamente."
+      );
 
-      setMensajeFinalizado(textoFinal);
-      setPedidoFinalizado(true);
-      setPedido({});
-      setMostrarPreview(false);
-      setBusqueda("");
-      setDepartamento("Bebidas");
-      setCategoria("Todas");
-      setUltimoArticulo(null);
-
-
+      window.setTimeout(() => {
+        window.location.reload();
+      }, 1000);
     } catch (error) {
       console.error(error);
 
@@ -895,34 +888,6 @@ useEffect(() => {
             {mensaje || "No se ha encontrado este enlace de pedido."}
           </p>
         </div>
-      </main>
-    );
-  }
-
-  if (pedidoFinalizado) {
-    return (
-      <main className="min-h-screen bg-slate-100 p-4 md:p-6 flex items-center justify-center">
-        <section className="w-full max-w-lg bg-white rounded-2xl shadow p-8 text-center space-y-5">
-          <div className="mx-auto w-16 h-16 rounded-full bg-green-100 flex items-center justify-center">
-            <CheckCircle className="w-9 h-9 text-green-700" />
-          </div>
-
-          <div>
-            <h1 className="text-3xl font-bold text-black">
-              Pedido enviado correctamente
-            </h1>
-
-            <p className="text-slate-600 mt-3">
-              {mensajeFinalizado}
-            </p>
-
-            <p className="text-sm text-slate-500 mt-3">
-              Ya puedes cerrar esta ventana. Si quieres hacer otra modificación, vuelve a entrar desde tu enlace de pedido.
-            </p>
-          </div>
-
-
-        </section>
       </main>
     );
   }

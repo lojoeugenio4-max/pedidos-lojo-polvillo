@@ -117,7 +117,7 @@ export default function AdminPage() {
             </div>
 
             <p className="text-slate-500 mt-2">
-              Consultar los 2 últimos pedidos de una tienda
+              Consultar los 4 últimos pedidos de una tienda
             </p>
           </Link>
         </section>

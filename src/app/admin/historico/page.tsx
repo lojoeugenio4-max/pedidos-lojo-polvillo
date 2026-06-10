@@ -24,7 +24,7 @@ type Pedido = {
   cliente_id: number;
   Clientes?: {
     nombre: string;
-  } | null;
+  }[] | null;
   lineas_pedido: Linea[];
 };
 
@@ -103,7 +103,7 @@ export default function HistoricoPedidosPage() {
       return;
     }
 
-    setPedidos(data as Pedido[]);
+    setPedidos((data || []) as unknown as Pedido[]);
   }
 
   useEffect(() => {
@@ -223,7 +223,7 @@ export default function HistoricoPedidosPage() {
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-4">
                 <div>
                   <h2 className="font-bold text-xl text-black">
-                    {pedido.Clientes?.nombre || "Cliente sin nombre"}
+                    {pedido.Clientes?.[0]?.nombre || "Cliente sin nombre"}
                   </h2>
 
                   <p className="text-sm text-slate-500">

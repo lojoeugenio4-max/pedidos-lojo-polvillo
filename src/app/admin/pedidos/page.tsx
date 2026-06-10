@@ -46,8 +46,7 @@ type Filtro =
   | "faltan"
   | "sin_imprimir"
   | "impresos"
-  | "fuera_dia"
-  | "antiguos";
+  | "fuera_dia";
 
 function normalizarDia(valor: string | null) {
   return (valor || "")
@@ -194,20 +193,7 @@ export default function AdminPedidosPage() {
       return;
     }
 
-    const { data: pendientesAntiguosData, error: pendientesAntiguosError } =
-      await supabase
-        .from("pedidos")
-        .select("id, cliente_id, fecha, estado, impreso, creado_en, fuera_de_dia")
-        .lt("fecha", semana.inicioISO)
-        .eq("impreso", false)
-        .order("fecha", { ascending: true })
-        .order("creado_en", { ascending: false });
-
-    if (pendientesAntiguosError) {
-      setMensaje(JSON.stringify(pendientesAntiguosError));
-      setCargando(false);
-      return;
-    }
+    const pendientesAntiguosData = [] as any[];
 
     const pedidosRango = ((pedidosData || []) as Pedido[]).filter(
       (pedido) => pedido.estado !== "sustituido"
@@ -224,13 +210,6 @@ export default function AdminPedidosPage() {
           clientesLista.find((c) => Number(c.id) === Number(pedido.cliente_id)) ||
           null,
         pendienteAntiguo: false,
-      })),
-      ...pendientesAntiguos.map((pedido) => ({
-        pedido,
-        cliente:
-          clientesLista.find((c) => Number(c.id) === Number(pedido.cliente_id)) ||
-          null,
-        pendienteAntiguo: true,
       })),
     ];
 
@@ -381,8 +360,7 @@ export default function AdminPedidosPage() {
     if (filtro === "fuera_dia") {
       return Boolean(pedido.fuera_de_dia) && pedido.fecha !== hoyISO && !pedido.impreso;
     }
-    if (filtro === "antiguos") return pendienteAntiguo && !pedido.impreso;
-    return !pedido.impreso;
+        return !pedido.impreso;
   });
 
   const mostrarFaltan = filtro === "todos" || filtro === "faltan";
@@ -397,10 +375,6 @@ export default function AdminPedidosPage() {
   const fueraDeDia = pedidos.filter(
     ({ pedido }) =>
       pedido.fuera_de_dia && pedido.fecha !== hoyISO && !pedido.impreso
-  ).length;
-
-  const pendientesAntiguos = pedidos.filter(
-    ({ pendienteAntiguo, pedido }) => pendienteAntiguo && !pedido.impreso
   ).length;
 
   function claseTarjeta(activo: boolean, base: string) {
@@ -517,17 +491,6 @@ export default function AdminPedidosPage() {
           >
             <p className="text-sm font-bold">Fuera de día</p>
             <p className="text-4xl font-black">{fueraDeDia}</p>
-          </button>
-
-          <button
-            onClick={() => setFiltro("antiguos")}
-            className={claseTarjeta(
-              filtro === "antiguos",
-              "bg-yellow-50 border border-yellow-200 text-yellow-800"
-            )}
-          >
-            <p className="text-sm">Pendientes antiguos</p>
-            <p className="text-4xl font-bold">{pendientesAntiguos}</p>
           </button>
         </section>
 

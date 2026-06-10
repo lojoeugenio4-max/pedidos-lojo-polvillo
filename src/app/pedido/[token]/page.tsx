@@ -237,6 +237,8 @@ export default function PedidoClientePage() {
 
   const [borradorPreparado, setBorradorPreparado] = useState(false);
   const [mensajeBorrador, setMensajeBorrador] = useState<string | null>(null);
+  const [pedidoFinalizado, setPedidoFinalizado] = useState(false);
+  const [mensajeFinalizado, setMensajeFinalizado] = useState("Pedido enviado correctamente.");
 
   function cargarBorradorLocal(productosBase: Producto[]) {
     try {
@@ -843,12 +845,12 @@ useEffect(() => {
       borrarBorradorLocal();
       setMensajeBorrador(null);
 
-      setMensaje(
-        fueraDeDia
-          ? `Pedido recibido correctamente para tu próximo día de pedido: ${fechaObjetivoPedido}.`
-          : "Pedido enviado correctamente."
-      );
+      const textoFinal = fueraDeDia
+        ? `Pedido recibido correctamente para tu próximo día de pedido: ${fechaObjetivoPedido}.`
+        : "Pedido enviado correctamente.";
 
+      setMensajeFinalizado(textoFinal);
+      setPedidoFinalizado(true);
       setPedido({});
       setMostrarPreview(false);
       setBusqueda("");
@@ -856,12 +858,10 @@ useEffect(() => {
       setCategoria("Todas");
       setUltimoArticulo(null);
 
-      await cargarHistoricoPedidos(cliente.id);
-
-      window.scrollTo({
-        top: 0,
-        behavior: "smooth",
-      });
+      window.setTimeout(() => {
+        window.close();
+        window.location.replace("about:blank");
+      }, 2200);
     } catch (error) {
       console.error(error);
 
@@ -898,6 +898,43 @@ useEffect(() => {
             {mensaje || "No se ha encontrado este enlace de pedido."}
           </p>
         </div>
+      </main>
+    );
+  }
+
+  if (pedidoFinalizado) {
+    return (
+      <main className="min-h-screen bg-slate-100 p-4 md:p-6 flex items-center justify-center">
+        <section className="w-full max-w-lg bg-white rounded-2xl shadow p-8 text-center space-y-5">
+          <div className="mx-auto w-16 h-16 rounded-full bg-green-100 flex items-center justify-center">
+            <CheckCircle className="w-9 h-9 text-green-700" />
+          </div>
+
+          <div>
+            <h1 className="text-3xl font-bold text-black">
+              Pedido enviado correctamente
+            </h1>
+
+            <p className="text-slate-600 mt-3">
+              {mensajeFinalizado}
+            </p>
+
+            <p className="text-sm text-slate-500 mt-3">
+              Esta pantalla se cerrará automáticamente. Si quieres hacer otra modificación, vuelve a entrar desde tu enlace de pedido.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              window.close();
+              window.location.replace("about:blank");
+            }}
+            className="w-full bg-black text-white rounded-xl py-3 font-bold"
+          >
+            Cerrar
+          </button>
+        </section>
       </main>
     );
   }

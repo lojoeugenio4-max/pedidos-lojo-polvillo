@@ -858,10 +858,7 @@ useEffect(() => {
       setCategoria("Todas");
       setUltimoArticulo(null);
 
-      window.setTimeout(() => {
-        window.close();
-        window.location.replace("about:blank");
-      }, 2200);
+
     } catch (error) {
       console.error(error);
 
@@ -920,20 +917,11 @@ useEffect(() => {
             </p>
 
             <p className="text-sm text-slate-500 mt-3">
-              Esta pantalla se cerrará automáticamente. Si quieres hacer otra modificación, vuelve a entrar desde tu enlace de pedido.
+              Ya puedes cerrar esta ventana. Si quieres hacer otra modificación, vuelve a entrar desde tu enlace de pedido.
             </p>
           </div>
 
-          <button
-            type="button"
-            onClick={() => {
-              window.close();
-              window.location.replace("about:blank");
-            }}
-            className="w-full bg-black text-white rounded-xl py-3 font-bold"
-          >
-            Cerrar
-          </button>
+
         </section>
       </main>
     );

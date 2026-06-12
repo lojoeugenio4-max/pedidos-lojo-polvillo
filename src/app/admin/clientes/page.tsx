@@ -251,20 +251,17 @@ export default function AdminClientesPage() {
 
   async function borrarCliente(cliente: Cliente) {
     const confirmar = window.confirm(
-      `¿Seguro que quieres borrar definitivamente a ${cliente.nombre}?\n\nEsta acción eliminará el cliente de la base de datos y no se podrá recuperar.`
+      `¿Seguro que quieres borrar definitivamente a ${cliente.nombre}?\n\nSe eliminarán el cliente y todos sus pedidos. Esta acción no se puede deshacer.`
     );
 
     if (!confirmar) return;
 
-    const { error } = await supabase
-      .from("Clientes")
-      .delete()
-      .eq("id", cliente.id);
+    const { error } = await supabase.rpc("borrar_cliente_completo", {
+      cliente_id_param: cliente.id,
+    });
 
     if (error) {
-      setMensaje(
-        "No se pudo borrar el cliente. Si tiene pedidos asociados, primero hay que borrar sus pedidos o cambiar las relaciones en Supabase."
-      );
+      setMensaje(JSON.stringify(error));
       return;
     }
 

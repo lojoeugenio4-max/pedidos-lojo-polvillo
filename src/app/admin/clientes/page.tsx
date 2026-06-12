@@ -12,6 +12,7 @@ import {
   Search,
   UserX,
   UserCheck,
+  Trash2,
 } from "lucide-react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
@@ -244,6 +245,31 @@ export default function AdminClientesPage() {
         ? "Cliente reactivado correctamente."
         : "Cliente desactivado correctamente."
     );
+  }
+
+
+
+  async function borrarCliente(cliente: Cliente) {
+    const confirmar = window.confirm(
+      `¿Seguro que quieres borrar definitivamente a ${cliente.nombre}?\n\nEsta acción eliminará el cliente de la base de datos y no se podrá recuperar.`
+    );
+
+    if (!confirmar) return;
+
+    const { error } = await supabase
+      .from("Clientes")
+      .delete()
+      .eq("id", cliente.id);
+
+    if (error) {
+      setMensaje(
+        "No se pudo borrar el cliente. Si tiene pedidos asociados, primero hay que borrar sus pedidos o cambiar las relaciones en Supabase."
+      );
+      return;
+    }
+
+    await cargarClientes();
+    setMensaje("Cliente borrado definitivamente.");
   }
 
   async function generarTokenFaltante(cliente: Cliente) {
@@ -616,6 +642,14 @@ export default function AdminClientesPage() {
                                   Reactivar
                                 </>
                               )}
+                            </button>
+
+                            <button
+                              onClick={() => borrarCliente(cliente)}
+                              className="rounded-lg border border-red-300 text-red-800 bg-red-100 px-3 py-2 flex items-center gap-1"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                              Borrar
                             </button>
                           </div>
                         )}

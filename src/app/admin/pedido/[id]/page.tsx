@@ -80,7 +80,7 @@ export default function PedidoDetallePage() {
         "id, pedido_id, codigo_articulo, nombre_articulo, departamento, cajas, unidades"
       )
       .eq("pedido_id", id)
-      .order("codigo_articulo", {
+      .order("nombre_articulo", {
         ascending: true,
       });
 

@@ -83,7 +83,7 @@ export default function AdminClientesPage() {
     const { data, error } = await supabase
       .from("Clientes")
       .select("id, codigo, nombre, telefono, dia_pedido, ruta, activo, token_pedido")
-      .order("ruta", { ascending: true })
+     .order("codigo", { ascending: true, nullsFirst: false })
       .order("nombre", { ascending: true });
 
     if (error) {

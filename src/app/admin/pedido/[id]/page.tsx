@@ -309,6 +309,13 @@ export default function PedidoDetallePage() {
           .codigo {
             font-weight: 800;
           }
+
+          .total-lineas {
+            margin-top: 10px;
+            font-size: 14px;
+            font-weight: 800;
+            color: #000;
+          }
         }
 
         @media screen {
@@ -435,6 +442,10 @@ export default function PedidoDetallePage() {
                     ))}
                   </tbody>
                 </table>
+
+                <div className="total-lineas">
+                  Total de líneas: {bebidas.length}
+                </div>
               </section>
             )}
 
@@ -481,6 +492,10 @@ export default function PedidoDetallePage() {
                     ))}
                   </tbody>
                 </table>
+
+                <div className="total-lineas">
+                  Total de líneas: {charcuteria.length}
+                </div>
               </section>
             )}
 

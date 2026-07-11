@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import AppVersionGuard from "@/components/AppVersionGuard";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://app-pedidos-clientes-2.vercel.app"),
@@ -48,7 +49,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es">
-      <body>{children}</body>
+      <body>
+        <AppVersionGuard />
+        {children}
+      </body>
     </html>
   );
 }

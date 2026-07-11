@@ -1035,18 +1035,6 @@ export default function PedidoClientePage() {
               </p>
             </div>
 
-            <button
-              type="button"
-              onClick={() => {
-                setPedidoFinalizado(false);
-                setMensaje("");
-                window.scrollTo({ top: 0, behavior: "smooth" });
-              }}
-              className="w-full shrink-0 rounded-2xl bg-[#69c94c] px-5 py-3 text-lg font-black text-[#0c1708] shadow-[0_12px_35px_rgba(105,201,76,0.22)] transition active:scale-[0.98] sm:py-4"
-            >
-              Aceptar
-            </button>
-
             <p className="shrink-0 text-[11px] leading-relaxed text-white/45 sm:text-xs">
               En iPhone, inicia el gesto en la barra inferior de la pantalla.
             </p>

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Search,
   ShoppingCart,
@@ -12,8 +12,6 @@ import {
   History,
   ChevronDown,
   ChevronUp,
-  LogOut,
-  RefreshCw,
 } from "lucide-react";
 import { useParams } from "next/navigation";
 
@@ -248,48 +246,26 @@ export default function PedidoClientePage() {
   const [mensajeFinalizado, setMensajeFinalizado] = useState(
     "Pedido enviado correctamente.",
   );
-  const reiniciarAlVolverRef = useRef(false);
-
   useEffect(() => {
-    const claveReinicio = `reiniciar-pedido-${token}`;
+    if (!pedidoFinalizado) return;
 
-    const reiniciarPedido = () => {
-      const debeReiniciar =
-        reiniciarAlVolverRef.current ||
-        window.sessionStorage.getItem(claveReinicio) === "1";
+    const prepararNuevaApertura = () => {
+      if (document.visibilityState !== "hidden") return;
 
-      if (!debeReiniciar) return;
-
-      reiniciarAlVolverRef.current = false;
-      window.sessionStorage.removeItem(claveReinicio);
-
-      const url = new URL(window.location.href);
-      url.searchParams.set("inicio", Date.now().toString());
-      window.location.replace(url.toString());
+      // iOS conserva las PWA suspendidas. Al enviarla al fondo dejamos el
+      // formulario preparado para que la próxima apertura no restaure la
+      // pantalla de confirmación.
+      setPedidoFinalizado(false);
+      setMensaje("");
+      setMostrarPreview(false);
     };
 
-    const alCambiarVisibilidad = () => {
-      if (document.visibilityState === "visible") {
-        reiniciarPedido();
-      }
-    };
-
-    const alMostrarPagina = () => {
-      reiniciarPedido();
-    };
-
-    // Cubre el caso en que iOS restaura la aplicación directamente desde una
-    // instancia suspendida o desde su caché de navegación.
-    reiniciarPedido();
-
-    document.addEventListener("visibilitychange", alCambiarVisibilidad);
-    window.addEventListener("pageshow", alMostrarPagina);
+    document.addEventListener("visibilitychange", prepararNuevaApertura);
 
     return () => {
-      document.removeEventListener("visibilitychange", alCambiarVisibilidad);
-      window.removeEventListener("pageshow", alMostrarPagina);
+      document.removeEventListener("visibilitychange", prepararNuevaApertura);
     };
-  }, [token]);
+  }, [pedidoFinalizado]);
 
   function cargarBorradorLocal(productosBase: Producto[]) {
     try {
@@ -864,42 +840,6 @@ export default function PedidoClientePage() {
     setMostrarPreview(true);
   }
 
-  function salirAplicacion() {
-    const claveReinicio = `reiniciar-pedido-${token}`;
-    const esAplicacionInstalada =
-      window.matchMedia("(display-mode: standalone)").matches ||
-      ("standalone" in window.navigator &&
-        Boolean(
-          (window.navigator as Navigator & { standalone?: boolean }).standalone,
-        ));
-
-    // Eliminamos cualquier marca que pudiera restaurar la pantalla final.
-    reiniciarAlVolverRef.current = false;
-    window.sessionStorage.removeItem(claveReinicio);
-
-    // Dejamos la URL preparada para arrancar siempre desde el principio.
-    const urlInicial = new URL(window.location.href);
-    urlInicial.search = "";
-    urlInicial.searchParams.set("inicio", Date.now().toString());
-
-    if (!esAplicacionInstalada && window.history.length > 1) {
-      window.history.back();
-
-      // Algunos navegadores ignoran history.back(). Si seguimos visibles,
-      // reiniciamos el pedido para no dejar al cliente en la pantalla final.
-      window.setTimeout(() => {
-        if (document.visibilityState === "visible") {
-          window.location.replace(urlInicial.toString());
-        }
-      }, 500);
-      return;
-    }
-
-    // iOS no permite que una web instalada se cierre por código. Reiniciamos
-    // inmediatamente la aplicación para que, al volver a abrirla desde el
-    // escritorio, nunca restaure la pantalla de "Pedido enviado".
-    window.location.replace(urlInicial.toString());
-  }
 
   async function enviarPedido() {
     setMensaje("");
@@ -1014,29 +954,21 @@ export default function PedidoClientePage() {
             </p>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2">
-            <button
-              type="button"
-              onClick={() => window.location.reload()}
-              className="w-full bg-black text-white rounded-xl py-3 px-4 font-bold flex items-center justify-center gap-2"
-            >
-              <RefreshCw className="w-5 h-5" aria-hidden="true" />
-              Volver a abrir
-            </button>
-
-            <button
-              type="button"
-              onClick={salirAplicacion}
-              className="w-full border-2 border-slate-300 bg-white text-slate-800 rounded-xl py-3 px-4 font-bold flex items-center justify-center gap-2"
-            >
-              <LogOut className="w-5 h-5" aria-hidden="true" />
-              Salir
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setPedidoFinalizado(false);
+              setMensaje("");
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }}
+            className="w-full bg-black text-white rounded-xl py-3 px-4 font-bold"
+          >
+            Aceptar
+          </button>
 
           <p className="text-xs text-slate-400">
-            En iPhone o iPad, Salir deja el pedido cerrado y preparado para que
-            la próxima apertura comience desde el inicio.
+            En iPhone o iPad puedes volver al escritorio con el gesto habitual.
+            Cuando abras de nuevo la aplicación, aparecerá el formulario inicial.
           </p>
         </section>
       </main>

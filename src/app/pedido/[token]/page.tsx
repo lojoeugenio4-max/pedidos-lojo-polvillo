@@ -13,7 +13,6 @@ import {
   ChevronDown,
   ChevronUp,
   ArrowUp,
-  HandPointer,
 } from "lucide-react";
 import { useParams } from "next/navigation";
 
@@ -984,11 +983,22 @@ export default function PedidoClientePage() {
                   strokeWidth={3}
                   aria-hidden="true"
                 />
-                <HandPointer
+                <svg
+                  viewBox="0 0 120 140"
                   className="relative mt-12 h-24 w-24 text-orange-200 drop-shadow-[0_0_18px_rgba(251,191,142,0.28)]"
-                  strokeWidth={1.6}
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
                   aria-hidden="true"
-                />
+                >
+                  <path
+                    d="M57 12c-7.2 0-13 5.8-13 13v48.2l-7.3-10.1c-4.2-5.8-12.3-7.1-18.1-2.9-5.8 4.2-7.1 12.3-2.9 18.1l22.7 31.2c7.2 9.9 18.7 15.8 31 15.8h11.1c17.4 0 31.5-14.1 31.5-31.5V56.5c0-6.9-5.6-12.5-12.5-12.5-3.4 0-6.5 1.4-8.8 3.6v-5.1c0-6.9-5.6-12.5-12.5-12.5-3.8 0-7.2 1.7-9.5 4.4V25c0-7.2-5.8-13-13-13H57Z"
+                    fill="currentColor"
+                  />
+                  <path
+                    d="M57 19.5c-3 0-5.5 2.5-5.5 5.5v53.5c0 2.1-1.3 4-3.3 4.7-2 .7-4.2 0-5.4-1.7L30.6 64.8c-1.8-2.5-5.3-3-7.8-1.2-2.5 1.8-3 5.3-1.2 7.8l22.7 31.2c5.8 8 15.1 12.7 25 12.7h11.1c13.3 0 24-10.7 24-24V56.5c0-2.8-2.2-5-5-5s-5 2.2-5 5V72c0 2.1-1.7 3.8-3.8 3.8S87 74.1 87 72V42.5c0-2.8-2.2-5-5-5s-5 2.2-5 5V70c0 2.1-1.7 3.8-3.8 3.8S69.5 72.1 69.5 70V25c0-3-2.5-5.5-5.5-5.5H57Z"
+                    fill="#FED7AA"
+                  />
+                </svg>
               </div>
 
               <p className="mt-2 text-xl font-extrabold text-[#78d45a]">

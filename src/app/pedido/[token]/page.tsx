@@ -268,6 +268,35 @@ export default function PedidoClientePage() {
     };
   }, [pedidoFinalizado]);
 
+  useEffect(() => {
+    if (!pedidoFinalizado) return;
+
+    const body = document.body;
+    const html = document.documentElement;
+    const previousBodyOverflow = body.style.overflow;
+    const previousBodyPosition = body.style.position;
+    const previousBodyWidth = body.style.width;
+    const previousBodyOverscroll = body.style.overscrollBehavior;
+    const previousHtmlOverflow = html.style.overflow;
+    const previousHtmlOverscroll = html.style.overscrollBehavior;
+
+    body.style.overflow = "hidden";
+    body.style.position = "fixed";
+    body.style.width = "100%";
+    body.style.overscrollBehavior = "none";
+    html.style.overflow = "hidden";
+    html.style.overscrollBehavior = "none";
+
+    return () => {
+      body.style.overflow = previousBodyOverflow;
+      body.style.position = previousBodyPosition;
+      body.style.width = previousBodyWidth;
+      body.style.overscrollBehavior = previousBodyOverscroll;
+      html.style.overflow = previousHtmlOverflow;
+      html.style.overscrollBehavior = previousHtmlOverscroll;
+    };
+  }, [pedidoFinalizado]);
+
   function cargarBorradorLocal(productosBase: Producto[]) {
     try {
       const guardado = window.localStorage.getItem(claveBorradorPedido(token));
@@ -936,34 +965,31 @@ export default function PedidoClientePage() {
 
   if (pedidoFinalizado) {
     return (
-      <main className="min-h-screen bg-[#090d13] px-4 py-6 text-white flex items-center justify-center">
-        <section className="w-full max-w-lg overflow-hidden rounded-[2rem] border border-white/10 bg-gradient-to-b from-[#171d25] to-[#10151c] shadow-2xl">
-          <div className="border-b border-white/10 px-6 py-5 text-center">
+      <main className="fixed inset-0 h-[100dvh] overflow-hidden overscroll-none bg-[#090d13] px-3 py-3 text-white flex items-center justify-center select-none">
+        <section className="flex max-h-[calc(100dvh-1.5rem)] w-full max-w-lg flex-col overflow-hidden rounded-[1.75rem] border border-white/10 bg-gradient-to-b from-[#171d25] to-[#10151c] shadow-2xl">
+          <div className="shrink-0 border-b border-white/10 px-6 py-3 text-center sm:py-4">
             <p className="text-xs font-semibold uppercase tracking-[0.35em] text-white/70">
               Pólvillo
             </p>
             <p className="mt-1 text-3xl font-black tracking-tight text-[#6bc94c]">
               LOJO
             </p>
-            <p className="text-xs font-bold tracking-[0.28em] text-white/90">
-              BURGUER
-            </p>
           </div>
 
-          <div className="space-y-7 px-6 py-8 text-center sm:px-10">
-            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full border-4 border-[#69c94c] bg-[#69c94c]/10 shadow-[0_0_35px_rgba(105,201,76,0.18)]">
-              <CheckCircle className="h-12 w-12 text-[#69c94c]" aria-hidden="true" />
+          <div className="flex min-h-0 flex-1 flex-col justify-center gap-4 px-5 py-4 text-center sm:gap-5 sm:px-10 sm:py-6">
+            <div className="mx-auto flex h-16 w-16 shrink-0 items-center justify-center rounded-full border-4 border-[#69c94c] bg-[#69c94c]/10 shadow-[0_0_35px_rgba(105,201,76,0.18)] sm:h-20 sm:w-20">
+              <CheckCircle className="h-10 w-10 text-[#69c94c] sm:h-12 sm:w-12" aria-hidden="true" />
             </div>
 
             <div>
-              <h1 className="text-3xl font-black leading-tight tracking-tight sm:text-4xl">
+              <h1 className="text-2xl font-black leading-tight tracking-tight sm:text-4xl">
                 Pedido enviado
                 <span className="block">correctamente</span>
               </h1>
 
               <div className="mx-auto mt-5 h-1 w-28 rounded-full bg-[#69c94c]" />
 
-              <p className="mt-5 text-lg leading-relaxed text-white/85">
+              <p className="mt-3 text-base leading-relaxed text-white/85 sm:mt-5 sm:text-lg">
                 Gracias por su pedido.
                 <span className="block">En breve comenzaremos a prepararlo.</span>
               </p>
@@ -975,17 +1001,17 @@ export default function PedidoClientePage() {
               )}
             </div>
 
-            <div className="rounded-3xl border border-white/10 bg-black/20 px-5 py-6">
-              <div className="relative mx-auto flex h-40 w-40 items-center justify-center">
+            <div className="shrink-0 rounded-3xl border border-white/10 bg-black/20 px-4 py-3 sm:px-5 sm:py-5">
+              <div className="relative mx-auto flex h-28 w-32 items-center justify-center sm:h-36 sm:w-40">
                 <div className="absolute inset-0 rounded-full bg-[#69c94c]/5 blur-xl" />
                 <ArrowUp
-                  className="absolute top-0 h-12 w-12 animate-bounce text-[#69c94c]"
+                  className="absolute top-0 h-10 w-10 animate-bounce text-[#69c94c] sm:h-12 sm:w-12"
                   strokeWidth={3}
                   aria-hidden="true"
                 />
                 <svg
                   viewBox="0 0 120 140"
-                  className="relative mt-12 h-24 w-24 text-orange-200 drop-shadow-[0_0_18px_rgba(251,191,142,0.28)]"
+                  className="relative mt-10 h-20 w-20 text-orange-200 drop-shadow-[0_0_18px_rgba(251,191,142,0.28)] sm:mt-12 sm:h-24 sm:w-24"
                   fill="none"
                   xmlns="http://www.w3.org/2000/svg"
                   aria-hidden="true"
@@ -1001,11 +1027,11 @@ export default function PedidoClientePage() {
                 </svg>
               </div>
 
-              <p className="mt-2 text-xl font-extrabold text-[#78d45a]">
-                Desliza la pantalla hacia arriba
+              <p className="mt-1 text-lg font-extrabold text-[#78d45a] sm:mt-2 sm:text-xl">
+                Desliza desde el borde inferior
               </p>
-              <p className="mt-1 text-base text-white/85">
-                para salir de la aplicación
+              <p className="mt-1 text-sm text-white/85 sm:text-base">
+                hacia arriba para salir de la aplicación
               </p>
             </div>
 
@@ -1016,13 +1042,13 @@ export default function PedidoClientePage() {
                 setMensaje("");
                 window.scrollTo({ top: 0, behavior: "smooth" });
               }}
-              className="w-full rounded-2xl bg-[#69c94c] px-5 py-4 text-lg font-black text-[#0c1708] shadow-[0_12px_35px_rgba(105,201,76,0.22)] transition active:scale-[0.98]"
+              className="w-full shrink-0 rounded-2xl bg-[#69c94c] px-5 py-3 text-lg font-black text-[#0c1708] shadow-[0_12px_35px_rgba(105,201,76,0.22)] transition active:scale-[0.98] sm:py-4"
             >
               Aceptar
             </button>
 
-            <p className="text-xs leading-relaxed text-white/45">
-              Al volver a abrir este mismo enlace, aparecerá el formulario preparado para un nuevo pedido.
+            <p className="shrink-0 text-[11px] leading-relaxed text-white/45 sm:text-xs">
+              En iPhone, inicia el gesto en la barra inferior de la pantalla.
             </p>
           </div>
         </section>

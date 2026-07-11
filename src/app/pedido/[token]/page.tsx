@@ -240,6 +240,7 @@ export default function PedidoClientePage() {
   const [borradorPreparado, setBorradorPreparado] = useState(false);
   const [mensajeBorrador, setMensajeBorrador] = useState<string | null>(null);
   const [pedidoFinalizado, setPedidoFinalizado] = useState(false);
+  const [salidaSolicitada, setSalidaSolicitada] = useState(false);
   const [mensajeFinalizado, setMensajeFinalizado] = useState("Pedido enviado correctamente.");
 
   function cargarBorradorLocal(productosBase: Producto[]) {
@@ -808,17 +809,22 @@ useEffect(() => {
   }
 
   function salirAplicacion() {
-    // Los navegadores solo permiten cerrar automáticamente ventanas abiertas
-    // mediante JavaScript. Primero lo intentamos y, si no es posible,
-    // mostramos una página vacía para que el usuario pueda cerrar la pestaña
-    // o volver a su pantalla de inicio.
+    // Solo se pueden cerrar automáticamente ventanas abiertas por JavaScript.
+    // Si el navegador no permite cerrarla, intentamos volver a la aplicación
+    // anterior. Cuando tampoco hay una página anterior, mantenemos una pantalla
+    // final clara en lugar de enviar al usuario a about:blank.
     window.close();
 
     window.setTimeout(() => {
-      if (!document.hidden) {
-        window.location.replace("about:blank");
+      if (document.hidden) return;
+
+      if (window.history.length > 1) {
+        window.history.back();
+        return;
       }
-    }, 150);
+
+      setSalidaSolicitada(true);
+    }, 200);
   }
 
   async function enviarPedido() {
@@ -914,6 +920,37 @@ useEffect(() => {
   }
 
   if (pedidoFinalizado) {
+    if (salidaSolicitada) {
+      return (
+        <main className="min-h-screen bg-slate-100 p-4 md:p-6 flex items-center justify-center">
+          <section className="w-full max-w-lg bg-white rounded-2xl shadow p-8 text-center space-y-5">
+            <div className="mx-auto w-16 h-16 rounded-full bg-green-100 flex items-center justify-center">
+              <CheckCircle className="w-9 h-9 text-green-700" />
+            </div>
+
+            <div>
+              <h1 className="text-3xl font-bold text-black">
+                Pedido enviado
+              </h1>
+
+              <p className="text-slate-600 mt-3">
+                Ya puedes cerrar esta ventana o volver a la pantalla de inicio de tu dispositivo.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setSalidaSolicitada(false)}
+              className="w-full border-2 border-slate-300 bg-white text-slate-800 rounded-xl py-3 px-4 font-bold flex items-center justify-center gap-2"
+            >
+              <ArrowLeft className="w-5 h-5" aria-hidden="true" />
+              Volver a las opciones
+            </button>
+          </section>
+        </main>
+      );
+    }
+
     return (
       <main className="min-h-screen bg-slate-100 p-4 md:p-6 flex items-center justify-center">
         <section className="w-full max-w-lg bg-white rounded-2xl shadow p-8 text-center space-y-5">
@@ -956,8 +993,8 @@ useEffect(() => {
           </div>
 
           <p className="text-xs text-slate-400">
-            Algunos navegadores no permiten cerrar una pestaña automáticamente.
-            En ese caso, pulsa Salir y después cierra la ventana o vuelve a la pantalla de inicio.
+            Si el navegador no permite cerrar la ventana, volverás a la aplicación anterior
+            o verás una confirmación para cerrarla manualmente.
           </p>
         </section>
       </main>

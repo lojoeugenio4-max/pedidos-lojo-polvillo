@@ -12,6 +12,8 @@ import {
   History,
   ChevronDown,
   ChevronUp,
+  ArrowUp,
+  HandPointer,
 } from "lucide-react";
 import { useParams } from "next/navigation";
 
@@ -935,41 +937,84 @@ export default function PedidoClientePage() {
 
   if (pedidoFinalizado) {
     return (
-      <main className="min-h-screen bg-slate-100 p-4 md:p-6 flex items-center justify-center">
-        <section className="w-full max-w-lg bg-white rounded-2xl shadow p-8 text-center space-y-5">
-          <div className="mx-auto w-16 h-16 rounded-full bg-green-100 flex items-center justify-center">
-            <CheckCircle className="w-9 h-9 text-green-700" />
-          </div>
-
-          <div>
-            <h1 className="text-3xl font-bold text-black">
-              Pedido enviado correctamente
-            </h1>
-
-            <p className="text-slate-600 mt-3">{mensajeFinalizado}</p>
-
-            <p className="text-sm text-slate-500 mt-3">
-              Si quieres hacer otra modificación, vuelve a cargar la aplicación
-              para recuperar el pedido actualizado.
+      <main className="min-h-screen bg-[#090d13] px-4 py-6 text-white flex items-center justify-center">
+        <section className="w-full max-w-lg overflow-hidden rounded-[2rem] border border-white/10 bg-gradient-to-b from-[#171d25] to-[#10151c] shadow-2xl">
+          <div className="border-b border-white/10 px-6 py-5 text-center">
+            <p className="text-xs font-semibold uppercase tracking-[0.35em] text-white/70">
+              Pólvillo
+            </p>
+            <p className="mt-1 text-3xl font-black tracking-tight text-[#6bc94c]">
+              LOJO
+            </p>
+            <p className="text-xs font-bold tracking-[0.28em] text-white/90">
+              BURGUER
             </p>
           </div>
 
-          <button
-            type="button"
-            onClick={() => {
-              setPedidoFinalizado(false);
-              setMensaje("");
-              window.scrollTo({ top: 0, behavior: "smooth" });
-            }}
-            className="w-full bg-black text-white rounded-xl py-3 px-4 font-bold"
-          >
-            Aceptar
-          </button>
+          <div className="space-y-7 px-6 py-8 text-center sm:px-10">
+            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full border-4 border-[#69c94c] bg-[#69c94c]/10 shadow-[0_0_35px_rgba(105,201,76,0.18)]">
+              <CheckCircle className="h-12 w-12 text-[#69c94c]" aria-hidden="true" />
+            </div>
 
-          <p className="text-xs text-slate-400">
-            En iPhone o iPad puedes volver al escritorio con el gesto habitual.
-            Cuando abras de nuevo la aplicación, aparecerá el formulario inicial.
-          </p>
+            <div>
+              <h1 className="text-3xl font-black leading-tight tracking-tight sm:text-4xl">
+                Pedido enviado
+                <span className="block">correctamente</span>
+              </h1>
+
+              <div className="mx-auto mt-5 h-1 w-28 rounded-full bg-[#69c94c]" />
+
+              <p className="mt-5 text-lg leading-relaxed text-white/85">
+                Gracias por su pedido.
+                <span className="block">En breve comenzaremos a prepararlo.</span>
+              </p>
+
+              {mensajeFinalizado !== "Pedido enviado correctamente." && (
+                <p className="mt-3 text-sm font-medium text-[#8edd72]">
+                  {mensajeFinalizado}
+                </p>
+              )}
+            </div>
+
+            <div className="rounded-3xl border border-white/10 bg-black/20 px-5 py-6">
+              <div className="relative mx-auto flex h-40 w-40 items-center justify-center">
+                <div className="absolute inset-0 rounded-full bg-[#69c94c]/5 blur-xl" />
+                <ArrowUp
+                  className="absolute top-0 h-12 w-12 animate-bounce text-[#69c94c]"
+                  strokeWidth={3}
+                  aria-hidden="true"
+                />
+                <HandPointer
+                  className="relative mt-12 h-24 w-24 text-orange-200 drop-shadow-[0_0_18px_rgba(251,191,142,0.28)]"
+                  strokeWidth={1.6}
+                  aria-hidden="true"
+                />
+              </div>
+
+              <p className="mt-2 text-xl font-extrabold text-[#78d45a]">
+                Desliza la pantalla hacia arriba
+              </p>
+              <p className="mt-1 text-base text-white/85">
+                para salir de la aplicación
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                setPedidoFinalizado(false);
+                setMensaje("");
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }}
+              className="w-full rounded-2xl bg-[#69c94c] px-5 py-4 text-lg font-black text-[#0c1708] shadow-[0_12px_35px_rgba(105,201,76,0.22)] transition active:scale-[0.98]"
+            >
+              Aceptar
+            </button>
+
+            <p className="text-xs leading-relaxed text-white/45">
+              Al volver a abrir este mismo enlace, aparecerá el formulario preparado para un nuevo pedido.
+            </p>
+          </div>
         </section>
       </main>
     );

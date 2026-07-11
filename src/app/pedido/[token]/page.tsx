@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Search,
   ShoppingCart,
@@ -12,8 +12,6 @@ import {
   History,
   ChevronDown,
   ChevronUp,
-  LogOut,
-  RefreshCw,
 } from "lucide-react";
 import { useParams } from "next/navigation";
 
@@ -109,7 +107,7 @@ function diaHoyEspana() {
     new Date().toLocaleDateString("es-ES", {
       weekday: "long",
       timeZone: "Europe/Madrid",
-    }),
+    })
   );
 }
 
@@ -179,17 +177,14 @@ function irAlPrimerArticulo() {
   window.setTimeout(() => {
     window.requestAnimationFrame(() => {
       const primerArticulo = document.querySelector(
-        "[data-producto-visible='true']",
+        "[data-producto-visible='true']"
       ) as HTMLElement | null;
 
       const cabecera = document.getElementById("cabecera-filtros");
-      const alturaCabecera = cabecera
-        ? cabecera.getBoundingClientRect().height
-        : 0;
+      const alturaCabecera = cabecera ? cabecera.getBoundingClientRect().height : 0;
       const margenExtra = 16;
 
-      const destino =
-        primerArticulo || document.getElementById("inicio-articulos");
+      const destino = primerArticulo || document.getElementById("inicio-articulos");
 
       if (!destino) return;
 
@@ -236,60 +231,14 @@ export default function PedidoClientePage() {
   const [mensajeAviso, setMensajeAviso] = useState<string | null>(null);
   const [mostrarAviso, setMostrarAviso] = useState(false);
 
-  const [historicoPedidos, setHistoricoPedidos] = useState<PedidoHistorico[]>(
-    [],
-  );
+  const [historicoPedidos, setHistoricoPedidos] = useState<PedidoHistorico[]>([]);
   const [lineasHistorico, setLineasHistorico] = useState<LineaHistorico[]>([]);
   const [mostrarHistorico, setMostrarHistorico] = useState(false);
 
   const [borradorPreparado, setBorradorPreparado] = useState(false);
   const [mensajeBorrador, setMensajeBorrador] = useState<string | null>(null);
   const [pedidoFinalizado, setPedidoFinalizado] = useState(false);
-  const [mensajeFinalizado, setMensajeFinalizado] = useState(
-    "Pedido enviado correctamente.",
-  );
-  const reiniciarAlVolverRef = useRef(false);
-
-  useEffect(() => {
-    const claveReinicio = `reiniciar-pedido-${token}`;
-
-    const reiniciarPedido = () => {
-      const debeReiniciar =
-        reiniciarAlVolverRef.current ||
-        window.sessionStorage.getItem(claveReinicio) === "1";
-
-      if (!debeReiniciar) return;
-
-      reiniciarAlVolverRef.current = false;
-      window.sessionStorage.removeItem(claveReinicio);
-
-      const url = new URL(window.location.href);
-      url.searchParams.set("inicio", Date.now().toString());
-      window.location.replace(url.toString());
-    };
-
-    const alCambiarVisibilidad = () => {
-      if (document.visibilityState === "visible") {
-        reiniciarPedido();
-      }
-    };
-
-    const alMostrarPagina = () => {
-      reiniciarPedido();
-    };
-
-    // Cubre el caso en que iOS restaura la aplicación directamente desde una
-    // instancia suspendida o desde su caché de navegación.
-    reiniciarPedido();
-
-    document.addEventListener("visibilitychange", alCambiarVisibilidad);
-    window.addEventListener("pageshow", alMostrarPagina);
-
-    return () => {
-      document.removeEventListener("visibilitychange", alCambiarVisibilidad);
-      window.removeEventListener("pageshow", alMostrarPagina);
-    };
-  }, [token]);
+  const [mensajeFinalizado, setMensajeFinalizado] = useState("Pedido enviado correctamente.");
 
   function cargarBorradorLocal(productosBase: Producto[]) {
     try {
@@ -349,7 +298,7 @@ export default function PedidoClientePage() {
 
       window.localStorage.setItem(
         claveBorradorPedido(token),
-        JSON.stringify(borrador),
+        JSON.stringify(borrador)
       );
     } catch (error) {
       console.error(error);
@@ -369,7 +318,7 @@ export default function PedidoClientePage() {
       "obtener_historico_servicio_completo",
       {
         p_cliente_id: clienteId,
-      },
+      }
     );
 
     if (error) {
@@ -392,7 +341,7 @@ export default function PedidoClientePage() {
         departamento: linea.departamento,
         cajas: Number(linea.cajas) || 0,
         unidades: Number(linea.unidades) || 0,
-      })),
+      }))
     ) as LineaHistorico[];
 
     setHistoricoPedidos(pedidos);
@@ -406,7 +355,7 @@ export default function PedidoClientePage() {
     const { data, error } = await supabase
       .from("mensajes_clientes")
       .select(
-        "id, mensaje, cliente_id, dia_pedido, para_todos, activo, fecha_inicio, fecha_fin, mostrar_una_sola_vez, creado_en",
+        "id, mensaje, cliente_id, dia_pedido, para_todos, activo, fecha_inicio, fecha_fin, mostrar_una_sola_vez, creado_en"
       )
       .eq("activo", true)
       .lte("fecha_inicio", hoy)
@@ -470,7 +419,7 @@ export default function PedidoClientePage() {
     const { data, error } = await supabase
       .from("mensajes_clientes")
       .select(
-        "id, mensaje, cliente_id, dia_pedido, para_todos, activo, fecha_inicio, fecha_fin, mostrar_una_sola_vez, creado_en",
+        "id, mensaje, cliente_id, dia_pedido, para_todos, activo, fecha_inicio, fecha_fin, mostrar_una_sola_vez, creado_en"
       )
       .eq("activo", true)
       .lte("fecha_inicio", hoy)
@@ -508,9 +457,7 @@ export default function PedidoClientePage() {
 
     const { data, error } = await supabase
       .from("Clientes")
-      .select(
-        "id, codigo, nombre, telefono, dia_pedido, ruta, activo, token_pedido",
-      )
+      .select("id, codigo, nombre, telefono, dia_pedido, ruta, activo, token_pedido")
       .eq("token_pedido", token)
       .single();
 
@@ -541,7 +488,7 @@ export default function PedidoClientePage() {
     const { data, error } = await supabase
       .from("productos")
       .select(
-        "id, codigo, nombre, departamento, categoria, unidad, orden_preparacion, activo, imagen_url",
+        "id, codigo, nombre, departamento, categoria, unidad, orden_preparacion, activo, imagen_url"
       )
       .eq("activo", true)
       .order("departamento", { ascending: true })
@@ -565,16 +512,14 @@ export default function PedidoClientePage() {
 
   async function cargarPedidoExistente(
     clienteId: number,
-    productosBase: Producto[],
+    productosBase: Producto[]
   ) {
     const fechaHoy = fechaPedidoObjetivoISO(cliente?.dia_pedido || null);
 
     const { data: pedidosNoImpresosData, error: noImpresosError } =
       await supabase
         .from("pedidos")
-        .select(
-          "id, cliente_id, fecha, estado, impreso, creado_en, fuera_de_dia",
-        )
+        .select("id, cliente_id, fecha, estado, impreso, creado_en, fuera_de_dia")
         .eq("cliente_id", clienteId)
         .eq("fecha", fechaHoy)
         .eq("impreso", false)
@@ -589,7 +534,8 @@ export default function PedidoClientePage() {
     }
 
     const pedidoNoImpreso =
-      ((pedidosNoImpresosData || [])[0] as PedidoExistente | undefined) || null;
+      ((pedidosNoImpresosData || [])[0] as PedidoExistente | undefined) ||
+      null;
 
     const { data: pedidosImpresosData, error: impresosError } = await supabase
       .from("pedidos")
@@ -632,9 +578,7 @@ export default function PedidoClientePage() {
     if (pedidoNoImpreso) {
       const { data: lineasData, error: lineasError } = await supabase
         .from("lineas_pedido")
-        .select(
-          "codigo_articulo, nombre_articulo, departamento, cajas, unidades",
-        )
+        .select("codigo_articulo, nombre_articulo, departamento, cajas, unidades")
         .eq("pedido_id", pedidoNoImpreso.id);
 
       if (lineasError) {
@@ -677,7 +621,7 @@ export default function PedidoClientePage() {
     if (borradorLocal) {
       setPedido(borradorLocal);
       setMensajeBorrador(
-        "Hemos recuperado un pedido que se quedó sin enviar en este dispositivo.",
+        "Hemos recuperado un pedido que se quedó sin enviar en este dispositivo."
       );
     } else {
       setPedido(pedidoBase);
@@ -690,27 +634,27 @@ export default function PedidoClientePage() {
     cargarCliente();
     cargarProductos();
   }, []);
-  useEffect(() => {
-    const recargar = async () => {
-      if (document.visibilityState !== "visible") return;
+useEffect(() => {
+  const recargar = async () => {
+    if (document.visibilityState !== "visible") return;
 
-      await cargarCliente();
-      await cargarProductos();
+    await cargarCliente();
+    await cargarProductos();
 
-      if (cliente && productos.length > 0) {
-        await cargarPedidoExistente(cliente.id, productos);
-        await cargarHistoricoPedidos(cliente.id);
-      }
-    };
+    if (cliente && productos.length > 0) {
+      await cargarPedidoExistente(cliente.id, productos);
+      await cargarHistoricoPedidos(cliente.id);
+    }
+  };
 
-    document.addEventListener("visibilitychange", recargar);
-    window.addEventListener("focus", recargar);
+  document.addEventListener("visibilitychange", recargar);
+  window.addEventListener("focus", recargar);
 
-    return () => {
-      document.removeEventListener("visibilitychange", recargar);
-      window.removeEventListener("focus", recargar);
-    };
-  }, [cliente, productos]);
+  return () => {
+    document.removeEventListener("visibilitychange", recargar);
+    window.removeEventListener("focus", recargar);
+  };
+}, [cliente, productos]);
   useEffect(() => {
     if (!cliente || productos.length === 0) return;
 
@@ -725,7 +669,7 @@ export default function PedidoClientePage() {
 
   const productosDelDepartamento = useMemo(() => {
     return productos.filter(
-      (p) => normalizarTexto(p.departamento) === normalizarTexto(departamento),
+      (p) => normalizarTexto(p.departamento) === normalizarTexto(departamento)
     );
   }, [productos, departamento]);
 
@@ -734,12 +678,9 @@ export default function PedidoClientePage() {
       .map((p) => p.categoria || "Sin categoría")
       .filter((cat) => Boolean(cat && cat.trim()));
 
-    return [
-      "Todas",
-      ...Array.from(new Set(categorias)).sort((a, b) =>
-        a.localeCompare(b, "es"),
-      ),
-    ];
+    return ["Todas", ...Array.from(new Set(categorias)).sort((a, b) =>
+      a.localeCompare(b, "es")
+    )];
   }, [productosDelDepartamento]);
 
   useEffect(() => {
@@ -772,7 +713,7 @@ export default function PedidoClientePage() {
         a.nombre.localeCompare(b.nombre, "es", {
           sensitivity: "base",
           numeric: true,
-        }),
+        })
       );
   }, [busqueda, categoria, productos, productosDelDepartamento]);
 
@@ -794,11 +735,11 @@ export default function PedidoClientePage() {
     });
 
   const bebidasPedido = lineasPedido.filter(
-    (item) => item.departamento === "Bebidas",
+    (item) => item.departamento === "Bebidas"
   );
 
   const charcuteriaPedido = lineasPedido.filter(
-    (item) => item.departamento === "Charcutería",
+    (item) => item.departamento === "Charcutería"
   );
 
   const totalLineas = lineasPedido.length;
@@ -806,7 +747,7 @@ export default function PedidoClientePage() {
   function actualizarCantidad(
     producto: Producto,
     tipo: "cajas" | "unidades",
-    valor: string,
+    valor: string
   ) {
     const soloNumeros = valor.replace(/\D/g, "");
     const cantidad = Math.max(0, Number(soloNumeros) || 0);
@@ -864,37 +805,6 @@ export default function PedidoClientePage() {
     setMostrarPreview(true);
   }
 
-  function salirAplicacion() {
-    const claveReinicio = `reiniciar-pedido-${token}`;
-
-    reiniciarAlVolverRef.current = true;
-    window.sessionStorage.setItem(claveReinicio, "1");
-
-    // Los navegadores solo permiten cerrar automáticamente ventanas que hayan
-    // sido abiertas por JavaScript. Se intenta primero porque sí funciona en
-    // algunos contextos y aplicaciones Android empaquetadas.
-    window.close();
-
-    window.setTimeout(() => {
-      if (document.hidden) return;
-
-      const esAplicacionInstalada =
-        window.matchMedia("(display-mode: standalone)").matches ||
-        ("standalone" in window.navigator &&
-          Boolean(
-            (window.navigator as Navigator & { standalone?: boolean })
-              .standalone,
-          ));
-
-      // En una pestaña normal volvemos a la aplicación desde la que se abrió el
-      // enlace. En iPhone/iPad instalado no navegamos a una pantalla vacía ni a
-      // otra página: el usuario puede volver al escritorio con el gesto habitual.
-      if (!esAplicacionInstalada && window.history.length > 1) {
-        window.history.back();
-      }
-    }, 200);
-  }
-
   async function enviarPedido() {
     setMensaje("");
 
@@ -922,15 +832,38 @@ export default function PedidoClientePage() {
         unidades: item.unidades,
       }));
 
-      const { error } = await supabase.rpc("guardar_pedido_cliente", {
-        p_cliente_id: cliente.id,
-        p_fecha: fechaObjetivoPedido,
-        p_estado: "recibido",
-        p_fuera_de_dia: fueraDeDia,
-        p_lineas: lineas,
-      });
+      if (!navigator.onLine) {
+        throw new Error(
+          "No hay conexión a Internet. Revisa la conexión e inténtalo de nuevo."
+        );
+      }
 
-      if (error) throw error;
+      const controller = new AbortController();
+      const timeoutId = window.setTimeout(() => controller.abort(), 20_000);
+
+      try {
+        const { error } = await supabase
+          .rpc("guardar_pedido_cliente", {
+            p_cliente_id: cliente.id,
+            p_fecha: fechaObjetivoPedido,
+            p_estado: "recibido",
+            p_fuera_de_dia: fueraDeDia,
+            p_lineas: lineas,
+          })
+          .abortSignal(controller.signal);
+
+        if (error) throw error;
+      } catch (error) {
+        if (controller.signal.aborted) {
+          throw new Error(
+            "El envío está tardando demasiado. Comprueba la conexión y vuelve a intentarlo; el botón ya está disponible."
+          );
+        }
+
+        throw error;
+      } finally {
+        window.clearTimeout(timeoutId);
+      }
 
       borrarBorradorLocal();
       setMensajeBorrador(null);
@@ -1000,39 +933,22 @@ export default function PedidoClientePage() {
               Pedido enviado correctamente
             </h1>
 
-            <p className="text-slate-600 mt-3">{mensajeFinalizado}</p>
+            <p className="text-slate-600 mt-3">
+              {mensajeFinalizado}
+            </p>
 
             <p className="text-sm text-slate-500 mt-3">
-              Si quieres hacer otra modificación, vuelve a cargar la aplicación
-              para recuperar el pedido actualizado.
+              Si quieres hacer otra modificación, vuelve a cargar la aplicación para recuperar el pedido actualizado.
             </p>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2">
-            <button
-              type="button"
-              onClick={() => window.location.reload()}
-              className="w-full bg-black text-white rounded-xl py-3 px-4 font-bold flex items-center justify-center gap-2"
-            >
-              <RefreshCw className="w-5 h-5" aria-hidden="true" />
-              Volver a abrir
-            </button>
-
-            <button
-              type="button"
-              onClick={salirAplicacion}
-              className="w-full border-2 border-slate-300 bg-white text-slate-800 rounded-xl py-3 px-4 font-bold flex items-center justify-center gap-2"
-            >
-              <LogOut className="w-5 h-5" aria-hidden="true" />
-              Salir
-            </button>
-          </div>
-
-          <p className="text-xs text-slate-400">
-            En iPhone o iPad instalado, usa el gesto habitual para volver al
-            escritorio. La próxima vez que abras el enlace, el pedido comenzará
-            desde el inicio.
-          </p>
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="w-full bg-black text-white rounded-xl py-3 font-bold"
+          >
+            Volver a cargar aplicación
+          </button>
         </section>
       </main>
     );
@@ -1043,7 +959,9 @@ export default function PedidoClientePage() {
       <main className="min-h-screen bg-slate-100 p-3 md:p-6 pb-44">
         <div className="max-w-4xl mx-auto space-y-6">
           <header className="bg-white rounded-2xl shadow p-3 md:p-6">
-            <h1 className="text-3xl md:text-4xl font-bold">Revisar pedido</h1>
+            <h1 className="text-3xl md:text-4xl font-bold">
+              Revisar pedido
+            </h1>
 
             <p className="text-slate-600 mt-2">
               Pedido de <strong>{cliente.nombre}</strong>
@@ -1051,6 +969,7 @@ export default function PedidoClientePage() {
           </header>
 
           <section className="bg-white rounded-2xl shadow p-4 md:p-6 space-y-6">
+
             {bebidasPedido.length > 0 && (
               <div>
                 <h2 className="text-xl font-bold mb-3 text-black">Bebidas</h2>
@@ -1062,9 +981,7 @@ export default function PedidoClientePage() {
                       className="border rounded-xl p-3 flex justify-between gap-3"
                     >
                       <div>
-                        <p className="font-semibold text-black">
-                          {item.nombre}
-                        </p>
+                        <p className="font-semibold text-black">{item.nombre}</p>
                         <p className="text-xs text-slate-500">
                           Código {item.codigo}
                         </p>
@@ -1081,9 +998,7 @@ export default function PedidoClientePage() {
 
             {charcuteriaPedido.length > 0 && (
               <div>
-                <h2 className="text-xl font-bold mb-3 text-black">
-                  Charcutería
-                </h2>
+                <h2 className="text-xl font-bold mb-3 text-black">Charcutería</h2>
 
                 <div className="space-y-2">
                   {charcuteriaPedido.map((item) => (
@@ -1092,9 +1007,7 @@ export default function PedidoClientePage() {
                       className="border rounded-xl p-3 flex justify-between gap-3"
                     >
                       <div>
-                        <p className="font-semibold text-black">
-                          {item.nombre}
-                        </p>
+                        <p className="font-semibold text-black">{item.nombre}</p>
                         <p className="text-xs text-slate-500">
                           Código {item.codigo}
                         </p>
@@ -1114,7 +1027,13 @@ export default function PedidoClientePage() {
             )}
 
             {mensaje && (
-              <p className="text-sm font-medium text-center">{mensaje}</p>
+              <div
+                role="alert"
+                aria-live="assertive"
+                className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-800 text-center"
+              >
+                {mensaje}
+              </div>
             )}
           </section>
         </div>
@@ -1171,9 +1090,7 @@ export default function PedidoClientePage() {
 
               <div>
                 <p className="text-xs text-slate-500 leading-none">Líneas</p>
-                <p className="text-lg font-bold leading-tight text-black">
-                  {totalLineas}
-                </p>
+                <p className="text-lg font-bold leading-tight text-black">{totalLineas}</p>
               </div>
             </div>
           </div>
@@ -1211,7 +1128,9 @@ export default function PedidoClientePage() {
               <History className="w-5 h-5 text-black" />
 
               <div>
-                <h2 className="font-bold text-black">Mis 2 últimos pedidos</h2>
+                <h2 className="font-bold text-black">
+                  Mis 2 últimos pedidos
+                </h2>
 
                 <p className="text-xs text-slate-500">
                   Consulta tus pedidos anteriores
@@ -1226,8 +1145,8 @@ export default function PedidoClientePage() {
             )}
           </button>
 
-          {mostrarHistorico &&
-            (historicoPedidos.length === 0 ? (
+          {mostrarHistorico && (
+            historicoPedidos.length === 0 ? (
               <div className="mt-4 rounded-xl border bg-slate-50 p-4 text-center">
                 <p className="text-sm text-slate-500">
                   Todavía no tienes pedidos anteriores.
@@ -1237,7 +1156,7 @@ export default function PedidoClientePage() {
               <div className="mt-4 space-y-4">
                 {historicoPedidos.map((pedidoHistorico) => {
                   const lineas = lineasHistorico.filter(
-                    (linea) => linea.pedido_id === pedidoHistorico.id,
+                    (linea) => linea.pedido_id === pedidoHistorico.id
                   );
 
                   return (
@@ -1249,7 +1168,7 @@ export default function PedidoClientePage() {
                         <h3 className="font-bold text-black">
                           Pedido del{" "}
                           {new Date(
-                            `${pedidoHistorico.fecha}T00:00:00`,
+                            `${pedidoHistorico.fecha}T00:00:00`
                           ).toLocaleDateString("es-ES")}
                         </h3>
 
@@ -1294,7 +1213,8 @@ export default function PedidoClientePage() {
                   );
                 })}
               </div>
-            ))}
+            )
+          )}
         </section>
 
         <div
@@ -1525,9 +1445,7 @@ export default function PedidoClientePage() {
           <div className="grid grid-cols-[auto_auto_1fr] items-center gap-2">
             <div className="min-w-14">
               <p className="text-[11px] text-slate-500 leading-none">Líneas</p>
-              <p className="text-xl font-bold leading-tight text-black">
-                {totalLineas}
-              </p>
+              <p className="text-xl font-bold leading-tight text-black">{totalLineas}</p>
             </div>
 
             <button
@@ -1556,7 +1474,9 @@ export default function PedidoClientePage() {
             <div className="flex items-center gap-3">
               <AlertCircle className="w-7 h-7 text-black" />
 
-              <h2 className="text-2xl font-bold">{avisoPedido.titulo}</h2>
+              <h2 className="text-2xl font-bold">
+                {avisoPedido.titulo}
+              </h2>
             </div>
 
             <div className="text-slate-700 whitespace-pre-wrap text-base leading-relaxed">
@@ -1579,7 +1499,9 @@ export default function PedidoClientePage() {
             <div className="flex items-center gap-3">
               <AlertCircle className="w-7 h-7 text-black" />
 
-              <h2 className="text-2xl font-bold">Aviso importante</h2>
+              <h2 className="text-2xl font-bold">
+                Aviso importante
+              </h2>
             </div>
 
             <div className="text-slate-700 whitespace-pre-wrap text-base leading-relaxed">

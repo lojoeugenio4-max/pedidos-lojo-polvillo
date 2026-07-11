@@ -12,6 +12,8 @@ import {
   History,
   ChevronDown,
   ChevronUp,
+  LogOut,
+  RefreshCw,
 } from "lucide-react";
 import { useParams } from "next/navigation";
 
@@ -805,6 +807,20 @@ useEffect(() => {
     setMostrarPreview(true);
   }
 
+  function salirAplicacion() {
+    // Los navegadores solo permiten cerrar automáticamente ventanas abiertas
+    // mediante JavaScript. Primero lo intentamos y, si no es posible,
+    // mostramos una página vacía para que el usuario pueda cerrar la pestaña
+    // o volver a su pantalla de inicio.
+    window.close();
+
+    window.setTimeout(() => {
+      if (!document.hidden) {
+        window.location.replace("about:blank");
+      }
+    }, 150);
+  }
+
   async function enviarPedido() {
     setMensaje("");
 
@@ -919,13 +935,30 @@ useEffect(() => {
             </p>
           </div>
 
-          <button
-            type="button"
-            onClick={() => window.location.reload()}
-            className="w-full bg-black text-white rounded-xl py-3 font-bold"
-          >
-            Volver a cargar aplicación
-          </button>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="w-full bg-black text-white rounded-xl py-3 px-4 font-bold flex items-center justify-center gap-2"
+            >
+              <RefreshCw className="w-5 h-5" aria-hidden="true" />
+              Volver a abrir
+            </button>
+
+            <button
+              type="button"
+              onClick={salirAplicacion}
+              className="w-full border-2 border-slate-300 bg-white text-slate-800 rounded-xl py-3 px-4 font-bold flex items-center justify-center gap-2"
+            >
+              <LogOut className="w-5 h-5" aria-hidden="true" />
+              Salir
+            </button>
+          </div>
+
+          <p className="text-xs text-slate-400">
+            Algunos navegadores no permiten cerrar una pestaña automáticamente.
+            En ese caso, pulsa Salir y después cierra la ventana o vuelve a la pantalla de inicio.
+          </p>
         </section>
       </main>
     );

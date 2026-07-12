@@ -247,6 +247,20 @@ export default function PedidoClientePage() {
   const [mensajeFinalizado, setMensajeFinalizado] = useState(
     "Pedido enviado correctamente.",
   );
+
+  useEffect(() => {
+    // Restablece el scroll si una versión anterior quedó suspendida en iPhone
+    // antes de retirar los estilos que bloqueaban la página.
+    const body = document.body;
+    const html = document.documentElement;
+
+    body.style.removeProperty("overflow");
+    body.style.removeProperty("position");
+    body.style.removeProperty("width");
+    body.style.removeProperty("overscroll-behavior");
+    html.style.removeProperty("overflow");
+    html.style.removeProperty("overscroll-behavior");
+  }, []);
   useEffect(() => {
     if (!pedidoFinalizado) return;
 
@@ -265,35 +279,6 @@ export default function PedidoClientePage() {
 
     return () => {
       document.removeEventListener("visibilitychange", prepararNuevaApertura);
-    };
-  }, [pedidoFinalizado]);
-
-  useEffect(() => {
-    if (!pedidoFinalizado) return;
-
-    const body = document.body;
-    const html = document.documentElement;
-    const previousBodyOverflow = body.style.overflow;
-    const previousBodyPosition = body.style.position;
-    const previousBodyWidth = body.style.width;
-    const previousBodyOverscroll = body.style.overscrollBehavior;
-    const previousHtmlOverflow = html.style.overflow;
-    const previousHtmlOverscroll = html.style.overscrollBehavior;
-
-    body.style.overflow = "hidden";
-    body.style.position = "fixed";
-    body.style.width = "100%";
-    body.style.overscrollBehavior = "none";
-    html.style.overflow = "hidden";
-    html.style.overscrollBehavior = "none";
-
-    return () => {
-      body.style.overflow = previousBodyOverflow;
-      body.style.position = previousBodyPosition;
-      body.style.width = previousBodyWidth;
-      body.style.overscrollBehavior = previousBodyOverscroll;
-      html.style.overflow = previousHtmlOverflow;
-      html.style.overscrollBehavior = previousHtmlOverscroll;
     };
   }, [pedidoFinalizado]);
 

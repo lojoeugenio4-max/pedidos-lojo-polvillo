@@ -226,8 +226,6 @@ export default function PedidoClientePage() {
   const [imagenAmpliada, setImagenAmpliada] = useState<string | null>(null);
   const [pedidoExistente, setPedidoExistente] =
     useState<PedidoExistente | null>(null);
-  const [pedidoImpresoHoy, setPedidoImpresoHoy] =
-    useState<PedidoExistente | null>(null);
   const [avisoPedido, setAvisoPedido] = useState<{
     titulo: string;
     texto: string;
@@ -602,7 +600,6 @@ export default function PedidoClientePage() {
       ((pedidosImpresosData || [])[0] as PedidoExistente | undefined) || null;
 
     setPedidoExistente(pedidoNoImpreso);
-    setPedidoImpresoHoy(pedidoNoImpreso ? null : pedidoImpreso);
 
     if (pedidoNoImpreso) {
       setAvisoPedido({
@@ -611,11 +608,21 @@ export default function PedidoClientePage() {
           "Ya tenías un pedido enviado para tu próximo día de pedido y todavía no está impreso. Puedes modificarlo y volver a enviarlo.",
       });
     } else if (pedidoImpreso) {
-      setAvisoPedido({
-        titulo: "Pedido ya impreso",
-        texto:
-          "Tu pedido anterior ya está impreso. Si envías otro pedido, se guardará como pedido adicional.",
-      });
+      /*
+        El pedido anterior ya está impreso y, por tanto, cerrado.
+        No se debe recuperar ningún borrador local ni conservar las cantidades
+        anteriores: el cliente debe comenzar un pedido completamente nuevo.
+      */
+      setPedidoExistente(null);
+      setAvisoPedido(null);
+      setPedido({});
+      borrarBorradorLocal();
+      setMensajeBorrador(null);
+      setMostrarPreview(false);
+      setBorradorPreparado(true);
+      return;
+    } else {
+      setAvisoPedido(null);
     }
 
     let pedidoBase: Pedido = {};
@@ -1131,9 +1138,7 @@ export default function PedidoClientePage() {
                 ? "Enviando..."
                 : pedidoExistente
                   ? "Confirmar modificación"
-                  : pedidoImpresoHoy
-                    ? "Enviar pedido adicional"
-                    : "Confirmar y enviar"}
+                  : "Confirmar y enviar"}
             </button>
           </div>
         </div>

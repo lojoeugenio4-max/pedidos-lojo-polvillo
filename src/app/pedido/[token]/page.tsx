@@ -890,7 +890,7 @@ export default function PedidoClientePage() {
         unidades: item.unidades,
       }));
 
-      const { error } = await supabase.rpc("guardar_pedido_cliente", {
+      const { error } = await supabase.rpc("guardar_pedido_cliente_v2", {
         p_cliente_id: cliente.id,
         p_fecha: fechaObjetivoPedido,
         p_estado: "recibido",
@@ -918,10 +918,19 @@ export default function PedidoClientePage() {
     } catch (error) {
       console.error(error);
 
-      if (error instanceof Error) {
-        setMensaje(error.message);
+      const detalle =
+        error && typeof error === "object" && "message" in error
+          ? String((error as { message?: unknown }).message || "")
+          : error instanceof Error
+            ? error.message
+            : String(error || "");
+
+      if (detalle.includes("pedido impreso")) {
+        setMensaje(
+          "El pedido anterior ya estaba cerrado. Actualiza la página y vuelve a pulsar Confirmar y enviar.",
+        );
       } else {
-        setMensaje(JSON.stringify(error));
+        setMensaje(detalle || "No se pudo enviar el pedido. Vuelve a intentarlo.");
       }
     } finally {
       setEnviando(false);

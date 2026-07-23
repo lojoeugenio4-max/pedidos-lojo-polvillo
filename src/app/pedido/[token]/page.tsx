@@ -1600,6 +1600,10 @@ export default function PedidoClientePage() {
               />
             )}
 
+            <p className="text-[10px] text-slate-400 break-all">
+              DEBUG imagen: {JSON.stringify(mensajeAvisoImagen)}
+            </p>
+
             <div className="text-slate-700 whitespace-pre-wrap text-base leading-relaxed">
               {mensajeAviso}
             </div>

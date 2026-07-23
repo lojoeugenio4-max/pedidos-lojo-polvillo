@@ -231,6 +231,9 @@ export default function PedidoClientePage() {
     texto: string;
   } | null>(null);
   const [mensajeAviso, setMensajeAviso] = useState<string | null>(null);
+  const [mensajeAvisoImagen, setMensajeAvisoImagen] = useState<string | null>(
+    null
+  );
   const [mostrarAviso, setMostrarAviso] = useState(false);
 
   const [historicoPedidos, setHistoricoPedidos] = useState<PedidoHistorico[]>(
@@ -395,7 +398,7 @@ export default function PedidoClientePage() {
     const { data, error } = await supabase
       .from("mensajes_clientes")
       .select(
-        "id, mensaje, cliente_id, dia_pedido, para_todos, activo, fecha_inicio, fecha_fin, mostrar_una_sola_vez, creado_en",
+        "id, mensaje, cliente_id, dia_pedido, para_todos, activo, fecha_inicio, fecha_fin, mostrar_una_sola_vez, creado_en, imagen_url",
       )
       .eq("activo", true)
       .lte("fecha_inicio", hoy)
@@ -439,11 +442,13 @@ export default function PedidoClientePage() {
       }
 
       setMensajeAviso(aviso.mensaje);
+      setMensajeAvisoImagen(aviso.imagen_url || null);
       setMostrarAviso(true);
       return;
     }
 
     setMensajeAviso(null);
+    setMensajeAvisoImagen(null);
     setMostrarAviso(false);
   }
 
@@ -1586,6 +1591,14 @@ export default function PedidoClientePage() {
 
               <h2 className="text-2xl font-bold">Aviso importante</h2>
             </div>
+
+            {mensajeAvisoImagen && (
+              <img
+                src={mensajeAvisoImagen}
+                alt="Novedad"
+                className="w-full max-h-64 object-cover rounded-xl border"
+              />
+            )}
 
             <div className="text-slate-700 whitespace-pre-wrap text-base leading-relaxed">
               {mensajeAviso}

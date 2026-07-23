@@ -1593,16 +1593,14 @@ export default function PedidoClientePage() {
             </div>
 
             {mensajeAvisoImagen && (
-              <img
-                src={mensajeAvisoImagen}
-                alt="Novedad"
-                className="w-full max-h-64 object-cover rounded-xl border"
-              />
+              <div className="w-full max-h-64 rounded-xl border bg-slate-50 flex items-center justify-center overflow-hidden">
+                <img
+                  src={mensajeAvisoImagen}
+                  alt="Novedad"
+                  className="max-w-full max-h-64 object-contain"
+                />
+              </div>
             )}
-
-            <p className="text-[10px] text-slate-400 break-all">
-              DEBUG imagen: {JSON.stringify(mensajeAvisoImagen)}
-            </p>
 
             <div className="text-slate-700 whitespace-pre-wrap text-base leading-relaxed">
               {mensajeAviso}

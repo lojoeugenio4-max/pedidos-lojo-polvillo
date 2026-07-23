@@ -5,10 +5,12 @@ import {
   ArrowLeft,
   Bell,
   CheckCircle,
+  Package,
   RefreshCw,
   Search,
   Send,
   Users,
+  X,
 } from "lucide-react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
@@ -24,6 +26,15 @@ type Cliente = {
   token_pedido: string | null;
 };
 
+type Producto = {
+  id: string;
+  codigo: string;
+  nombre: string;
+  departamento: string;
+  imagen_url: string | null;
+  activo: boolean | null;
+};
+
 type MensajeCliente = {
   id: string;
   mensaje: string;
@@ -35,6 +46,9 @@ type MensajeCliente = {
   fecha_fin: string | null;
   mostrar_una_sola_vez: boolean | null;
   creado_en: string;
+  imagen_url: string | null;
+  articulo_id: string | null;
+  articulo_nombre: string | null;
 };
 
 const dias = [
@@ -78,6 +92,7 @@ function normalizarDia(valor: string | null) {
 export default function AdminMensajesPage() {
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [mensajes, setMensajes] = useState<MensajeCliente[]>([]);
+  const [productos, setProductos] = useState<Producto[]>([]);
   const [cargando, setCargando] = useState(true);
   const [mensajeError, setMensajeError] = useState("");
   const [mensajeOk, setMensajeOk] = useState("");
@@ -98,7 +113,12 @@ export default function AdminMensajesPage() {
     fecha_fin: "",
     mostrar_una_sola_vez: false,
     activo: true,
+    quitar_imagen: false,
   });
+
+  const [busquedaArticulo, setBusquedaArticulo] = useState("");
+  const [articuloSeleccionado, setArticuloSeleccionado] =
+    useState<Producto | null>(null);
 
   async function cargarDatos() {
     setCargando(true);
@@ -121,7 +141,7 @@ export default function AdminMensajesPage() {
     const { data: mensajesData, error: mensajesError } = await supabase
       .from("mensajes_clientes")
       .select(
-        "id, mensaje, cliente_id, dia_pedido, para_todos, activo, fecha_inicio, fecha_fin, mostrar_una_sola_vez, creado_en"
+        "id, mensaje, cliente_id, dia_pedido, para_todos, activo, fecha_inicio, fecha_fin, mostrar_una_sola_vez, creado_en, imagen_url, articulo_id, articulo_nombre"
       )
       .order("creado_en", { ascending: false });
 
@@ -131,8 +151,21 @@ export default function AdminMensajesPage() {
       return;
     }
 
+    const { data: productosData, error: productosError } = await supabase
+      .from("productos")
+      .select("id, codigo, nombre, departamento, imagen_url, activo")
+      .eq("activo", true)
+      .order("nombre", { ascending: true });
+
+    if (productosError) {
+      setMensajeError(JSON.stringify(productosError));
+      setCargando(false);
+      return;
+    }
+
     setClientes((clientesData || []) as Cliente[]);
     setMensajes((mensajesData || []) as MensajeCliente[]);
+    setProductos((productosData || []) as Producto[]);
     setCargando(false);
   }
 
@@ -154,6 +187,20 @@ export default function AdminMensajesPage() {
       );
     });
   }, [clientes, busqueda]);
+
+  const articulosFiltrados = useMemo(() => {
+    const q = busquedaArticulo.toLowerCase().trim();
+
+    if (!q) return [];
+
+    return productos
+      .filter(
+        (p) =>
+          p.nombre.toLowerCase().includes(q) ||
+          (p.codigo || "").toLowerCase().includes(q)
+      )
+      .slice(0, 8);
+  }, [productos, busquedaArticulo]);
 
   const destinatarios = useMemo(() => {
     if (modo === "todas") return clientesFiltrados;
@@ -192,6 +239,9 @@ export default function AdminMensajesPage() {
       fecha_fin: fechaFin || null,
       mostrar_una_sola_vez: mostrarUnaSolaVez,
       activo: true,
+      imagen_url: articuloSeleccionado?.imagen_url || null,
+      articulo_id: articuloSeleccionado?.id || null,
+      articulo_nombre: articuloSeleccionado?.nombre || null,
     };
 
     const { error } = await supabase
@@ -204,6 +254,8 @@ export default function AdminMensajesPage() {
     }
 
     await cargarDatos();
+    setArticuloSeleccionado(null);
+    setBusquedaArticulo("");
 
     setMensajeOk(
       modo === "todas"
@@ -241,6 +293,7 @@ export default function AdminMensajesPage() {
       fecha_fin: m.fecha_fin || "",
       mostrar_una_sola_vez: Boolean(m.mostrar_una_sola_vez),
       activo: Boolean(m.activo),
+      quitar_imagen: false,
     });
   }
 
@@ -252,6 +305,7 @@ export default function AdminMensajesPage() {
       fecha_fin: "",
       mostrar_una_sola_vez: false,
       activo: true,
+      quitar_imagen: false,
     });
   }
 
@@ -264,15 +318,23 @@ export default function AdminMensajesPage() {
       return;
     }
 
+    const camposActualizados: Record<string, unknown> = {
+      mensaje: edicion.mensaje.trim(),
+      fecha_inicio: edicion.fecha_inicio || fechaHoyISO(),
+      fecha_fin: edicion.fecha_fin || null,
+      mostrar_una_sola_vez: edicion.mostrar_una_sola_vez,
+      activo: edicion.activo,
+    };
+
+    if (edicion.quitar_imagen) {
+      camposActualizados.imagen_url = null;
+      camposActualizados.articulo_id = null;
+      camposActualizados.articulo_nombre = null;
+    }
+
     const { error } = await supabase
       .from("mensajes_clientes")
-      .update({
-        mensaje: edicion.mensaje.trim(),
-        fecha_inicio: edicion.fecha_inicio || fechaHoyISO(),
-        fecha_fin: edicion.fecha_fin || null,
-        mostrar_una_sola_vez: edicion.mostrar_una_sola_vez,
-        activo: edicion.activo,
-      })
+      .update(camposActualizados)
       .eq("id", id);
 
     if (error) {
@@ -501,6 +563,115 @@ export default function AdminMensajesPage() {
             placeholder="Escribe el aviso..."
           />
 
+          <div className="space-y-2">
+            <label className="block text-sm font-semibold flex items-center gap-2">
+              <Package className="w-4 h-4" />
+              Imagen del aviso (opcional)
+            </label>
+
+            <p className="text-xs text-slate-500">
+              Busca el artículo que quieres anunciar y se usará la foto que ya
+              tiene en el catálogo. No hace falta subir una imagen nueva.
+            </p>
+
+            {articuloSeleccionado ? (
+              <div className="flex items-center gap-3 border rounded-xl p-3 bg-slate-50">
+                {articuloSeleccionado.imagen_url ? (
+                  <img
+                    src={articuloSeleccionado.imagen_url}
+                    alt={articuloSeleccionado.nombre}
+                    className="w-16 h-16 object-cover rounded-lg border"
+                  />
+                ) : (
+                  <div className="w-16 h-16 flex items-center justify-center rounded-lg border bg-white text-slate-400 text-xs text-center px-1">
+                    Sin foto
+                  </div>
+                )}
+
+                <div className="flex-1">
+                  <p className="font-semibold">{articuloSeleccionado.nombre}</p>
+                  <p className="text-xs text-slate-500">
+                    {articuloSeleccionado.codigo || "sin código"}
+                  </p>
+                  {!articuloSeleccionado.imagen_url && (
+                    <p className="text-xs text-amber-600">
+                      Este artículo todavía no tiene foto en Productos.
+                    </p>
+                  )}
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <button
+                    onClick={() =>
+                      setMensaje(
+                        `Os informamos de este nuevo producto: ${articuloSeleccionado.nombre}.`
+                      )
+                    }
+                    className="rounded-lg border px-3 py-2 bg-white text-sm"
+                  >
+                    Usar texto de ejemplo
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setArticuloSeleccionado(null);
+                      setBusquedaArticulo("");
+                    }}
+                    className="rounded-lg border px-3 py-2 bg-white flex items-center gap-1 text-sm"
+                  >
+                    <X className="w-4 h-4" />
+                    Quitar
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="relative">
+                <Search className="absolute left-3 top-3.5 w-5 h-5 text-slate-400" />
+
+                <input
+                  value={busquedaArticulo}
+                  onChange={(e) => setBusquedaArticulo(e.target.value)}
+                  placeholder="Buscar artículo por nombre o código..."
+                  className="w-full border rounded-xl py-3 pl-10 pr-4"
+                />
+
+                {articulosFiltrados.length > 0 && (
+                  <div className="absolute z-10 mt-1 w-full bg-white border rounded-xl shadow-lg max-h-72 overflow-y-auto">
+                    {articulosFiltrados.map((p) => (
+                      <button
+                        key={p.id}
+                        onClick={() => {
+                          setArticuloSeleccionado(p);
+                          setBusquedaArticulo("");
+                        }}
+                        className="w-full flex items-center gap-3 p-3 hover:bg-slate-50 text-left border-b last:border-b-0"
+                      >
+                        {p.imagen_url ? (
+                          <img
+                            src={p.imagen_url}
+                            alt={p.nombre}
+                            className="w-10 h-10 object-cover rounded-lg border"
+                          />
+                        ) : (
+                          <div className="w-10 h-10 flex items-center justify-center rounded-lg border bg-slate-50 text-slate-400 text-[10px] text-center">
+                            Sin foto
+                          </div>
+                        )}
+
+                        <div>
+                          <p className="font-semibold text-sm">{p.nombre}</p>
+                          <p className="text-xs text-slate-500">
+                            {p.codigo || "sin código"} · {p.departamento}
+                          </p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div>
               <label className="block text-xs font-semibold text-slate-500 mb-1">
@@ -590,21 +761,57 @@ export default function AdminMensajesPage() {
 
                       <td className="p-3 max-w-xl">
                         {editando ? (
-                          <textarea
-                            value={edicion.mensaje}
-                            onChange={(e) =>
-                              setEdicion({
-                                ...edicion,
-                                mensaje: e.target.value,
-                              })
-                            }
-                            rows={4}
-                            className="w-full border rounded-xl p-3"
-                          />
+                          <div className="space-y-2">
+                            <textarea
+                              value={edicion.mensaje}
+                              onChange={(e) =>
+                                setEdicion({
+                                  ...edicion,
+                                  mensaje: e.target.value,
+                                })
+                              }
+                              rows={4}
+                              className="w-full border rounded-xl p-3"
+                            />
+
+                            {m.imagen_url && !edicion.quitar_imagen && (
+                              <div className="flex items-center gap-2">
+                                <img
+                                  src={m.imagen_url}
+                                  alt={m.articulo_nombre || "Imagen del aviso"}
+                                  className="w-12 h-12 object-cover rounded-lg border"
+                                />
+
+                                <label className="flex items-center gap-2 text-xs font-semibold">
+                                  <input
+                                    type="checkbox"
+                                    checked={edicion.quitar_imagen}
+                                    onChange={(e) =>
+                                      setEdicion({
+                                        ...edicion,
+                                        quitar_imagen: e.target.checked,
+                                      })
+                                    }
+                                  />
+                                  Quitar imagen
+                                </label>
+                              </div>
+                            )}
+                          </div>
                         ) : (
-                          <p className="line-clamp-4 whitespace-pre-wrap">
-                            {m.mensaje}
-                          </p>
+                          <div className="space-y-2">
+                            {m.imagen_url && (
+                              <img
+                                src={m.imagen_url}
+                                alt={m.articulo_nombre || "Imagen del aviso"}
+                                className="w-20 h-20 object-cover rounded-lg border"
+                              />
+                            )}
+
+                            <p className="line-clamp-4 whitespace-pre-wrap">
+                              {m.mensaje}
+                            </p>
+                          </div>
                         )}
                       </td>
 
